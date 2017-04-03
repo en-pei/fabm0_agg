@@ -23,6 +23,7 @@
    use fabm_metu_mnemiopsis
    use fabm_klimacampus_phy_feedback
    use fabm_hzg_omexdia_p
+   use fabm_hzg_ecosmo
    use fabm_msi_ergom1
    use iow_model_library
 
@@ -86,6 +87,7 @@ contains
          case ('metu_mnemiopsis');           allocate(type_metu_mnemiopsis::model)
          case ('klimacampus_phy_feedback');  allocate(type_klimacampus_phy_feedback::model)
          case ('hzg_omexdia_p');             allocate(type_hzg_omexdia_p::model)
+         case ('hzg_ecosmo');                allocate(type_hzg_ecosmo::model)
          case ('msi_ergom1');                allocate(type_msi_ergom1::model)
          case default
             call self%type_base_model_factory%create(name,model)
