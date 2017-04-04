@@ -14,6 +14,7 @@
 !
 ! !USES:
    use fabm_types
+   use fabm_expressions
 
    implicit none
 
@@ -43,8 +44,10 @@
       type (type_state_variable_id)         :: id_mesozoo, id_microzoo, id_bg, id_dom, id_oxy
       type (type_bottom_state_variable_id)  :: id_sed1, id_sed2, id_sed3
       type (type_dependency_id)             :: id_temp, id_salt, id_par
+      type (type_dependency_id)             :: id_parmean
       type (type_horizontal_dependency_id)  :: id_tbs
       type (type_diagnostic_variable_id)    :: id_denit, id_primprod, id_secprod
+      type (type_diagnostic_variable_id)    :: id_parmean_diag
 
 !     Model parameters
       real(rk) :: BioC(45)
@@ -62,6 +65,7 @@
       real(rk) :: surface_deposition_nh4
       real(rk) :: surface_deposition_pho
       real(rk) :: surface_deposition_sil
+      real(rk) :: nfixation_minimum_daily_par
 
       contains
 
@@ -107,6 +111,8 @@
    real(rk) :: surface_deposition_nh4=0.0
    real(rk) :: surface_deposition_pho=0.0
    real(rk) :: surface_deposition_sil=0.0
+   real(rk) :: nfixation_minimum_daily_par=40.0
+
 
    integer  :: i
 
@@ -118,7 +124,9 @@
                           det_init, dom_init, opa_init, &
                           sed1_init, sed2_init, sed3_init, &
                           surface_deposition_no3, surface_deposition_nh4, &
-                          surface_deposition_pho, surface_deposition_sil
+                          surface_deposition_pho, surface_deposition_sil, &
+                          nfixation_minimum_daily_par
+
 !EOP
 !-----------------------------------------------------------------------
 !BOC
@@ -133,6 +141,7 @@
 
    self%zpr = zpr/secs_pr_day
    self%frr = frr
+   self%nfixation_minimum_daily_par = nfixation_minimum_daily_par
 
    ! set Redfield ratios:
    redf(1) = 6.625_rk      !C_N
@@ -282,7 +291,7 @@
                                      initial_value=bg_init*redf(1)*redf(6), &
                                      vertical_movement=-BioC(44), &
                                      specific_light_extinction=BioC(5), &
-                                     minimum=0.0_rk)
+                                     minimum=1.0e-07_rk)
 
    call self%register_state_variable(self%id_microzoo,'microzoo','mmolC/m3','microzooplankton',     &
                                      initial_value=microzoo_init*redf(1)*redf(6), &
@@ -334,14 +343,16 @@
          'primary production rate', time_treatment=time_treatment_averaged)
    call self%register_diagnostic_variable(self%id_secprod,'secprod','mmolC/m**3/s', &
          'secondary production rate', time_treatment=time_treatment_averaged)
+   call self%register_diagnostic_variable(self%id_parmean_diag,'parmean','W/m**2', &
+         'daily-mean photosynthetically active radiation', time_treatment=time_treatment_averaged)
 
    ! Register dependencies
    call self%register_dependency(self%id_temp,standard_variables%temperature)
    call self%register_dependency(self%id_salt,standard_variables%practical_salinity)
    call self%register_dependency(self%id_par,standard_variables%downwelling_photosynthetic_radiative_flux)
    call self%register_dependency(self%id_tbs,standard_variables%bottom_stress)
-
-
+   ! use temporal mean of light for the last 24 hours
+   call self%register_dependency(self%id_parmean,temporal_mean(self%id_par,period=86400._rk,resolution=3600._rk))
 
    return
 
@@ -381,6 +392,7 @@
    real(rk) :: bioom1,bioom2,bioom3,bioom4,bioom5,bioom6,bioom7,bioom8,Onitr
    real(rk) :: rhs,dxxdet
    real(rk) :: Zl_prod, Zs_prod
+   real(rk) :: mean_par, Bg_fix
 !EOP
 !-----------------------------------------------------------------------
 !BOC
@@ -404,6 +416,7 @@
    _GET_(self%id_dom,dom)
    _GET_(self%id_opa,opa)
    _GET_(self%id_oxy,oxy)
+   _GET_(self%id_parmean,mean_par)
 
    ! remineralisation rate
    frem = 0.003_rk/secs_pr_day * (1._rk+20._rk*(temp**2/(13._rk**2+temp**2)))
@@ -424,7 +437,7 @@
    ! temperature dependence
    Ts = 1.0_rk
    Tl = 1.0_rk
-   if (salt<=10.0) then
+   if ((salt<=10.0) .and. (mean_par > self%nfixation_minimum_daily_par)) then
      Tbg = 1.0_rk/(1.0_rk + exp(BioC(29)*(BioC(30)-temp)))
    else
      Tbg = 0.0_rk
@@ -433,12 +446,14 @@
    ! production and nutrient uptake
    Ps_prod = Ts * min(blight, up_n, up_pho)
    Pl_prod = Tl * min(blight, up_n, up_pho, up_sil)
-   Bg_prod = Tbg * min(blight, up_n, up_pho)
-   !Bg_prod = Tbg * min(blight, up_pho)
+   Bg_prod = 0.0_rk ! the light criterium restricts growth to surface waters
+   !Bg_prod = Tbg * min(blight, up_n, up_pho)
+   !if (mean_par > 120._rk) then
+     Bg_fix = Tbg * min(blight, up_pho)
+   !end if
    Prod = BioC(1)*Pl_prod*dia + & ! diatoms production
           BioC(2)*Ps_prod*fla + & ! flagellates production
-          BioC(28) * Bg_prod * bg ! cyanobacteria production
-   ! cyanobacteria production at the surface in routine do_surface
+          BioC(28)*Bg_prod*bg ! cyanobacteria production
 
    ! grazing
    ! gf denotes grazing fraction
@@ -484,7 +499,7 @@
 ! reaction rates
    _SET_ODE_(self%id_fla, (BioC(2)*Ps_prod - BioC(10))*fla - ZsonPs*microzoo - ZlonPs*mesozoo)
    _SET_ODE_(self%id_dia, (BioC(1)*Pl_prod - BioC(9))*dia - ZsonPl*microzoo - ZlonPl*mesozoo)
-   _SET_ODE_(self%id_bg,  (BioC(28)*Bg_prod - BioC(32))*bg - ZsonBg*microzoo - ZlonBg*mesozoo)
+   _SET_ODE_(self%id_bg,  (BioC(28)*(Bg_prod + Bg_fix) - BioC(32))*bg - ZsonBg*microzoo - ZlonBg*mesozoo)
 
    ! microzooplankton
    Zs_prod = BioC(20)*(ZsonPs + ZsonPl + ZsonBg) + BioC(21)*ZsonD
@@ -534,7 +549,7 @@
    _SET_ODE_(self%id_nh4, rhs)
 
    ! phosphate
-   _SET_ODE_(self%id_pho, -Prod + BioC(18) * microzoo + BioC(17) * mesozoo + frem*det + fremDOM*dom)
+   _SET_ODE_(self%id_pho, -Prod -BioC(28)*bg*Bg_fix + BioC(18) * microzoo + BioC(17) * mesozoo + frem*det + fremDOM*dom)
 
    ! silicate
    _SET_ODE_(self%id_sil, -BioC(1)*Pl_prod*dia + BioC(27)*opa)
@@ -552,8 +567,9 @@
 
    ! Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_denit,(frem*det*bioom5+fremDOM*dom*bioom5)*redf(11)*redf(16))
-   _SET_DIAGNOSTIC_(self%id_primprod, Prod )
+   _SET_DIAGNOSTIC_(self%id_primprod, Prod + BioC(28)*bg*Bg_fix )
    _SET_DIAGNOSTIC_(self%id_secprod, Zl_prod*mesozoo + Zs_prod*microzoo)
+   _SET_DIAGNOSTIC_(self%id_parmean_diag, mean_par)
 
    ! Leave spatial loops (if any)
    _LOOP_END_
