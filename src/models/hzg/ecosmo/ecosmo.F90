@@ -46,6 +46,7 @@
       type (type_dependency_id)             :: id_temp, id_salt, id_par
       type (type_dependency_id)             :: id_parmean
       type (type_horizontal_dependency_id)  :: id_tbs
+      type (type_horizontal_dependency_id)  :: id_sfpar, id_meansfpar
       type (type_diagnostic_variable_id)    :: id_denit, id_primprod, id_secprod
       type (type_diagnostic_variable_id)    :: id_parmean_diag
 
@@ -66,6 +67,7 @@
       real(rk) :: surface_deposition_pho
       real(rk) :: surface_deposition_sil
       real(rk) :: nfixation_minimum_daily_par
+      real(rk) :: bg_growth_minimum_daily_rad
 
       contains
 
@@ -112,6 +114,7 @@
    real(rk) :: surface_deposition_pho=0.0
    real(rk) :: surface_deposition_sil=0.0
    real(rk) :: nfixation_minimum_daily_par=40.0
+   real(rk) :: bg_growth_minimum_daily_rad=120.0
 
 
    integer  :: i
@@ -125,7 +128,7 @@
                           sed1_init, sed2_init, sed3_init, &
                           surface_deposition_no3, surface_deposition_nh4, &
                           surface_deposition_pho, surface_deposition_sil, &
-                          nfixation_minimum_daily_par
+                          nfixation_minimum_daily_par, bg_growth_minimum_daily_rad
 
 !EOP
 !-----------------------------------------------------------------------
@@ -142,6 +145,7 @@
    self%zpr = zpr/secs_pr_day
    self%frr = frr
    self%nfixation_minimum_daily_par = nfixation_minimum_daily_par
+   self%bg_growth_minimum_daily_rad = bg_growth_minimum_daily_rad
 
    ! set Redfield ratios:
    redf(1) = 6.625_rk      !C_N
@@ -351,8 +355,10 @@
    call self%register_dependency(self%id_salt,standard_variables%practical_salinity)
    call self%register_dependency(self%id_par,standard_variables%downwelling_photosynthetic_radiative_flux)
    call self%register_dependency(self%id_tbs,standard_variables%bottom_stress)
+   call self%register_dependency(self%id_sfpar,standard_variables%surface_downwelling_photosynthetic_radiative_flux)
    ! use temporal mean of light for the last 24 hours
    call self%register_dependency(self%id_parmean,temporal_mean(self%id_par,period=86400._rk,resolution=3600._rk))
+   call self%register_dependency(self%id_meansfpar,temporal_mean(self%id_sfpar,period=86400._rk,resolution=3600._rk))
 
    return
 
@@ -392,7 +398,7 @@
    real(rk) :: bioom1,bioom2,bioom3,bioom4,bioom5,bioom6,bioom7,bioom8,Onitr
    real(rk) :: rhs,dxxdet
    real(rk) :: Zl_prod, Zs_prod
-   real(rk) :: mean_par, Bg_fix
+   real(rk) :: mean_par, mean_surface_par, Bg_fix
 !EOP
 !-----------------------------------------------------------------------
 !BOC
@@ -417,6 +423,7 @@
    _GET_(self%id_opa,opa)
    _GET_(self%id_oxy,oxy)
    _GET_(self%id_parmean,mean_par)
+   _GET_HORIZONTAL_(self%id_meansfpar,mean_surface_par)
 
    ! remineralisation rate
    frem = 0.003_rk/secs_pr_day * (1._rk+20._rk*(temp**2/(13._rk**2+temp**2)))
@@ -437,7 +444,7 @@
    ! temperature dependence
    Ts = 1.0_rk
    Tl = 1.0_rk
-   if ((salt<=10.0) .and. (mean_par > self%nfixation_minimum_daily_par)) then
+   if ((salt<=10.0) .and. (mean_surface_par > self%bg_growth_minimum_daily_rad)) then
      Tbg = 1.0_rk/(1.0_rk + exp(BioC(29)*(BioC(30)-temp)))
    else
      Tbg = 0.0_rk
@@ -446,11 +453,11 @@
    ! production and nutrient uptake
    Ps_prod = Ts * min(blight, up_n, up_pho)
    Pl_prod = Tl * min(blight, up_n, up_pho, up_sil)
-   Bg_prod = 0.0_rk ! the light criterium restricts growth to surface waters
-   !Bg_prod = Tbg * min(blight, up_n, up_pho)
-   !if (mean_par > 120._rk) then
-     Bg_fix = Tbg * min(blight, up_pho)
-   !end if
+   !Bg_prod = 0.0_rk ! the light criterium restricts growth to surface waters
+   Bg_prod = Tbg * min(blight, up_n, up_pho)
+   if (mean_par > self%nfixation_minimum_daily_par) then
+     Bg_fix = Tbg * min(blight, up_pho) - Bg_prod
+   end if
    Prod = BioC(1)*Pl_prod*dia + & ! diatoms production
           BioC(2)*Ps_prod*fla + & ! flagellates production
           BioC(28)*Bg_prod*bg ! cyanobacteria production
