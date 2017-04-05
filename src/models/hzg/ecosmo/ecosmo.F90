@@ -249,25 +249,25 @@
    self%gf_zl_zs  = GI(2,3)
 
    ! Register state variables
-   call self%register_state_variable(self%id_no3,'no3','mmolC/m3','nitrate',     &
+   call self%register_state_variable(self%id_no3,'no3','mgC/m3','nitrate',     &
                                      initial_value=no3_init*redf(1)*redf(6), &
                                      vertical_movement=0.0_rk, &
                                      specific_light_extinction=0.0_rk, &
                                      minimum=0.0_rk)
 
-   call self%register_state_variable(self%id_nh4,'nh4','mmolC/m3','ammonium',     &
+   call self%register_state_variable(self%id_nh4,'nh4','mgC/m3','ammonium',     &
                                      initial_value=nh4_init*redf(1)*redf(6), &
                                      vertical_movement=0.0_rk, &
                                      specific_light_extinction=0.0_rk, &
                                      minimum=0.0_rk)
 
-   call self%register_state_variable(self%id_pho,'pho','mmolC/m3','phosphate',     &
+   call self%register_state_variable(self%id_pho,'pho','mgC/m3','phosphate',     &
                                      initial_value=pho_init*redf(2)*redf(6), &
                                      vertical_movement=0.0_rk, &
                                      specific_light_extinction=0.0_rk, &
                                      minimum=0.0_rk)
 
-   call self%register_state_variable(self%id_sil,'sil','mmolC/m3','silicate',     &
+   call self%register_state_variable(self%id_sil,'sil','mgC/m3','silicate',     &
                                      initial_value=sil_init*redf(3)*redf(6), &
                                      vertical_movement=0.0_rk, &
                                      specific_light_extinction=0.0_rk, &
@@ -279,63 +279,63 @@
                                      specific_light_extinction=0.0_rk, &
                                      minimum=-100000._rk)
 
-   call self%register_state_variable(self%id_dia,'dia','mmolC/m3','large phytoplankton',     &
+   call self%register_state_variable(self%id_dia,'dia','mgC/m3','large phytoplankton',     &
                                      initial_value=dia_init*redf(1)*redf(6), &
                                      vertical_movement=-BioC(45), &
                                      specific_light_extinction=BioC(5), &
                                      minimum=0.0_rk)
 
-   call self%register_state_variable(self%id_fla,'fla','mmolC/m3','small phytoplankton',     &
+   call self%register_state_variable(self%id_fla,'fla','mgC/m3','small phytoplankton',     &
                                      initial_value=fla_init*redf(1)*redf(6), &
                                      vertical_movement=0.0_rk, &
                                      specific_light_extinction=BioC(5), &
                                      minimum=0.0_rk)
 
-   call self%register_state_variable(self%id_bg,'bg','mmolC/m3','cyanobacteria',     &
+   call self%register_state_variable(self%id_bg,'bg','mgC/m3','cyanobacteria',     &
                                      initial_value=bg_init*redf(1)*redf(6), &
                                      vertical_movement=-BioC(44), &
                                      specific_light_extinction=BioC(5), &
                                      minimum=1.0e-07_rk)
 
-   call self%register_state_variable(self%id_microzoo,'microzoo','mmolC/m3','microzooplankton',     &
+   call self%register_state_variable(self%id_microzoo,'microzoo','mgC/m3','microzooplankton',     &
                                      initial_value=microzoo_init*redf(1)*redf(6), &
                                      vertical_movement=0.0_rk, &
                                      specific_light_extinction=0.0_rk, &
                                      minimum=1.0e-7_rk)
 
-   call self%register_state_variable(self%id_mesozoo,'mesozoo','mmolC/m3','mesozooplankton',     &
+   call self%register_state_variable(self%id_mesozoo,'mesozoo','mgC/m3','mesozooplankton',     &
                                      initial_value=mesozoo_init*redf(1)*redf(6), &
                                      vertical_movement=0.0_rk, &
                                      specific_light_extinction=0.0_rk, &
                                      minimum=1.0e-7_rk)
 
-   call self%register_state_variable(self%id_det,'det','mmolC/m3','detritus',     &
+   call self%register_state_variable(self%id_det,'det','mgC/m3','detritus',     &
                                      initial_value=det_init*redf(1)*redf(6), &
                                      vertical_movement=-BioC(23), &
                                      specific_light_extinction=0.0_rk, &
                                      minimum=0.0_rk)
 
-   call self%register_state_variable(self%id_opa,'opa','mmolC/m3','opal',     &
+   call self%register_state_variable(self%id_opa,'opa','mgC/m3','opal',     &
                                      initial_value=opa_init*redf(3)*redf(6), &
                                      vertical_movement=-BioC(43), &
                                      specific_light_extinction=0.0_rk, &
                                      minimum=0.0_rk)
 
-   call self%register_state_variable(self%id_dom,'dom','mmolC/m3','labile dissolved om',     &
+   call self%register_state_variable(self%id_dom,'dom','mgC/m3','labile dissolved om',     &
                                      initial_value=dom_init*redf(1)*redf(6), &
                                      vertical_movement=0.0_rk, &
                                      specific_light_extinction=0.0_rk, &
                                      minimum=0.0_rk)
 
-   call self%register_state_variable(self%id_sed1,'sed1','mmolC/m2','sediment detritus',     &
+   call self%register_state_variable(self%id_sed1,'sed1','mgC/m2','sediment detritus',     &
                                      initial_value=sed1_init*redf(1)*redf(6), &
                                      minimum=0.0_rk)
 
-   call self%register_state_variable(self%id_sed2,'sed2','mmolC/m2','sediment opal',     &
+   call self%register_state_variable(self%id_sed2,'sed2','mgC/m2','sediment opal',     &
                                      initial_value=sed2_init*redf(3)*redf(6), &
                                      minimum=0.0_rk)
 
-   call self%register_state_variable(self%id_sed3,'sed3','mmolC/m2','sediment adsorbed phosporus',     &
+   call self%register_state_variable(self%id_sed3,'sed3','mgC/m2','sediment adsorbed phosporus',     &
                                      initial_value=sed3_init*redf(2)*redf(6), &
                                      minimum=0.0_rk)
 
@@ -343,9 +343,9 @@
    ! Register diagnostic variables
    call self%register_diagnostic_variable(self%id_denit,'denit','mmolN/m**3/s', &
          'denitrification rate', time_treatment=time_treatment_averaged)
-   call self%register_diagnostic_variable(self%id_primprod,'primprod','mmolC/m**3/s', &
+   call self%register_diagnostic_variable(self%id_primprod,'primprod','mgC/m**3/s', &
          'primary production rate', time_treatment=time_treatment_averaged)
-   call self%register_diagnostic_variable(self%id_secprod,'secprod','mmolC/m**3/s', &
+   call self%register_diagnostic_variable(self%id_secprod,'secprod','mgC/m**3/s', &
          'secondary production rate', time_treatment=time_treatment_averaged)
    call self%register_diagnostic_variable(self%id_parmean_diag,'parmean','W/m**2', &
          'daily-mean photosynthetically active radiation', time_treatment=time_treatment_averaged)
