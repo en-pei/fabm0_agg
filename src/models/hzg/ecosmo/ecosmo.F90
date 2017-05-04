@@ -342,13 +342,13 @@
 
    ! Register diagnostic variables
    call self%register_diagnostic_variable(self%id_denit,'denit','mmolN/m**3/s', &
-         'denitrification rate', time_treatment=time_treatment_averaged)
+         'denitrification rate', output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_primprod,'primprod','mgC/m**3/s', &
-         'primary production rate', time_treatment=time_treatment_averaged)
+         'primary production rate', output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_secprod,'secprod','mgC/m**3/s', &
-         'secondary production rate', time_treatment=time_treatment_averaged)
+         'secondary production rate', output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_parmean_diag,'parmean','W/m**2', &
-         'daily-mean photosynthetically active radiation', time_treatment=time_treatment_averaged)
+         'daily-mean photosynthetically active radiation', output=output_time_step_averaged)
 
    ! Register dependencies
    call self%register_dependency(self%id_temp,standard_variables%temperature)
