@@ -76,6 +76,7 @@
       procedure :: do
       procedure :: do_surface
       procedure :: do_bottom
+      procedure :: get_light_extinction
 
    end type type_hzg_ecosmo
 !EOP
@@ -252,79 +253,66 @@
    call self%register_state_variable(self%id_no3,'no3','mgC/m3','nitrate',     &
                                      initial_value=no3_init*redf(1)*redf(6), &
                                      vertical_movement=0.0_rk, &
-                                     specific_light_extinction=0.0_rk, &
                                      minimum=0.0_rk)
 
    call self%register_state_variable(self%id_nh4,'nh4','mgC/m3','ammonium',     &
                                      initial_value=nh4_init*redf(1)*redf(6), &
                                      vertical_movement=0.0_rk, &
-                                     specific_light_extinction=0.0_rk, &
                                      minimum=0.0_rk)
 
    call self%register_state_variable(self%id_pho,'pho','mgC/m3','phosphate',     &
                                      initial_value=pho_init*redf(2)*redf(6), &
                                      vertical_movement=0.0_rk, &
-                                     specific_light_extinction=0.0_rk, &
                                      minimum=0.0_rk)
 
    call self%register_state_variable(self%id_sil,'sil','mgC/m3','silicate',     &
                                      initial_value=sil_init*redf(3)*redf(6), &
                                      vertical_movement=0.0_rk, &
-                                     specific_light_extinction=0.0_rk, &
                                      minimum=0.0_rk)
 
    call self%register_state_variable(self%id_oxy,'oxy','mmolO2/m3','oxygen',     &
                                      initial_value=oxy_init, &
                                      vertical_movement=0.0_rk, &
-                                     specific_light_extinction=0.0_rk, &
                                      minimum=-100000._rk)
 
    call self%register_state_variable(self%id_dia,'dia','mgC/m3','large phytoplankton',     &
                                      initial_value=dia_init*redf(1)*redf(6), &
                                      vertical_movement=-BioC(45), &
-                                     specific_light_extinction=BioC(5), &
                                      minimum=1.0e-07_rk)
 
    call self%register_state_variable(self%id_fla,'fla','mgC/m3','small phytoplankton',     &
                                      initial_value=fla_init*redf(1)*redf(6), &
                                      vertical_movement=0.0_rk, &
-                                     specific_light_extinction=BioC(5), &
                                      minimum=1.0e-07_rk)
 
    call self%register_state_variable(self%id_bg,'bg','mgC/m3','cyanobacteria',     &
                                      initial_value=bg_init*redf(1)*redf(6), &
                                      vertical_movement=-BioC(44), &
-                                     specific_light_extinction=BioC(5), &
                                      minimum=1.0e-07_rk)
 
    call self%register_state_variable(self%id_microzoo,'microzoo','mgC/m3','microzooplankton',     &
                                      initial_value=microzoo_init*redf(1)*redf(6), &
                                      vertical_movement=0.0_rk, &
-                                     specific_light_extinction=0.0_rk, &
                                      minimum=1.0e-7_rk)
 
    call self%register_state_variable(self%id_mesozoo,'mesozoo','mgC/m3','mesozooplankton',     &
                                      initial_value=mesozoo_init*redf(1)*redf(6), &
                                      vertical_movement=0.0_rk, &
-                                     specific_light_extinction=0.0_rk, &
                                      minimum=1.0e-7_rk)
 
    call self%register_state_variable(self%id_det,'det','mgC/m3','detritus',     &
                                      initial_value=det_init*redf(1)*redf(6), &
                                      vertical_movement=-BioC(23), &
-                                     specific_light_extinction=0.0_rk, &
                                      minimum=0.0_rk)
 
    call self%register_state_variable(self%id_opa,'opa','mgC/m3','opal',     &
                                      initial_value=opa_init*redf(3)*redf(6), &
                                      vertical_movement=-BioC(43), &
-                                     specific_light_extinction=0.0_rk, &
                                      minimum=0.0_rk)
 
    call self%register_state_variable(self%id_dom,'dom','mgC/m3','labile dissolved om',     &
                                      initial_value=dom_init*redf(1)*redf(6), &
                                      vertical_movement=0.0_rk, &
-                                     specific_light_extinction=0.0_rk, &
                                      minimum=0.0_rk)
 
    call self%register_state_variable(self%id_sed1,'sed1','mgC/m2','sediment detritus',     &
@@ -783,6 +771,30 @@
    end subroutine do_bottom
 !EOC
 
+
+   subroutine get_light_extinction(self,_ARGUMENTS_GET_EXTINCTION_)
+   class (type_hzg_ecosmo), intent(in) :: self
+   _DECLARE_ARGUMENTS_GET_EXTINCTION_
+
+   real(rk)                     :: dom,det,dia,fla,bg
+
+   ! Enter spatial loops (if any)
+   _LOOP_BEGIN_
+
+   ! Retrieve current (local) state variable values.
+
+   _GET_(self%id_dia, dia)
+   _GET_(self%id_fla, fla)
+   _GET_(self%id_det, det)
+   _GET_(self%id_dom, dom)
+   _GET_(self%id_bg, bg)
+
+   _SET_EXTINCTION_( self%BioC(5)*(dia+fla+bg) + self%BioC(4) )
+
+   ! Leave spatial loops (if any)
+   _LOOP_END_
+
+   end subroutine get_light_extinction
 
 
 
