@@ -283,13 +283,13 @@
                                      initial_value=dia_init*redf(1)*redf(6), &
                                      vertical_movement=-BioC(45), &
                                      specific_light_extinction=BioC(5), &
-                                     minimum=0.0_rk)
+                                     minimum=1.0e-07_rk)
 
    call self%register_state_variable(self%id_fla,'fla','mgC/m3','small phytoplankton',     &
                                      initial_value=fla_init*redf(1)*redf(6), &
                                      vertical_movement=0.0_rk, &
                                      specific_light_extinction=BioC(5), &
-                                     minimum=0.0_rk)
+                                     minimum=1.0e-07_rk)
 
    call self%register_state_variable(self%id_bg,'bg','mgC/m3','cyanobacteria',     &
                                      initial_value=bg_init*redf(1)*redf(6), &
@@ -426,7 +426,7 @@
    _GET_HORIZONTAL_(self%id_meansfpar,mean_surface_par)
 
    ! remineralisation rate
-   frem = 0.003_rk/secs_pr_day * (1._rk+20._rk*(temp**2/(13._rk**2+temp**2)))
+   frem = BioC(22) * (1._rk+20._rk*(temp**2/(13._rk**2+temp**2)))
    fremDOM = 10._rk * frem
 
    ! nutrient limitation factors
@@ -455,6 +455,7 @@
    Pl_prod = Tl * min(blight, up_n, up_pho, up_sil)
    !Bg_prod = 0.0_rk ! the light criterium restricts growth to surface waters
    Bg_prod = Tbg * min(blight, up_n, up_pho)
+   Bg_fix=0.0_rk
    if (mean_par > self%nfixation_minimum_daily_par) then
      Bg_fix = Tbg * min(blight, up_pho) - Bg_prod
    end if
