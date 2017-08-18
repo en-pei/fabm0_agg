@@ -1,3 +1,8 @@
+! Copyright 2017 Helmholtz-Zentrum Geesthacht
+! Licensed under the Apache License, Version 2.0
+!  (http://www.apache.org/licenses/LICENSE-2.0)
+! Author(s): Richard Hofmeister, Ute Daewel
+
 #include "fabm_driver.h"
 
 !-----------------------------------------------------------------------
@@ -31,10 +36,6 @@
    real(rk)            :: redf(20)=0.0_rk
    real(rk)            :: PrmBioC(45)=0.0_rk,BioC(45)=0.0_rk
    real(rk)            :: PrmGI(2,6)=0.0_rk,GI(2,6)=0.0_rk
-!
-! !REVISION HISTORY:!
-!  Original author(s): Richard Hofmeister
-!
 !
 ! !PUBLIC DERIVED TYPES:
    type,extends(type_base_model) :: type_hzg_ecosmo
