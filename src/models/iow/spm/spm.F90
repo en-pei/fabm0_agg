@@ -424,7 +424,7 @@
    real(rk)                     :: Ds
    real(rk)                     :: visc
    real(rk)                     :: theta
-   real(rk)                     :: rhow
+   real(rk)                     :: rhow=1025.
    real(rk)                     :: rhop
    real(rk)                     :: massflux
    real(rk)                     :: stressexponent=1.5_rk
@@ -654,7 +654,7 @@
 
 ! !LOCAL VARIABLES
    real(rk)      :: temp
-   real(rk)      :: rhow
+   real(rk)      :: rhow=1025.
    real(rk)      :: spm
 !
 ! !REVISION HISTORY:
@@ -743,7 +743,7 @@
 
       select case ( self%sinking_method )
          case ( 0 )
-            svs = abs(self%ws_const)
+            svs = -self%ws_const
          case ( 1 )
             svs = svs
          case ( 2 )
@@ -764,7 +764,7 @@
       ! now do the non-cohesive sinking
       select case ( self%sinking_method )
          case ( 0 )
-            svs = -abs(self%ws_const)
+            svs = -self%ws_const
          case ( 1 )
             ! Soulsby R (1997) Dynamics of marine sands - a manual for practical
             !   applications. Thomas Telford, London
