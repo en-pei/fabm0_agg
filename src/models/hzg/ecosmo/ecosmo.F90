@@ -69,6 +69,7 @@
       real(rk) :: surface_deposition_sil
       real(rk) :: nfixation_minimum_daily_par
       real(rk) :: bg_growth_minimum_daily_rad
+      logical  :: use_bottom_pool
 
       contains
 
@@ -117,11 +118,12 @@
    real(rk) :: surface_deposition_sil=0.0
    real(rk) :: nfixation_minimum_daily_par=40.0
    real(rk) :: bg_growth_minimum_daily_rad=120.0
+   logical  :: use_bottom_pool=.true.
 
 
    integer  :: i
 
-   namelist /hzg_ecosmo/  PrmBioC,GI,zpr,frr, &
+   namelist /hzg_ecosmo/  PrmBioC,use_bottom_pool,GI,zpr,frr, &
                           no3_init,nh4_init,pho_init, &
                           sil_init,oxy_init, &
                           dia_init,fla_init,bg_init, &
@@ -148,6 +150,7 @@
    self%frr = frr
    self%nfixation_minimum_daily_par = nfixation_minimum_daily_par
    self%bg_growth_minimum_daily_rad = bg_growth_minimum_daily_rad
+   self%use_bottom_pool = use_bottom_pool
 
    ! set Redfield ratios:
    redf(1) = 6.625_rk      !C_N
@@ -314,8 +317,10 @@
    call self%register_state_variable(self%id_dom,'dom','mgC/m3','labile dissolved om',     &
                                      initial_value=dom_init*redf(1)*redf(6), &
                                      vertical_movement=0.0_rk, &
+                                     specific_light_extinction=0.0_rk, &
                                      minimum=0.0_rk)
 
+   if (use_bottom_pool) then
    call self%register_state_variable(self%id_sed1,'sed1','mgC/m2','sediment detritus',     &
                                      initial_value=sed1_init*redf(1)*redf(6), &
                                      minimum=0.0_rk)
@@ -327,6 +332,7 @@
    call self%register_state_variable(self%id_sed3,'sed3','mgC/m2','sediment adsorbed phosporus',     &
                                      initial_value=sed3_init*redf(2)*redf(6), &
                                      minimum=0.0_rk)
+   end if
 
 
    ! Register diagnostic variables
@@ -415,7 +421,7 @@
    _GET_HORIZONTAL_(self%id_meansfpar,mean_surface_par)
 
    ! remineralisation rate
-   frem = BioC(22) * (1._rk+20._rk*(temp**2/(13._rk**2+temp**2)))
+   frem = BioC(22)/secs_pr_day * (1._rk+20._rk*(temp**2/(13._rk**2+temp**2)))
    fremDOM = 10._rk * frem
 
    ! nutrient limitation factors
