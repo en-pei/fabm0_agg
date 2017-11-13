@@ -421,7 +421,7 @@
    _GET_HORIZONTAL_(self%id_meansfpar,mean_surface_par)
 
    ! remineralisation rate
-   frem = BioC(22)/secs_pr_day * (1._rk+20._rk*(temp**2/(13._rk**2+temp**2)))
+   frem = BioC(22) * (1._rk+20._rk*(temp**2/(13._rk**2+temp**2)))
    fremDOM = 10._rk * frem
 
    ! nutrient limitation factors
