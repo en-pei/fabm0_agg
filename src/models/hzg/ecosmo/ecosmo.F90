@@ -320,6 +320,7 @@
                                      specific_light_extinction=0.0_rk, &
                                      minimum=0.0_rk)
 
+   self%use_bottom_pool = use_bottom_pool
    if (use_bottom_pool) then
    call self%register_state_variable(self%id_sed1,'sed1','mgC/m2','sediment detritus',     &
                                      initial_value=sed1_init*redf(1)*redf(6), &
@@ -677,6 +678,8 @@
 !EOP
 !-----------------------------------------------------------------------
 !BOC
+   if (.not.self%use_bottom_pool) return
+
    _HORIZONTAL_LOOP_BEGIN_
 
    _GET_(self%id_temp,temp)
