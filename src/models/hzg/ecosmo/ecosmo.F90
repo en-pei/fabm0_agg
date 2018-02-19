@@ -70,6 +70,7 @@
       real(rk) :: nfixation_minimum_daily_par
       real(rk) :: bg_growth_minimum_daily_rad
       logical  :: use_bottom_pool
+      logical  :: instant_mineralization
 
       contains
 
@@ -119,6 +120,7 @@
    real(rk) :: nfixation_minimum_daily_par=40.0
    real(rk) :: bg_growth_minimum_daily_rad=120.0
    logical  :: use_bottom_pool=.true.
+   logical  :: instant_mineralization
 
 
    integer  :: i
@@ -132,7 +134,8 @@
                           sed1_init, sed2_init, sed3_init, &
                           surface_deposition_no3, surface_deposition_nh4, &
                           surface_deposition_pho, surface_deposition_sil, &
-                          nfixation_minimum_daily_par, bg_growth_minimum_daily_rad
+                          nfixation_minimum_daily_par, bg_growth_minimum_daily_rad, &
+                          instant_mineralization
 
 !EOP
 !-----------------------------------------------------------------------
@@ -151,6 +154,8 @@
    self%nfixation_minimum_daily_par = nfixation_minimum_daily_par
    self%bg_growth_minimum_daily_rad = bg_growth_minimum_daily_rad
    self%use_bottom_pool = use_bottom_pool
+   self%instant_mineralization = instant_mineralization
+   if (self%instant_mineralization) self%use_bottom_pool=.false.
 
    ! set Redfield ratios:
    redf(1) = 6.625_rk      !C_N
@@ -320,8 +325,7 @@
                                      specific_light_extinction=0.0_rk, &
                                      minimum=0.0_rk)
 
-   self%use_bottom_pool = use_bottom_pool
-   if (use_bottom_pool) then
+   if (self%use_bottom_pool) then
    call self%register_state_variable(self%id_sed1,'sed1','mgC/m2','sediment detritus',     &
                                      initial_value=sed1_init*redf(1)*redf(6), &
                                      minimum=0.0_rk)
@@ -678,7 +682,42 @@
 !EOP
 !-----------------------------------------------------------------------
 !BOC
-   if (.not.self%use_bottom_pool) return
+   if (self%instant_mineralization) then
+   _HORIZONTAL_LOOP_BEGIN_
+
+   _GET_(self%id_det,det)
+   _GET_(self%id_opa,opa)
+   _GET_(self%id_oxy,oxy)
+   _GET_(self%id_no3,no3)
+
+   if (oxy > 0) then
+     bioom6 = 1.0_rk
+     bioom5 = 0.0_rk
+     bioom7 = 0.0_rk
+   else
+     if (no3 > 0) then
+       bioom5 = 5.0_rk
+       bioom7 = 0.0_rk
+       bioom6 = 0.0_rk
+     else
+       bioom7 = 1.0_rk
+       bioom6 = 0.0_rk
+       bioom5 = 0.0_rk
+     end if
+   end if
+
+   _SET_BOTTOM_EXCHANGE_(self%id_det, -BioC(23)*det)
+   _SET_BOTTOM_EXCHANGE_(self%id_pho, BioC(23)*det)
+   _SET_BOTTOM_EXCHANGE_(self%id_nh4, BioC(23)*det)
+   _SET_BOTTOM_EXCHANGE_(self%id_no3, -bioom5*BioC(23)*det)
+   _SET_BOTTOM_EXCHANGE_(self%id_oxy, -(bioom6+bioom7)*BioC(23)*det*redf(16))
+
+   _SET_BOTTOM_EXCHANGE_(self%id_opa, -BioC(43)*opa)
+   _SET_BOTTOM_EXCHANGE_(self%id_sil, BioC(43)*opa)
+
+   _HORIZONTAL_LOOP_END_
+
+   else if (self%use_bottom_pool) then
 
    _HORIZONTAL_LOOP_BEGIN_
 
@@ -777,6 +816,8 @@
 
 
    _HORIZONTAL_LOOP_END_
+
+   end if
 
    end subroutine do_bottom
 !EOC
