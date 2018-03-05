@@ -15,7 +15,9 @@
 !
 ! !DESCRIPTION:
 !
-! The ECOSMO model is based on Daewel & Schrum (JMS,2013)
+! The ECOSMO model is based on
+! Daewel & Schrum (2013, Journal of Marine Systems 119-120, pp 30-49)
+! and Schrum et al. (2006, Journal of Marine Systems 61, pp. 79-99)
 !
 ! !USES:
    use fabm_types
