@@ -51,7 +51,8 @@
       type (type_horizontal_dependency_id)  :: id_tbs
       type (type_horizontal_dependency_id)  :: id_sfpar, id_meansfpar
       type (type_diagnostic_variable_id)    :: id_denit, id_primprod, id_secprod
-      type (type_diagnostic_variable_id)    :: id_parmean_diag
+      type (type_diagnostic_variable_id)    :: id_parmean_diag, id_resp
+      type (type_horizontal_diagnostic_variable_id) :: id_resp_bot
 
 !     Model parameters
       real(rk) :: BioC(45)
@@ -347,6 +348,10 @@
          'denitrification rate', output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_primprod,'primprod','mgC/m**3/s', &
          'primary production rate', output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_resp,'respiration','mmolO2/m**3/s', &
+         'pelagic respiration rate', output=output_time_step_averaged)
+   call self%register_diagnostic_variable(self%id_resp_bot,'bottom_respiration','mmolO2/m**2/s', &
+         'bottom respiration rate', output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_secprod,'secprod','mgC/m**3/s', &
          'secondary production rate', output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_parmean_diag,'parmean','W/m**2', &
@@ -576,6 +581,14 @@
    _SET_ODE_(self%id_oxy, rhs)
 
    ! Export diagnostic variables
+
+   !  total pelagic respiration
+   rhs = (bioom6*6.625*(BioC(18)*microzoo + BioC(17)*mesozoo) &
+         +frem*det*(bioom6+bioom7)*6.625 &
+         +(bioom6+bioom7)*6.625*fremDOM*dom &
+         +2.0_rk*bioom1*nh4)*redf(11)*redf(16)
+   _SET_DIAGNOSTIC_(self%id_resp, rhs)
+
    _SET_DIAGNOSTIC_(self%id_denit,(frem*det*bioom5+fremDOM*dom*bioom5)*redf(11)*redf(16))
    _SET_DIAGNOSTIC_(self%id_primprod, Prod + BioC(28)*bg*Bg_fix )
    _SET_DIAGNOSTIC_(self%id_secprod, Zl_prod*mesozoo + Zs_prod*microzoo)
@@ -717,6 +730,8 @@
    _SET_BOTTOM_EXCHANGE_(self%id_opa, -BioC(43)*opa)
    _SET_BOTTOM_EXCHANGE_(self%id_sil, BioC(43)*opa)
 
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_resp_bot, (bioom6+bioom7)*BioC(23)*det*redf(16))
+
    _HORIZONTAL_LOOP_END_
 
    else if (self%use_bottom_pool) then
@@ -783,6 +798,7 @@
                  +2.0_rk*BioOM1*Rsa*sed1) &
                 *REDF(11)*REDF(16)
         _SET_BOTTOM_EXCHANGE_(self%id_oxy, flux)        
+        _SET_HORIZONTAL_DIAGNOSTIC_(self%id_resp_bot, -flux)
 
         ! nitrate
         _SET_BOTTOM_EXCHANGE_(self%id_no3, -BioOM5*Rsdenit*sed1)
