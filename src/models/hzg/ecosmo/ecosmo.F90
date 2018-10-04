@@ -70,6 +70,7 @@
       real(rk) :: surface_deposition_nh4
       real(rk) :: surface_deposition_pho
       real(rk) :: surface_deposition_sil
+      real(rk) :: oxygen_limit_for_sediment
       real(rk) :: nfixation_minimum_daily_par
       real(rk) :: bg_growth_minimum_daily_rad
       logical  :: use_bottom_pool
@@ -120,6 +121,7 @@
    real(rk) :: surface_deposition_nh4=0.0
    real(rk) :: surface_deposition_pho=0.0
    real(rk) :: surface_deposition_sil=0.0
+   real(rk) :: oxygen_limit_for_sediment=0.0
    real(rk) :: nfixation_minimum_daily_par=40.0
    real(rk) :: bg_growth_minimum_daily_rad=120.0
    logical  :: use_bottom_pool=.true.
@@ -138,7 +140,7 @@
                           surface_deposition_no3, surface_deposition_nh4, &
                           surface_deposition_pho, surface_deposition_sil, &
                           nfixation_minimum_daily_par, bg_growth_minimum_daily_rad, &
-                          instant_mineralization
+                          instant_mineralization,oxygen_limit_for_sediment
 
 !EOP
 !-----------------------------------------------------------------------
@@ -180,6 +182,7 @@
    self%surface_deposition_nh4 = surface_deposition_nh4*redf(1)*redf(6)/secs_pr_day
    self%surface_deposition_pho = surface_deposition_pho*redf(2)*redf(6)/secs_pr_day
    self%surface_deposition_sil = surface_deposition_sil*redf(3)*redf(6)/secs_pr_day
+   self%oxygen_limit_for_sediment = oxygen_limit_for_sediment
 
    !  change units 1/day to 1/sec and mmolN,P,Si to mmolC
            BioC(1) =   PrmBioC(1) /sedy0                    !  1/day
@@ -364,7 +367,7 @@
    call self%register_dependency(self%id_tbs,standard_variables%bottom_stress)
    call self%register_dependency(self%id_sfpar,standard_variables%surface_downwelling_photosynthetic_radiative_flux)
    ! use temporal mean of light for the last 24 hours
-   call self%register_dependency(self%id_parmean,temporal_mean(self%id_par,period=86400._rk,resolution=3600._rk))
+   call self%register_dependency(self%id_parmean,temporal_mean(self%id_par,period=86400._rk,resolution=3600._rk,missing_value=0.0_rk))
    call self%register_dependency(self%id_meansfpar,temporal_mean(self%id_sfpar,period=86400._rk,resolution=3600._rk))
 
    return
@@ -813,7 +816,7 @@
         !--try out for phosphate ute 2.6.2010        
         Rsa_p=BioC(38)*exp(BioC(39)*temp)*2.0_rk
 
-        if (oxy.gt.0.0) then
+        if (oxy.gt.self%oxygen_limit_for_sediment) then
           yt2=oxy/375.0_rk                  !normieren des wertes wie in Neumann et al 2002
           yt1=yt2**2.0_rk/(BioC(41)**2.0_rk+yt2**2.0_rk)
         
@@ -822,7 +825,7 @@
           !--sed 3 phosphate pool sediment+remineralization-P release 
           _SET_BOTTOM_ODE_(self%id_sed3, 2.0_rk*Rsa*sed1 - Rsa_p*(1.0_rk-BioC(40)*yt1)*sed3)
 
-        else if (oxy.le.0.0) then
+        else if (oxy.le.self%oxygen_limit_for_sediment) then
           _SET_BOTTOM_EXCHANGE_(self%id_pho, Rsa_p*sed3)
           _SET_BOTTOM_ODE_(self%id_sed3, Rsdenit*sed1 - Rsa_p*sed3)
         end if
