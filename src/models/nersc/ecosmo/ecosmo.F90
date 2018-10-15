@@ -530,8 +530,7 @@ end subroutine initialize
    _SET_ODE_(self%id_sil, -self%BioC(1)*Pl_prod*dia + self%BioC(27)*opa)
 
    ! opal
-   _SET_ODE_(self%id_opa, self%BioC(9)*dia*dia_loss + ZsonPl*microzoo & 
-             + ZlonPl*mesozoo - self%BioC(27)*opa)
+   _SET_ODE_(self%id_opa, self%BioC(9)*dia*dia_loss + ZsonPl*microzoo + ZlonPl*mesozoo - self%BioC(27)*opa)
 
    ! oxygen
    rhs = ((6.625*up_nh4 + 8.125*up_no3+1.d-10)/(up_n+1.d-10)*Prod &
@@ -731,8 +730,7 @@ production
           _SET_BOTTOM_EXCHANGE_(self%id_pho,Rsa_p*(1.0_rk-self%BioC(40)*yt1)*sed3)
 
           !--sed 3 phosphate pool sediment+remineralization-P release
-          _SET_BOTTOM_ODE_(self%id_sed3, 2.0_rk*Rsa*sed1 &
-                           - Rsa_p*(1.0_rk-self%BioC(40)*yt1)*sed3)
+          _SET_BOTTOM_ODE_(self%id_sed3, 2.0_rk*Rsa*sed1 - Rsa_p*(1.0_rk-self%BioC(40)*yt1)*sed3)
 
         else if (oxy.le.0.0) then
           _SET_BOTTOM_EXCHANGE_(self%id_pho, Rsa_p*sed3)
@@ -740,8 +738,7 @@ production
         end if
 
         ! sediment opal(Si)
-        _SET_BOTTOM_ODE_(self%id_sed2, Rds*opa - Rsd*sed2 - self%BioC(42)*sed2 &
-                         - self%BioC(37)*sed2)
+        _SET_BOTTOM_ODE_(self%id_sed2, Rds*opa - Rsd*sed2 - self%BioC(42)*sed2 - self%BioC(37)*sed2)
         _SET_BOTTOM_EXCHANGE_(self%id_opa, Rsd*sed2 - Rds*opa)
         _SET_BOTTOM_EXCHANGE_(self%id_sil, self%BioC(42)*sed2)
 
