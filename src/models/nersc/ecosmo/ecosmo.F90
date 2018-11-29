@@ -38,6 +38,7 @@
       type (type_state_variable_id)         :: id_opa, id_det, id_dia, id_fla
       type (type_state_variable_id)         :: id_diachl, id_flachl, id_bgchl
       type (type_state_variable_id)         :: id_mesozoo, id_microzoo, id_bg,id_dom, id_oxy
+      type (type_state_variable_id)         :: id_dic, id_alk
       type (type_bottom_state_variable_id)  :: id_sed1, id_sed2, id_sed3
       type (type_dependency_id)             :: id_temp, id_salt, id_par
       type (type_dependency_id)             :: id_parmean
@@ -70,6 +71,7 @@
       real(rk) :: MAXchl2nPl, MINchl2nPl 
       real(rk) :: MAXchl2nBG, MINchl2nBG 
       real(rk) :: alfaPl, alfaPs, alfaBG 
+      logical  :: use_chl,use_cyanos,couple_co2
       contains
 
 !     Model procedures
@@ -206,6 +208,11 @@
    call self%get_parameter( self%alfaPs,     'alfaPs', 'mmolN m2/(mgChl day W)**-1', 'initial slope P-I curve Ps', default=0.0393_rk, scale_factor=redf(1)*redf(6) )
    call self%get_parameter( self%alfaPl,     'alfaPl', 'mmolN m2/(mgChl day W)**-1', 'initial slope P-I curve Pl', default=0.0531_rk, scale_factor=redf(1)*redf(6) )
    call self%get_parameter( self%alfaBG,     'alfaBG', 'mmolN m2/(mgChl day W)**-1', 'initial slope P-I curve BG', default=0.0393_rk, scale_factor=redf(1)*redf(6) )
+   ! add switches
+   call self%get_parameter( self%use_cyanos,     'use_cyanos', '', 'switch cyanobacteria', default=.true.)
+   call self%get_parameter( self%couple_co2,     'couple_co2', '', 'switch coupling to carbonate module', default=.false.)
+   call self%get_parameter( self%use_chl,     'use_chl', '', 'switch chlorophyll/c dynamics', default=.true.)
+
    ! Register state variables
    call self%register_state_variable( self%id_no3,      'no3',     'mgC/m3',    'nitrate',                   minimum=0.0_rk,        vertical_movement=0.0_rk,  &
                                       initial_value=5.0_rk*redf(1)*redf(6)  )
@@ -221,14 +228,19 @@
                                       initial_value=1e-4_rk*redf(1)*redf(6))
    call self%register_state_variable( self%id_dia,      'dia',     'mgC/m3',    'large phytoplankton',       minimum=1.0e-7_rk,     vertical_movement=-self%BioC(45) , &
                                       initial_value=1e-4_rk*redf(1)*redf(6) )
-   call self%register_state_variable( self%id_bg,       'bg',      'mgC/m3',    'cyanobacteria',             minimum=1.0e-14_rk,     vertical_movement=-self%BioC(44) , &
+   if (self%use_cyanos) then
+     call self%register_state_variable( self%id_bg,       'bg',      'mgC/m3',    'cyanobacteria',             minimum=1.0e-14_rk,     vertical_movement=-self%BioC(44) , &
                                       initial_value=1e-4_rk*redf(1)*redf(6) )
-   call self%register_state_variable( self%id_diachl,   'diachl',  'mgChl/m3',  'large phytoplankton chl-a', minimum=1.0e-7_rk/27., vertical_movement=-self%BioC(45) , &
+     if (self%use_chl) &
+       call self%register_state_variable( self%id_bgchl,    'bgchl',   'mgChl/m3',  'cyanobacteria chl-a',       minimum=1.0e-14_rk/20., vertical_movement=-self%BioC(44) , &
                                       initial_value=1e-4_rk*redf(1)*redf(6)/27.)
-   call self%register_state_variable( self%id_flachl,   'flachl',  'mgChl/m3',  'small phytoplankton chl-a', minimum=1.0e-7_rk/20., vertical_movement=0.0_rk, &
+   end if
+   if (self%use_chl) then
+     call self%register_state_variable( self%id_diachl,   'diachl',  'mgChl/m3',  'large phytoplankton chl-a', minimum=1.0e-7_rk/27., vertical_movement=-self%BioC(45) , &
+                                      initial_value=1e-4_rk*redf(1)*redf(6)/27.)
+     call self%register_state_variable( self%id_flachl,   'flachl',  'mgChl/m3',  'small phytoplankton chl-a', minimum=1.0e-7_rk/20., vertical_movement=0.0_rk, &
                                       initial_value=1e-4_rk*redf(1)*redf(6)/20.)
-   call self%register_state_variable( self%id_bgchl,    'bgchl',   'mgChl/m3',  'cyanobacteria chl-a',       minimum=1.0e-14_rk/20., vertical_movement=-self%BioC(44) , &
-                                      initial_value=1e-4_rk*redf(1)*redf(6)/27.)
+   end if
    call self%register_state_variable( self%id_microzoo, 'microzoo','mgC/m3',    'microzooplankton',          minimum=1.0e-7_rk,     vertical_movement=0.0_rk, &
                                       initial_value=1e-6_rk*redf(1)*redf(6) )
    call self%register_state_variable( self%id_mesozoo,  'mesozoo', 'mgC/m3',    'mesozooplankton',           minimum=1.0e-7_rk,     vertical_movement=0.0_rk, &
@@ -255,12 +267,14 @@
    call self%register_diagnostic_variable(self%id_parmean_diag,'parmean','W/m**2', &
          'daily-mean photosynthetically active radiation', output=output_time_step_averaged)
    ! calls outputs - simulated Carbon to chlorophyll-a ratio
-   call self%register_diagnostic_variable(self%id_c2chl_fla,'c2chl_fla','mgC/mgCHL', &
+   if (self%use_chl) then
+     call self%register_diagnostic_variable(self%id_c2chl_fla,'c2chl_fla','mgC/mgCHL', &
          'daily-mean C to CHL ratio for flagellates', output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_c2chl_dia,'c2chl_dia','mgC/mgCHL', &
+     call self%register_diagnostic_variable(self%id_c2chl_dia,'c2chl_dia','mgC/mgCHL', &
          'daily-mean C to CHL ratio for diatoms', output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_c2chl_bg,'c2chl_bg','mgC/mgCHL', &
+     call self%register_diagnostic_variable(self%id_c2chl_bg,'c2chl_bg','mgC/mgCHL', &
          'daily-mean C to CHL ratio for cyanobacteria', output=output_time_step_averaged)
+   end if
    call self%register_diagnostic_variable(self%id_tbsout,'botstrss','fill_later', &
          'total bottom stress', output=output_time_step_averaged)
    ! Register dependencies
@@ -272,6 +286,11 @@
    ! use temporal mean of light for the last 24 hours
    call self%register_dependency(self%id_parmean,temporal_mean(self%id_par,period=86400._rk,resolution=3600._rk))
    call self%register_dependency(self%id_meansfpar,temporal_mean(self%id_sfpar,period=86400._rk,resolution=3600._rk))
+
+   if (self%couple_co2) then
+     call self%register_state_dependency(self%id_dic, 'dic_target','mmol m-3','dic budget')
+     call self%register_state_dependency(self%id_alk, 'alk_target','mmol m-3','alkalinity budget')
+   end if
 
    return
 
@@ -331,10 +350,19 @@ end subroutine initialize
    _GET_(self%id_sil,sil)
    _GET_(self%id_dia,dia)
    _GET_(self%id_fla,fla)
-   _GET_(self%id_bg,bg)
-   _GET_(self%id_diachl,diachl)
-   _GET_(self%id_flachl,flachl)
-   _GET_(self%id_bgchl,bgchl)
+   if (self%use_cyanos) then
+     _GET_(self%id_bg,bg)
+   else
+     bg=0.0_rk
+     
+   end if
+   if (self%use_chl) then
+     _GET_(self%id_diachl,diachl)
+     _GET_(self%id_flachl,flachl)
+     if (self%use_cyanos) then
+       _GET_(self%id_bgchl,bgchl)
+     end if
+   end if
    _GET_(self%id_microzoo,microzoo)
    _GET_(self%id_mesozoo,mesozoo)
    _GET_(self%id_det,det)
@@ -390,46 +418,60 @@ end subroutine initialize
    ! production and nutrient uptake
    Ps_prod = Ts * min(blight, up_n, up_pho)
    Pl_prod = Tl * min(blight, up_n, up_pho, up_sil)
-   Bg_prod = 0.0_rk ! the light criterium restricts growth to surface waters
-   !Bg_prod = Tbg * min(blight, up_n, up_pho)
-   Bg_fix  = 0.0_rk
-   !if (mean_par > self%nfixation_minimum_daily_par) then
-   !  Bg_fix = Tbg * min(blight, up_pho) - Bg_prod
-   !end if
    Prod = self%BioC(1)*Pl_prod*dia + & ! diatoms production
-          self%BioC(2)*Ps_prod*fla + & ! flagellates production
-          self%BioC(28)*Bg_prod*bg ! cyanobacteria production
-   
-   ! chlorophyll-a to C change
-   chl2c_fla = self%MAXchl2nPs * max(0.1,Ps_prod) * self%BioC(2) * sedy0 * fla / &
+          self%BioC(2)*Ps_prod*fla     ! flagellates production
+
+   if (self%use_cyanos) then
+     Bg_prod = Tbg * min(blight, up_n, up_pho)
+     if (mean_par > self%nfixation_minimum_daily_par) then
+       Bg_fix = Tbg * min(blight, up_pho) - Bg_prod
+     end if
+     Prod = Prod + self%BioC(28)*Bg_prod*bg ! cyanobacteria production
+   end if
+
+   if (self%use_chl) then   
+     ! chlorophyll-a to C change
+     chl2c_fla = self%MAXchl2nPs * max(0.1,Ps_prod) * self%BioC(2) * sedy0 * fla / &
                (self%alfaPs * par * flachl)
-   chl2c_dia = self%MAXchl2nPl * max(0.1,Pl_prod) * self%BioC(1) * sedy0 * dia / &
+     chl2c_dia = self%MAXchl2nPl * max(0.1,Pl_prod) * self%BioC(1) * sedy0 * dia / &
                (self%alfaPl * par * diachl)
-   chl2c_bg = self%MAXchl2nBG * max(0.1,Bg_prod) * self%BioC(28) * sedy0 * bg / &
-               (self%alfaBG * par * bgchl)
 
             chl2c_fla = max(self%MINchl2nPs,chl2c_fla)
             chl2c_fla = min(self%MAXchl2nPs,chl2c_fla)
             chl2c_dia = max(self%MINchl2nPl,chl2c_dia)
             chl2c_dia = min(self%MAXchl2nPl,chl2c_dia)
-            chl2c_bg  = max(self%MINchl2nBG,chl2c_bg)
-            chl2c_bg  = min(self%MAXchl2nBG,chl2c_bg)
+     if (self%use_cyanos) then
+       chl2c_bg = self%MAXchl2nBG * max(0.1,Bg_prod) * self%BioC(28) * sedy0 * bg / &
+               (self%alfaBG * par * bgchl)
+       chl2c_bg  = max(self%MINchl2nBG,chl2c_bg)
+       chl2c_bg  = min(self%MAXchl2nBG,chl2c_bg)
+     end if
+   end if
 
    ! grazing
    Fs = self%prefZsPs*fla + self%prefZsPl*dia + self%prefZsD*det + self%prefZsBG*bg
    Fl = self%prefZlPs*fla + self%prefZlPl*dia + self%prefZlZs*microzoo + &
          self%prefZlD*det + self%prefZlBG*bg
+   if (self%use_cyanos) then
+    Fs = Fs + self%prefZsBG*bg
+    Fl = Fl + self%prefZlBg*bg
+   end if
 
    ZsonPs = fla_loss * self%BioC(12) * self%prefZsPs * fla/(self%BioC(14) + Fs)
    ZsonPl = dia_loss * self%BioC(12) * self%prefZsPl * dia/(self%BioC(14) + Fs)
    ZsonD  =            self%BioC(12) * self%prefZsD * det/(self%BioC(14) + Fs)
-   ZsonBg = bg_loss  * self%BioC(31) * self%prefZsBG * bg/(self%BioC(14) + Fs)
 
    ZlonPs = fla_loss * self%BioC(11) * self%prefZlPs * fla/(self%BioC(14) + Fl)
    ZlonPl = dia_loss * self%BioC(11) * self%prefZlPl * dia/(self%BioC(14) + Fl)
    ZlonD =             self%BioC(11) * self%prefZlD * det/(self%BioC(14) + Fl)
    ZlonZs = mic_loss * self%BioC(13) * self%prefZlZs * microzoo/(self%BioC(14) + Fl)
-   ZlonBg = bg_loss  * self%BioC(31) * self%prefZlBG * bg/(self%BioC(14) + Fl)
+   if (self%use_cyanos) then
+     ZsonBg = bg_loss  * self%BioC(31) * self%prefZsBG * bg/(self%BioC(14) + Fs)
+     ZlonBg = bg_loss  * self%BioC(31) * self%prefZlBG * bg/(self%BioC(14) + Fl)
+   else
+     ZsonBg=0.0_rk
+     ZlonBg=0.0_rk
+   end if
 
    ! nitrification
    Onitr = 0.01_rk * redf(7) !according to Neumann  (Onitr in mlO2/l see also Stigebrand and Wulff)
@@ -458,16 +500,19 @@ end subroutine initialize
 
    _SET_ODE_(self%id_fla, (self%BioC(2)*Ps_prod - self%BioC(10)*fla_loss)*fla - ZsonPs*microzoo - ZlonPs*mesozoo)
    _SET_ODE_(self%id_dia, (self%BioC(1)*Pl_prod - self%BioC(9)*dia_loss)*dia - ZsonPl*microzoo - ZlonPl*mesozoo)
-   _SET_ODE_(self%id_bg,  (self%BioC(28)*(Bg_prod + Bg_fix) - self%BioC(32)*bg_loss)*bg - ZsonBg*microzoo - ZlonBg*mesozoo)
+   if (self%use_cyanos) then
+     _SET_ODE_(self%id_bg,  (self%BioC(28)*(Bg_prod + Bg_fix) - self%BioC(32)*bg_loss)*bg - ZsonBg*microzoo - ZlonBg*mesozoo)
+   end if
 
   ! for chlorophyll-a
-
-   rhs = self%BioC(2)*Ps_prod*chl2c_fla*fla - ( (self%BioC(10)*fla_loss*fla + ZsonPs*microzoo + ZlonPs*mesozoo)*flachl/fla )
-   _SET_ODE_(self%id_flachl,rhs)
-   rhs = self%BioC(1)*Pl_prod*chl2c_dia*dia - ( (self%BioC(9)*dia*dia_loss + ZsonPl*microzoo + ZlonPl*mesozoo)*diachl/dia )
-   _SET_ODE_(self%id_diachl,rhs)
-   rhs = self%BioC(28)*(Bg_prod + Bg_fix)*chl2c_bg*bg - ((self%BioC(32)*bg*bg_loss + ZsonBg*microzoo + ZlonBg*mesozoo)*bgchl/bg )
-   _SET_ODE_(self%id_bgchl,rhs)
+   if (self%use_chl) then
+     rhs = self%BioC(2)*Ps_prod*chl2c_fla*fla - ( (self%BioC(10)*fla_loss*fla + ZsonPs*microzoo + ZlonPs*mesozoo)*flachl/fla )
+     _SET_ODE_(self%id_flachl,rhs)
+     rhs = self%BioC(1)*Pl_prod*chl2c_dia*dia - ( (self%BioC(9)*dia*dia_loss + ZsonPl*microzoo + ZlonPl*mesozoo)*diachl/dia )
+     _SET_ODE_(self%id_diachl,rhs)
+     rhs = self%BioC(28)*(Bg_prod + Bg_fix)*chl2c_bg*bg - ((self%BioC(32)*bg*bg_loss + ZsonBg*microzoo + ZlonBg*mesozoo)*bgchl/bg )
+     _SET_ODE_(self%id_bgchl,rhs)
+   end if
 
    ! microzooplankton
 
@@ -541,15 +586,30 @@ end subroutine initialize
          -2.0_rk*bioom1*nh4)*redf(11)*redf(16)
    _SET_ODE_(self%id_oxy, rhs)
 
+   ! Carbonate dynamics
+   if (self%couple_co2) then
+     rhs =  redf(16) *( BioC(18)*microzoo*mic_loss &
+            + BioC(17)*mesozoo*mes_loss &
+            + frem*det + fremDOM*dom - Prod) 
+     _SET_ODE_(self%id_dic, rhs)
+
+     rhs = 0.0_rk
+     _SET_ODE_(self%id_alk, rhs)
+   end if
+
    ! Export diagnostic variables
    _SET_DIAGNOSTIC_(self%id_denit,(frem*det*bioom5+fremDOM*dom*bioom5)*redf(11)*redf(16))
    _SET_DIAGNOSTIC_(self%id_primprod, Prod + self%BioC(28)*bg*Bg_fix )
    _SET_DIAGNOSTIC_(self%id_secprod, Zl_prod*mesozoo + Zs_prod*microzoo)
    _SET_DIAGNOSTIC_(self%id_parmean_diag, mean_par)
 
-   _SET_DIAGNOSTIC_(self%id_c2chl_fla, 1.0_rk/chl2c_fla)
-   _SET_DIAGNOSTIC_(self%id_c2chl_dia, 1.0_rk/chl2c_dia)
-   _SET_DIAGNOSTIC_(self%id_c2chl_bg, 1.0_rk/chl2c_bg)
+   if (self%use_chl) then
+     _SET_DIAGNOSTIC_(self%id_c2chl_fla, 1.0_rk/chl2c_fla)
+     _SET_DIAGNOSTIC_(self%id_c2chl_dia, 1.0_rk/chl2c_dia)
+     if (self%use_cyanos) then
+       _SET_DIAGNOSTIC_(self%id_c2chl_bg, 1.0_rk/chl2c_bg)
+     end if
+   end if
 !   _SET_DIAGNOSTIC_(self%id_tbsout, tbs)
    ! Leave spatial loops (if any)
    _LOOP_END_
@@ -582,7 +642,11 @@ end subroutine initialize
    _GET_(self%id_oxy,oxy)
    _GET_(self%id_par,par)
    _GET_(self%id_pho,pho)
-   _GET_(self%id_bg,bg)
+   if (self%use_cyanos) then
+     _GET_(self%id_bg,bg)
+   else
+     bg=0.0_rk
+   end if
 
    ! Oxygen saturation micromol/liter__(Benson and Krause, 1984)
    tr = 1.0_rk/(T + 273.15_rk)
@@ -603,22 +667,23 @@ end subroutine initialize
    _SET_SURFACE_EXCHANGE_(self%id_sil,self%surface_deposition_sil)
 
 #if 0
-   ! calculate cyanobacteria surface production
-   if (S <= 10.0) then
-     tbg = 1.0_rk/(1.0_rk + exp(self%BioC(29)*(self%BioC(30)-T)))
-   else
-     tbg = 0.0_rk
-   end if
+   if (self%use_cyanos) then
+     ! calculate cyanobacteria surface production
+     if (S <= 10.0) then
+       tbg = 1.0_rk/(1.0_rk + exp(self%BioC(29)*(self%BioC(30)-T)))
+     else
+       tbg = 0.0_rk
+     end if
 
-   blight=max(tanh(self%BioC(3)*par),0.)
-   up_pho = pho/(self%BioC(25)+pho)
-   prod = self%BioC(28) * bg * Tbg * min(blight, up_pho) ! cyanobacteria
-production
+     blight=max(tanh(self%BioC(3)*par),0.)
+     up_pho = pho/(self%BioC(25)+pho)
+     prod = self%BioC(28) * bg * Tbg * min(blight, up_pho) ! cyanobacteria production
 
    !_SET_ODE_(self%id_bg,  prod)
    !_SET_ODE_(self%id_pho, -prod)
    !_SET_SURFACE_ODE_(id_oxy, ) ! not included in the modular ECOSMO version
    !_SET_SURFACE_ODE_(id_dic, -Prod)
+   end if
 #endif
 
    ! Leave spatial loops over the horizontal domain (if any)
@@ -719,6 +784,9 @@ production
         ! ammonium
         _SET_BOTTOM_EXCHANGE_(self%id_nh4, (Rsdenit+Rsa)*sed1)
 
+        if (self%couple_co2) then
+          _SET_BOTTOM_EXCHANGE_(self%id_dic, redf(16)*(Rsdenit+2*Rsa)*sed1)
+        end if
 
         !--try out for phosphate ute 2.6.2010
         Rsa_p=self%BioC(38)*exp(self%BioC(39)*temp)*2.0_rk
@@ -754,19 +822,33 @@ production
    _DECLARE_ARGUMENTS_GET_EXTINCTION_
 
    real(rk)                     :: dom,det,diachl,flachl,bgchl
+   real(rk)                     :: my_extinction
 
    ! Enter spatial loops (if any)
    _LOOP_BEGIN_
 
    ! Retrieve current (local) state variable values.
 
-   _GET_(self%id_diachl, diachl)
-   _GET_(self%id_flachl, flachl)
    _GET_(self%id_det, det)
    _GET_(self%id_dom, dom)
-   _GET_(self%id_bgchl, bgchl)
 
-   _SET_EXTINCTION_( self%BioC(5)*(diachl+flachl+bgchl) + self%BioC(4) )
+   my_extinction = self%BioC(4)
+
+   if (self%use_chl) then
+     _GET_(self%id_diachl, diachl)
+     _GET_(self%id_flachl, flachl)
+     if (self%use_cyanos) then
+       _GET_(self%id_bgchl, bgchl)
+     else
+       bgchl=0.0_rk
+     end if
+     my_extinction = my_extinction + self%BioC(5)*(diachl+flachl+bgchl)
+   else
+     diachl=0.0_rk
+     flachl=0.0_rk
+   end if
+
+   _SET_EXTINCTION_( my_extinction )
 
    ! Leave spatial loops (if any)
    _LOOP_END_
