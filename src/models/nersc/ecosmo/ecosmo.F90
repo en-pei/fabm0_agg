@@ -334,6 +334,7 @@ end subroutine initialize
    real(rk) :: mic_loss=1.0_rk
    real(rk) :: mes_loss=1.0_rk
    real(rk) :: tbs
+   real(rk) :: rhs_oxy,rhs_amm,rhs_nit
 !EOP
 !-----------------------------------------------------------------------
 !BOC
@@ -547,20 +548,20 @@ end subroutine initialize
    _SET_ODE_(self%id_dom, self%frr*dxxdet - fremdom * dom)
 
    ! nitrate
-   rhs = -(up_no3+0.5d-10)/(up_n+1.0d-10)*Prod &
+   rhs_nit = -(up_no3+0.5d-10)/(up_n+1.0d-10)*Prod &
          + bioom1 * nh4 &
          - bioom3 * no3 &
          - frem * det * bioom5 &
          - fremDOM * dom * bioOM5
-   _SET_ODE_(self%id_no3, rhs)
+   _SET_ODE_(self%id_no3, rhs_nit)
 
    ! ammonium
-   rhs = -(up_nh4+0.5d-10)/(up_n+1.0d-10)*Prod &
+   rhs_amm = -(up_nh4+0.5d-10)/(up_n+1.0d-10)*Prod &
          + self%BioC(18) * microzoo * mic_loss &
          + self%BioC(17) * mesozoo * mes_loss &
          + frem * det &
          + fremDOM * dom - bioom1 * nh4
-   _SET_ODE_(self%id_nh4, rhs)
+   _SET_ODE_(self%id_nh4, rhs_amm)
 
    ! phosphate
 
@@ -578,13 +579,13 @@ end subroutine initialize
    _SET_ODE_(self%id_opa, self%BioC(9)*dia*dia_loss + ZsonPl*microzoo + ZlonPl*mesozoo - self%BioC(27)*opa)
 
    ! oxygen
-   rhs = ((6.625*up_nh4 + 8.125*up_no3+1.d-10)/(up_n+1.d-10)*Prod &
+   rhs_oxy = ((6.625*up_nh4 + 8.125*up_no3+1.d-10)/(up_n+1.d-10)*Prod &
          -bioom6*6.625*(self%BioC(18)*microzoo*mic_loss &
          +self%BioC(17)*mesozoo*mes_loss) &
          -frem*det*(bioom6+bioom7)*6.625 &
          -(bioom6+bioom7)*6.625*fremDOM*dom &
          -2.0_rk*bioom1*nh4)*redf(11)*redf(16)
-   _SET_ODE_(self%id_oxy, rhs)
+   _SET_ODE_(self%id_oxy, rhs_oxy)
 
    ! Carbonate dynamics
    if (self%couple_co2) then
@@ -593,7 +594,7 @@ end subroutine initialize
             + frem*det + fremDOM*dom - Prod) 
      _SET_ODE_(self%id_dic, rhs)
 
-     rhs = 0.0_rk
+     rhs = redf(16)*(rhs_amm-rhs_nit)*redf(11) - 0.5_rk*rhs_oxy*(1._rk-bioom6)
      _SET_ODE_(self%id_alk, rhs)
    end if
 
@@ -706,7 +707,7 @@ end subroutine initialize
 ! !LOCAL VARIABLES:
    real(rk) :: temp, tbs, oxy, no3, det, opa, sed1, sed2, sed3
    real(rk) :: pho, Rds, Rsd, Rsa, Rsdenit, Rsa_p, yt1, yt2
-   real(rk) :: rhs, flux
+   real(rk) :: rhs, flux, alk_flux
    real(rk) :: bioom1, bioom2, bioom3, bioom4, bioom5, bioom6, bioom7, bioom8
 !EOP
 !-----------------------------------------------------------------------
@@ -786,8 +787,9 @@ end subroutine initialize
 
         if (self%couple_co2) then
           _SET_BOTTOM_EXCHANGE_(self%id_dic, redf(16)*(Rsdenit+2*Rsa)*sed1)
+          alk_flux = redf(16)*redf(11)*((Rsdenit+Rsa+bioom5*Rsdenit)*sed1) - 0.5_rk*flux*(1._rk-bioom6)
+          _SET_BOTTOM_EXCHANGE_(self%id_alk, alk_flux)
         end if
-
         !--try out for phosphate ute 2.6.2010
         Rsa_p=self%BioC(38)*exp(self%BioC(39)*temp)*2.0_rk
 
