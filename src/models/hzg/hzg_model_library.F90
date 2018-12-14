@@ -20,6 +20,7 @@ contains
       use fabm_hzg_ecosmo
       use fabm_hzg_omexdia_p
       use fabm_hzg_test
+      use fabm_hzg_icealgea
       ! Add your own model module here...
 
       class (type_factory),intent(in) :: self
@@ -30,6 +31,7 @@ contains
          case ('ecosmo');       allocate(type_hzg_ecosmo::model)
          case ('omexdia_p');    allocate(type_hzg_omexdia_p::model)
          case ('test');         allocate(type_hzg_test::model)
+         case ('icealgea');     allocate(type_hzg_icealgea::model)
          ! Add your new model here
       end select
 
