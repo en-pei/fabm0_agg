@@ -760,6 +760,11 @@ call self%register_diagnostic_variable(self%id_vphys,   'vphys','-', ' vphys', &
 call self%register_diagnostic_variable(self%id_dPAR,    'dPAR','W/m**2', 'Photosynthetically_Active_Radiation_ dPAR', &
     output=DOUT)
 call self%register_diagnostic_variable(self%id_pPads,   'pPads','-', 'pPads', output=DOUT)
+if (self%kwFzmaxMeth > 0) then
+  ! This is constant self%a_water for kwFzmaxMeth=0
+  call self%register_diagnostic_variable(self%id_bgatt,'bgatt','m-1', &
+  'background_attenuation', output=DOUT)
+endif
 
 if (self%DebugDiagOn) then
 call self%register_diagnostic_variable(self%id_tmp,     'tmp','-', 'Temporary_diagnostic_ tmp', &
