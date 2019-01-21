@@ -987,23 +987,33 @@ end subroutine initialize
      chl=0.0_rk
    end if
 
-   !default:
-   fz=1.0_rk
-   ft=1.0_rk
-   !if (self%kwFzmaxMeth .eq. 0) then
-     !constant bg attenuation. Do nothing     select case (self%kwFzmaxMeth)
+   ! Compute fz, a depth-dependent light factor
+   if (self%kwFzmaxMeth .eq. 0) then
+     ! if (self%kwFzmaxMeth .eq. 0) then constant bg attenuation. Do nothing
+     ! and get all background attenuation from self%a_water parameter, with a
+     ! representative value of 1.0.  Take care to reduce this for other methods
+     fz=1.0_rk
 
-   if (self%kwFzmaxMeth .eq. 1) then
+   elseif (self%kwFzmaxMeth .eq. 1) then
+     ! f(z) exponential convergence to the 10% of 'self%a_water' with depth
+     ! self%a_minfr could be 0.18, for example
+     !> @todo justify the half-depth 11.0 m in this parametrisation
      _GET_HORIZONTAL_(self%id_zmax, zmax)  ! max depth
-     !f(z) exponential convergence to the 10% of 'self%a_water' with depth
      fz=self%a_minfr + (1-self%a_minfr)*exp(-zmax/11.0)
-   else if (self%kwFzmaxMeth .ge. 2) then
-     _GET_HORIZONTAL_(self%id_zmax, zmax)  ! max depth
+
+   else ! all values >= 2
      !f(z)=sigmoidal function of depth with an upper plateau (100%) at 0-10 m and a lower (10%) for 30+
+     ! self%a_fz could be 9.9, for example
+     _GET_HORIZONTAL_(self%id_zmax, zmax)  ! max depth
      fz1 = (1.0-self%a_minfr)*(1.0-1.0/(1.0+exp(-zmax*0.5_rk+self%a_fz)))
      fz=self%a_minfr+fz1
-     if (self%kwFzmaxMeth .ge. 3) then
-       _GET_GLOBAL_ (self%id_doy,doy) !day of year
+   endif
+
+   ! Calculate ft, a temporal factor for light
+   if (self%kwFzmaxMeth .lt. 3) then
+     ft=1.0_rk
+   else
+      _GET_GLOBAL_ (self%id_doy,doy) !day of year
       !f(t)=sinusoidal function of day of year with minimum occuring during summer
       !parameters below were fitted by J.Maerz using the scanfish data from the German Bight
       A=8.036
@@ -1011,16 +1021,17 @@ end subroutine initialize
       L=72.42
       ft= 0.05*(A*sin(2.0*doy*Pi/365.0 +2.0*L*Pi/365.0)+B)
       !write (*,'(A, F7.6)') 'ft term: ',0.05*(A*sin(2.0*doy*Pi/365.0 +2.0*L*Pi/365.0)+B)
-     end if
-     kw=self%a_water*fz*ft
    endif
-! additional extras in turbidity calculation
+
+   ! Modify fz from above for methods >= 4
+   ! additional extras in turbidity calculation
    if (self%kwFzmaxMeth .eq. 4) then
     _GET_HORIZONTAL_(self%id_tke_bot,tke_bot) ! Latitude  [degN]
     !f(z)=sigmoidal function of depth with an upper plateau (100%) at 0-10 m and a lower (10%) for 30+
     fz = self%a_minfr+fz1*(ft+sqrt(tke_bot*750))*0.5
     !write (*,'(A, F7.6)') 'fz term: ',(1.0-self%a_minfr)*(1.0-1.0/(1.0+exp(-zmax*0.5+10)))
-    kw = self%a_water*fz
+    ! reset ft since it is now included in fz calculation
+    ft = 1.0
    else if (self%kwFzmaxMeth .gt. 4) then  ! emulate turbid East Anglia plume
  !!    write (*,'(L2)'),_AVAILABLE_(self%id_lon)
      _GET_HORIZONTAL_(self%id_lon,lo)! Longitude [degE]
@@ -1032,8 +1043,9 @@ end subroutine initialize
 !     ft= sin((doy-60)*Pi/365)**2
      fz=exp(-3*(fz-self%a_minfr))*0.25*(self%kwFzmaxMeth-4) *exp(-(((la-ya+xa*lo)/2-xa*lo)**2+((la-ya+xa*lo)/2+ya-la)**2)/3-(xa*(lo-2))**2/10) !-(y-53)**2/8
  !    write (*,'(A, 4(F9.3))') 'lo,la: ',lo,la,((la-ya+xa*lo)/2-xa*lo)**2+((la-ya+xa*lo)/2+ya-la)**2,fz
-     kw=kw+self%a_water*fz
    end if
+
+   kw=self%a_water*fz*ft
 
    ! Attenuation as a result of background turbidity and self-shading of phytoplankton.
    attv =  kw + self%a_spm*(poc+z)+ self%a_doc*doc+ self%a_phyc*p + self%a_chl*chl
