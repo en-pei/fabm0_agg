@@ -1048,6 +1048,13 @@ end if
 !define _REPLNAN_(X) X !changes back to original code
 #define _REPLNAN_(X) nan_num(X)
 
+if (self%kwFzmaxMeth > 0) then
+  !> Back-calculate background attenuation (kw) consistent with get_light subroutine
+  a_lit = att - (self%a_spm*(det%C+zoo%C)+ self%a_doc*dom%C  &
+    + self%a_phyc*phy%C + self%a_chl*phy%chl)
+  _SET_DIAGNOSTIC_(self%id_bgatt, _REPLNAN_(a_lit))
+endif
+
 !#S_DIA
 if (self%DebugDiagOn) then
   _SET_DIAGNOSTIC_(self%id_tmp, _REPLNAN_(acclim%tmp))       !average Temporary_diagnostic_
