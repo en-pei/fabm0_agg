@@ -266,15 +266,18 @@
          'secondary production rate', output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_parmean_diag,'parmean','W/m**2', &
          'daily-mean photosynthetically active radiation', output=output_time_step_averaged)
-   ! calls outputs - simulated Carbon to chlorophyll-a ratio
-   if (self%use_chl) then
-     call self%register_diagnostic_variable(self%id_c2chl_fla,'c2chl_fla','mgC/mgCHL', &
-         'daily-mean C to CHL ratio for flagellates', output=output_time_step_averaged)
-     call self%register_diagnostic_variable(self%id_c2chl_dia,'c2chl_dia','mgC/mgCHL', &
-         'daily-mean C to CHL ratio for diatoms', output=output_time_step_averaged)
-     call self%register_diagnostic_variable(self%id_c2chl_bg,'c2chl_bg','mgC/mgCHL', &
-         'daily-mean C to CHL ratio for cyanobacteria', output=output_time_step_averaged)
-   end if
+! CAGLAR: Turned off to avoid excess disk space usage
+! calls outputs - simulated Carbon to chlorophyll-a ratio
+!   if (self%use_chl) then
+!     call self%register_diagnostic_variable(self%id_c2chl_fla,'c2chl_fla','mgC/mgCHL', &
+!         'daily-mean C to CHL ratio for flagellates', output=output_time_step_averaged)
+!     call self%register_diagnostic_variable(self%id_c2chl_dia,'c2chl_dia','mgC/mgCHL', &
+!         'daily-mean C to CHL ratio for diatoms', output=output_time_step_averaged)
+!         if (self%use_cyanos) then
+!             call self%register_diagnostic_variable(self%id_c2chl_bg,'c2chl_bg','mgC/mgCHL', &
+!             'daily-mean C to CHL ratio for cyanobacteria', output=output_time_step_averaged)
+!         end if
+!   end if
    call self%register_diagnostic_variable(self%id_tbsout,'botstrss','fill_later', &
          'total bottom stress', output=output_time_step_averaged)
    ! Register dependencies
@@ -355,7 +358,6 @@ end subroutine initialize
      _GET_(self%id_bg,bg)
    else
      bg=0.0_rk
-     
    end if
    if (self%use_chl) then
      _GET_(self%id_diachl,diachl)
@@ -383,7 +385,7 @@ end subroutine initialize
 
    fla_loss = max(sign(-1.0_rk,fla-0.01_rk),0.0_rk)       ! flagellates
    dia_loss = max(sign(-1.0_rk,dia-0.01_rk),0.0_rk)       ! diatoms
-   bg_loss  = 1.0_rk!max(sign(-1.0_rk,bg-0.01_rk),0.0_rk)        ! cyanobacteria
+   bg_loss  = max(sign(-1.0_rk,bg-0.01_rk),0.0_rk)        ! cyanobacteria
    mic_loss = max(sign(-1.0_rk,microzoo-0.001_rk),0.0_rk) !microzooplankton
    mes_loss = max(sign(-1.0_rk,mesozoo-0.001_rk),0.0_rk) ! mesozooplankton
 
@@ -511,8 +513,10 @@ end subroutine initialize
      _SET_ODE_(self%id_flachl,rhs)
      rhs = self%BioC(1)*Pl_prod*chl2c_dia*dia - ( (self%BioC(9)*dia*dia_loss + ZsonPl*microzoo + ZlonPl*mesozoo)*diachl/dia )
      _SET_ODE_(self%id_diachl,rhs)
-     rhs = self%BioC(28)*(Bg_prod + Bg_fix)*chl2c_bg*bg - ((self%BioC(32)*bg*bg_loss + ZsonBg*microzoo + ZlonBg*mesozoo)*bgchl/bg )
-     _SET_ODE_(self%id_bgchl,rhs)
+     if (self%use_cyanos) then
+       rhs = self%BioC(28)*(Bg_prod + Bg_fix)*chl2c_bg*bg - ((self%BioC(32)*bg*bg_loss + ZsonBg*microzoo + ZlonBg*mesozoo)*bgchl/bg )
+       _SET_ODE_(self%id_bgchl,rhs)
+     end if  
    end if
 
    ! microzooplankton
@@ -604,15 +608,13 @@ end subroutine initialize
    _SET_DIAGNOSTIC_(self%id_secprod, Zl_prod*mesozoo + Zs_prod*microzoo)
    _SET_DIAGNOSTIC_(self%id_parmean_diag, mean_par)
 
-   if (self%use_chl) then
-     _SET_DIAGNOSTIC_(self%id_c2chl_fla, 1.0_rk/chl2c_fla)
-     _SET_DIAGNOSTIC_(self%id_c2chl_dia, 1.0_rk/chl2c_dia)
-     if (self%use_cyanos) then
-       _SET_DIAGNOSTIC_(self%id_c2chl_bg, 1.0_rk/chl2c_bg)
-     end if
-   end if
-!   _SET_DIAGNOSTIC_(self%id_tbsout, tbs)
-   ! Leave spatial loops (if any)
+!   if (self%use_chl) then
+!     _SET_DIAGNOSTIC_(self%id_c2chl_fla, 1.0_rk/chl2c_fla)
+!     _SET_DIAGNOSTIC_(self%id_c2chl_dia, 1.0_rk/chl2c_dia)
+!     if (self%use_cyanos) then
+!       _SET_DIAGNOSTIC_(self%id_c2chl_bg, 1.0_rk/chl2c_bg)
+!     end if
+!   end if
    _LOOP_END_
 
    end subroutine do
