@@ -11,4 +11,3 @@
 #define _FABM_BOTTOM_INDEX_ -1
 
 #include "fabm.h"
-

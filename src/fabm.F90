@@ -36,7 +36,7 @@
    private
 !
 ! !PUBLIC MEMBER FUNCTIONS:
-   public fabm_initialize_library, type_model, fabm_create_model_from_file
+   public fabm_initialize_library, type_model, fabm_create_model_from_file, fabm_get_version
    public fabm_initialize, fabm_finalize, fabm_set_domain, fabm_check_ready, fabm_update_time
    public fabm_initialize_state, fabm_initialize_surface_state, fabm_initialize_bottom_state
 
@@ -310,7 +310,8 @@
       procedure :: link_all_surface_state_data  => fabm_link_all_surface_state_data
 
       procedure :: require_interior_data => fabm_require_interior_data
-      generic :: require_data => require_interior_data
+      procedure :: require_horizontal_data => fabm_require_horizontal_data
+      generic :: require_data => require_interior_data,require_horizontal_data
 
       procedure :: get_interior_data => fabm_get_interior_data
       procedure :: get_horizontal_data => fabm_get_horizontal_data
@@ -499,6 +500,22 @@
       factory => fabm_model_factory
       call factory%initialize()
    end subroutine fabm_initialize_library
+
+   subroutine fabm_get_version(string)
+      use fabm_version
+
+      character(len=*), intent(out) :: string
+
+      type (type_version),pointer :: version
+
+      call fabm_initialize_library()
+      string = git_commit_id//' ('//git_branch_name//' branch)'
+      version => first_module_version
+      do while (associated(version))
+         string = trim(string)//', '//trim(version%module_name)//': '//trim(version%version_string)
+         version => version%next
+      end do
+   end subroutine fabm_get_version
 
 !-----------------------------------------------------------------------
 !BOP
@@ -879,6 +896,9 @@
          case (domain_bottom)
             call flag_write_indices(self%do_bottom_environment, link%target%sms_list)
          case (domain_surface)
+            call flag_write_indices(self%do_surface_environment, link%target%sms_list)
+         case (domain_horizontal)
+            call flag_write_indices(self%do_bottom_environment, link%target%sms_list)
             call flag_write_indices(self%do_surface_environment, link%target%sms_list)
       end select
       link => link%next
@@ -1957,6 +1977,26 @@
       call host%request_coupling(link,standard_variable,domain=domain_)
    end subroutine fabm_require_interior_data
 
+   subroutine fabm_require_horizontal_data(self,standard_variable)
+      class (type_model),                      intent(inout) :: self
+      type(type_horizontal_standard_variable), intent(in)    :: standard_variable
+
+      class (type_host_container),  pointer :: host
+      type (type_integer_list_node),pointer :: node
+      type (type_link),             pointer :: link
+
+      if (self%state>=state_initialize_done) &
+         call fatal_error('fabm_require_horizontal_data','model%require_data cannot be called after model initialization.')
+
+      host => get_host_container_model(self)
+
+      allocate(node)
+      node%next => host%first
+      host%first => node
+      call host%add_horizontal_variable(standard_variable%name,standard_variable%units,standard_variable%name,read_index=node%value,link=link)
+      call host%request_coupling(link,standard_variable)
+   end subroutine fabm_require_horizontal_data
+
 !-----------------------------------------------------------------------
 !BOP
 !
@@ -2976,11 +3016,15 @@ subroutine deallocate_prefetch_vertical(self,settings,environment _ARGUMENTS_VER
    if (allocated(settings%save_sources_hz)) then
       do i=1,size(settings%save_sources_hz)
          if (settings%save_sources_hz(i)/=-1) then
+             if (_N_ > 0) then
 #ifdef _HORIZONTAL_IS_VECTORIZED_
-            self%diag_hz(_PREARG_HORIZONTAL_LOCATION_ i) = environment%scratch_hz(1,settings%save_sources_hz(i))
+               self%diag_hz(_PREARG_HORIZONTAL_LOCATION_ i) = environment%scratch_hz(1,settings%save_sources_hz(i))
 #else
-            self%diag_hz(_PREARG_HORIZONTAL_LOCATION_ i) = environment%scratch_hz(settings%save_sources_hz(i))
+               self%diag_hz(_PREARG_HORIZONTAL_LOCATION_ i) = environment%scratch_hz(settings%save_sources_hz(i))
 #endif
+            else
+               self%diag_hz(_PREARG_HORIZONTAL_LOCATION_ i) = self%diag_hz_missing_value(i)
+            end if
          end if
       end do
    end if
@@ -4453,7 +4497,7 @@ function create_external_interior_id(variable) result(id)
    type (type_internal_variable),intent(inout),target :: variable
    type (type_bulk_variable_id) :: id
 
-   if (variable%domain/=domain_interior) call driver%fatal_error('create_external_interior_id','BUG: called on non-interior variable.')
+   if (variable%domain/=domain_interior) call fatal_error('create_external_interior_id','BUG: called on non-interior variable.')
    id%variable => variable
    if (.not.variable%read_indices%is_empty()) id%read_index = variable%read_indices%value
 end function create_external_interior_id
@@ -4463,7 +4507,7 @@ function create_external_horizontal_id(variable) result(id)
    type (type_horizontal_variable_id) :: id
 
    if (variable%domain/=domain_horizontal.and.variable%domain/=domain_surface.and.variable%domain/=domain_bottom) &
-      call driver%fatal_error('create_external_horizontal_id','BUG: called on non-horizontal variable.')
+      call fatal_error('create_external_horizontal_id','BUG: called on non-horizontal variable.')
    id%variable => variable
    if (.not.variable%read_indices%is_empty()) id%read_index = variable%read_indices%value
 end function create_external_horizontal_id
@@ -4471,7 +4515,7 @@ end function create_external_horizontal_id
 function create_external_scalar_id(variable) result(id)
    type (type_internal_variable),intent(inout),target :: variable
    type (type_scalar_variable_id) :: id
-   if (variable%domain/=domain_scalar) call driver%fatal_error('create_external_scalar_id','BUG: called on non-scalar variable.')
+   if (variable%domain/=domain_scalar) call fatal_error('create_external_scalar_id','BUG: called on non-scalar variable.')
    id%variable => variable
    if (.not.variable%read_indices%is_empty()) id%read_index = variable%read_indices%value
 end function create_external_scalar_id
@@ -4692,11 +4736,11 @@ subroutine classify_variables(self)
          consvar%long_name = trim(consvar%standard_variable%name)
          consvar%path = trim(consvar%standard_variable%name)
          consvar%target => self%root%find_object(trim(aggregate_variable%standard_variable%name))
-         if (.not.associated(consvar%target)) call driver%fatal_error('classify_variables', &
+         if (.not.associated(consvar%target)) call fatal_error('classify_variables', &
             'BUG: conserved quantity '//trim(aggregate_variable%standard_variable%name)//' was not created')
          call consvar%target%read_indices%append(consvar%index)
          consvar%target_hz => self%root%find_object(trim(aggregate_variable%standard_variable%name)//'_at_interfaces')
-         if (.not.associated(consvar%target_hz)) call driver%fatal_error('classify_variables', &
+         if (.not.associated(consvar%target_hz)) call fatal_error('classify_variables', &
             'BUG: conserved quantity '//trim(aggregate_variable%standard_variable%name)//'_at_interfaces was not created')
          call consvar%target_hz%read_indices%append(consvar%horizontal_index)
       end if
@@ -4705,7 +4749,7 @@ subroutine classify_variables(self)
 
    ! Get link to extinction variable.
    self%extinction_target => self%root%find_object(trim(standard_variables%attenuation_coefficient_of_photosynthetic_radiative_flux%name))
-   if (.not.associated(self%extinction_target)) call driver%fatal_error('classify_variables', &
+   if (.not.associated(self%extinction_target)) call fatal_error('classify_variables', &
       'BUG: variable attenuation_coefficient_of_photosynthetic_radiative_flux was not created')
    call self%extinction_target%read_indices%append(self%extinction_index)
 
@@ -5140,5 +5184,5 @@ end subroutine
 end module fabm
 
 !-----------------------------------------------------------------------
-! Copyright under the GNU Public License - www.gnu.org
+! Copyright Bolding & Bruggeman ApS (GNU Public License - www.gnu.org)
 !-----------------------------------------------------------------------
