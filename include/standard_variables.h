@@ -23,6 +23,8 @@ type (type_bulk_standard_variable) :: ph_reported_on_total_scale
 type (type_bulk_standard_variable) :: practical_salinity
 type (type_bulk_standard_variable) :: pressure
 type (type_bulk_standard_variable) :: temperature
+type (type_bulk_standard_variable) :: turbulence_dissipation
+type (type_bulk_standard_variable) :: eddy_viscosity
 
 ! Horizontal variables
 type (type_horizontal_standard_variable) :: bottom_depth

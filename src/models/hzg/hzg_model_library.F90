@@ -15,6 +15,7 @@ module hzg_model_library
    use hzg_benthic_pool
    use hzg_Ndepoden
    use fabm_hzg_dependencies
+   use hzg_agg
    !use hzg_kristineb
    ! Add new HZG models here
 
@@ -52,6 +53,7 @@ contains
          case ('Ndepoden'); allocate(type_hzg_Ndepoden::model)
          case ('benthic_pool'); allocate(type_hzg_benthic_pool::model)
          case ('dependencies'); allocate(type_hzg_dependencies::model)
+         case ('agg'); allocate(type_hzg_agg::model)
          ! Add case statements for new models here
      end select
 

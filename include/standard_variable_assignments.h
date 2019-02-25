@@ -85,6 +85,14 @@ standard_variables%temperature%name = 'temperature'
 standard_variables%temperature%units = 'degree_Celsius'
 standard_variables%temperature%cf_names = 'sea_water_temperature'
 
+standard_variables%turbulence_dissipation%name = 'turbulence_dissipation'
+standard_variables%turbulence_dissipation%units = 'm^2 s^-3'
+standard_variables%turbulence_dissipation%cf_names = 'turbulence_dissipation'
+
+standard_variables%eddy_viscosity%name = 'eddy_viscosity'
+standard_variables%eddy_viscosity%units = 'm^2 s^-1'
+standard_variables%eddy_viscosity%cf_names = 'eddy_viscosity'
+
 standard_variables%bottom_depth%name = 'bottom_depth'
 standard_variables%bottom_depth%units = 'm'
 
