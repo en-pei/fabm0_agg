@@ -153,6 +153,18 @@ standard_variables%wind_speed%name = 'wind_speed'
 standard_variables%wind_speed%units = 'm s-1'
 standard_variables%wind_speed%cf_names = 'wind_speed'
 
+standard_variables%ice_thickness%name = 'ice_thickness'
+standard_variables%ice_thickness%units = 'm'
+standard_variables%ice_thickness%cf_names = 'ice_thickness'
+
+standard_variables%snow_thickness%name = 'snow_thickness'
+standard_variables%snow_thickness%units = 'm'
+standard_variables%snow_thickness%cf_names = 'snow_thickness'
+
+standard_variables%ice_concentration%name = 'ice_concentration'
+standard_variables%ice_concentration%units = '1/1'
+standard_variables%ice_concentration%cf_names = 'ice_concentration'
+
 standard_variables%number_of_days_since_start_of_the_year%name = 'number_of_days_since_start_of_the_year'
 standard_variables%number_of_days_since_start_of_the_year%units = 'd'
 

@@ -43,6 +43,9 @@ type (type_horizontal_standard_variable) :: surface_downwelling_shortwave_flux_i
 type (type_horizontal_standard_variable) :: surface_specific_humidity
 type (type_horizontal_standard_variable) :: surface_temperature
 type (type_horizontal_standard_variable) :: wind_speed
+type (type_horizontal_standard_variable) :: ice_thickness
+type (type_horizontal_standard_variable) :: snow_thickness
+type (type_horizontal_standard_variable) :: ice_concentration
 
 ! Global variables
 type (type_global_standard_variable) :: number_of_days_since_start_of_the_year
