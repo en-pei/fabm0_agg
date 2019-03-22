@@ -53,6 +53,9 @@
       type (type_diagnostic_variable_id)    :: id_denit, id_primprod, id_secprod
       type (type_diagnostic_variable_id)    :: id_parmean_diag, id_resp
       type (type_horizontal_diagnostic_variable_id) :: id_resp_bot
+      type (type_horizontal_diagnostic_variable_id) :: id_denit_bot
+      type (type_horizontal_diagnostic_variable_id) :: id_pomflux_bot
+      type (type_horizontal_diagnostic_variable_id) :: id_nflux_bot
 
 !     Model parameters
       real(rk) :: BioC(45)
@@ -353,12 +356,21 @@
          'primary production rate', output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_resp,'respiration','mmolO2/m**3/s', &
          'pelagic respiration rate', output=output_time_step_averaged)
-   call self%register_diagnostic_variable(self%id_resp_bot,'bottom_respiration','mmolO2/m**2/s', &
-         'bottom respiration rate', output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_secprod,'secprod','mgC/m**3/s', &
          'secondary production rate', output=output_time_step_averaged)
    call self%register_diagnostic_variable(self%id_parmean_diag,'parmean','W/m**2', &
          'daily-mean photosynthetically active radiation', output=output_time_step_averaged)
+
+   if ((self%use_bottom_pool).or.(self%instant_mineralization)) then
+     call self%register_diagnostic_variable(self%id_resp_bot,'bottom_respiration','mmolO2/m**2/s', &
+         'bottom respiration rate', output=output_time_step_averaged)
+     call self%register_diagnostic_variable(self%id_denit_bot,'bottom_denitrification','mmolN/m**2/s', &
+         'bottom denitrification rate', output=output_time_step_averaged)
+     call self%register_diagnostic_variable(self%id_pomflux_bot,'bottom_pomflux','mgC/m**2/s', &
+         'bottom pom exchange flux', output=output_time_step_averaged)
+     call self%register_diagnostic_variable(self%id_nflux_bot,'bottom_nh4flux','mgC/m**2/s', &
+         'bottom ammonium flux', output=output_time_step_averaged)
+   end if
 
    ! Register dependencies
    call self%register_dependency(self%id_temp,standard_variables%temperature)
@@ -708,7 +720,7 @@
    _GET_(self%id_oxy,oxy)
    _GET_(self%id_no3,no3)
 
-   if (oxy > 0) then
+   if (oxy > self%oxygen_limit_for_sediment) then
      bioom6 = 1.0_rk
      bioom5 = 0.0_rk
      bioom7 = 0.0_rk
@@ -734,6 +746,9 @@
    _SET_BOTTOM_EXCHANGE_(self%id_sil, BioC(43)*opa)
 
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_resp_bot, (bioom6+bioom7)*BioC(23)*det*redf(16))
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_denit_bot, bioom5*BioC(23)*det*redf(11)*redf(16))
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_pomflux_bot, -BioC(23)*det)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_nflux_bot, BioC(23)*det)
 
    _HORIZONTAL_LOOP_END_
 
@@ -759,7 +774,7 @@
    bioom6 = 0.0_rk
    bioom7 = 0.0_rk
    bioom8 = 0.0_rk
-   if (oxy > 0) then
+   if (oxy > self%oxygen_limit_for_sediment) then
      bioom1 = 0.1/secs_pr_day * exp(temp*0.11_rk) * oxy/((0.1_rk*redf(7))+oxy)
      bioom2 = bioom1
      bioom6 = 1.0_rk
@@ -783,10 +798,10 @@
 
 !---------------------------------------------------------------
 !----denitrification parameter in dependence of available oxygen
-        if (oxy .gt. 0.0) then
+        if (oxy .gt. self%oxygen_limit_for_sediment) then
           Rsa=BioC(38)*exp(BioC(39)*temp)*1.0_rk
           Rsdenit=0.0_rk
-        else if (oxy .le. 0.0) then
+        else
           Rsdenit=BioC(38)*exp(BioC(39)*temp)*2.0_rk
           Rsa=0.0_rk
         end if
@@ -805,12 +820,15 @@
 
         ! nitrate
         _SET_BOTTOM_EXCHANGE_(self%id_no3, -BioOM5*Rsdenit*sed1)
+        _SET_HORIZONTAL_DIAGNOSTIC_(self%id_denit_bot, BioOM5*Rsdenit*sed1*redf(11)*redf(16))
 
         ! detritus
         _SET_BOTTOM_EXCHANGE_(self%id_det, Rsd*sed1 - Rds*det)
+        _SET_HORIZONTAL_DIAGNOSTIC_(self%id_pomflux_bot, Rsd*sed1 - Rds*det)
 
         ! ammonium
         _SET_BOTTOM_EXCHANGE_(self%id_nh4, (Rsdenit+Rsa)*sed1)
+        _SET_HORIZONTAL_DIAGNOSTIC_(self%id_nflux_bot, (Rsdenit+Rsa)*sed1)
 
 
         !--try out for phosphate ute 2.6.2010        

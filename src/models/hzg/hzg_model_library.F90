@@ -21,6 +21,7 @@ contains
       use fabm_hzg_omexdia_p
       use fabm_hzg_test
       use fabm_hzg_icealgea
+      use hzg_icelight
       ! Add your own model module here...
 
       class (type_factory),intent(in) :: self
@@ -32,6 +33,7 @@ contains
          case ('omexdia_p');    allocate(type_hzg_omexdia_p::model)
          case ('test');         allocate(type_hzg_test::model)
          case ('icealgea');     allocate(type_hzg_icealgea::model)
+         case ('icelight');     allocate(type_hzg_icelight::model)
          ! Add your new model here
       end select
 

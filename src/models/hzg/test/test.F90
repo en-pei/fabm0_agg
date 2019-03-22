@@ -32,7 +32,8 @@
 ! !PUBLIC DERIVED TYPES:
    type,extends(type_base_model) :: type_hzg_test
 !     Variable identifiers
-      !type (type_state_variable_id)         :: id_tracer
+      type (type_state_variable_id)         :: id_tracer
+      type (type_diagnostic_variable_id)    :: id_rate
       type (type_dependency_id)             :: id_temp, id_par
 
 !     Model parameters
@@ -72,6 +73,9 @@
 
    call self%get_parameter(self%param, 'param', '1/day', 'params long description', default=0.001_rk, scale_factor=1.0_rk/86400._rk)
 
+   call self%register_state_variable(self%id_tracer, 'tracer', 'mg/m3', 'reactive tracer', minimum=0.0_rk)
+   call self%register_diagnostic_variable(self%id_rate, 'degrad_rate', 'mg/m3/s', 'reactive tracer degradation')
+
    ! Register dependencies
    call self%register_dependency(self%id_temp,standard_variables%temperature)
    call self%register_dependency(self%id_par,standard_variables%downwelling_photosynthetic_radiative_flux)
@@ -97,6 +101,7 @@
 !
 ! !LOCAL VARIABLES:
    real(rk) :: temp,par
+   real(rk) :: tracer
 
 
    ! Enter spatial loops (if any)
@@ -104,6 +109,10 @@
 
    ! Retrieve current (local) state variable values.
    _GET_(self%id_temp,temp)
+   _GET_(self%id_tracer, tracer)
+
+   _SET_ODE_(self%id_tracer, -self%param*tracer)
+   _SET_DIAGNOSTIC_(self%id_rate, -self%param*tracer)
 
    ! Leave spatial loops (if any)
    _LOOP_END_
