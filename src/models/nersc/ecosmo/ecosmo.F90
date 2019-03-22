@@ -48,6 +48,7 @@
       type (type_diagnostic_variable_id)    :: id_parmean_diag
       type (type_diagnostic_variable_id)    :: id_c2chl_fla, id_c2chl_dia,id_c2chl_bg
       type (type_horizontal_diagnostic_variable_id)    :: id_tbsout
+!      type (type_horizontal_dependency_id)  :: id_h, id_hs
 
 !     Model parameters
       real(rk) :: BioC(45)
@@ -71,7 +72,12 @@
       real(rk) :: MAXchl2nPl, MINchl2nPl 
       real(rk) :: MAXchl2nBG, MINchl2nBG 
       real(rk) :: alfaPl, alfaPs, alfaBG 
-      logical  :: use_chl,use_cyanos,couple_co2
+ !     real(rk) :: C0
+ !     real(rk) :: Catt_ice
+ !     real(rk) :: Catt_sno
+ !     real(rk) :: ice_alb
+ !     real(rk) :: sno_alb
+      logical  :: use_chl,use_cyanos,couple_co2, couple_ice
       contains
 
 !     Model procedures
@@ -208,10 +214,17 @@
    call self%get_parameter( self%alfaPs,     'alfaPs', 'mmolN m2/(mgChl day W)**-1', 'initial slope P-I curve Ps', default=0.0393_rk, scale_factor=redf(1)*redf(6) )
    call self%get_parameter( self%alfaPl,     'alfaPl', 'mmolN m2/(mgChl day W)**-1', 'initial slope P-I curve Pl', default=0.0531_rk, scale_factor=redf(1)*redf(6) )
    call self%get_parameter( self%alfaBG,     'alfaBG', 'mmolN m2/(mgChl day W)**-1', 'initial slope P-I curve BG', default=0.0393_rk, scale_factor=redf(1)*redf(6) )
+   ! light if ice 
+  ! call self%get_parameter(self%C0,      'C0',      '',                       'part of incoming radiation absorbed',            default=0.3_rk)
+  ! call self%get_parameter(self%Catt_ice,'Catt_ice','1/m',                    'ice attenuation coefficent',                     default=0.5_rk)
+  ! call self%get_parameter(self%Catt_sno,'Catt_sno','1/m',                    'snow attenuation coefficent',                    default=0.5_rk)
+  ! call self%get_parameter(self%ice_alb, 'ice_alb', '',                       'albedo in the ice',                              default=0.5_rk)
+  ! call self%get_parameter(self%sno_alb, 'sno_alb', '',                       'albedo in the snow',                             default=0.5_rk)
    ! add switches
    call self%get_parameter( self%use_cyanos,     'use_cyanos', '', 'switch cyanobacteria', default=.true.)
    call self%get_parameter( self%couple_co2,     'couple_co2', '', 'switch coupling to carbonate module', default=.false.)
    call self%get_parameter( self%use_chl,     'use_chl', '', 'switch chlorophyll/c dynamics', default=.true.)
+   call self%get_parameter( self%couple_ice,  'couple_ice',  'switch coupling to ice module', default=.false.)
 
    ! Register state variables
    call self%register_state_variable( self%id_no3,      'no3',     'mgC/m3',    'nitrate',                   minimum=0.0_rk,        vertical_movement=0.0_rk,  &
@@ -295,6 +308,10 @@
      call self%register_state_dependency(self%id_alk, 'alk_target','mmol m-3','alkalinity budget')
    end if
 
+!   call self%register_dependency(self%id_h,       'icethickness', 'm',    'ice thickness')
+!   call self%register_dependency(self%id_hs,      'snowthickness','m',    'snow thickness')
+   
+
    return
 
 end subroutine initialize
@@ -338,6 +355,7 @@ end subroutine initialize
    real(rk) :: mes_loss=1.0_rk
    real(rk) :: tbs
    real(rk) :: rhs_oxy,rhs_amm,rhs_nit
+   real(rk) :: snowthickness, icethickness, alb
 !EOP
 !-----------------------------------------------------------------------
 !BOC
@@ -375,6 +393,20 @@ end subroutine initialize
    _GET_(self%id_parmean,mean_par)
    _GET_HORIZONTAL_(self%id_meansfpar,mean_surface_par)
    _GET_HORIZONTAL_(self%id_tbs,tbs)
+   !_GET_HORIZONTAL_(self%id_h, icethickness)
+   !_GET_HORIZONTAL_(self%id_hs, snowthickness)
+   
+   ! BENKORT
+   ! Modification par when ice is present
+   !if(snowthickness > 0.0_rk) then
+   !     alb = self%sno_alb
+   !else 
+   !     alb = self%ice_alb
+   !end if
+
+   !if(self%couple_ice) then
+  ! 	par = par * (1.0 - alb) * self%C0 * exp((-self%Catt_ice * icethickness) - (self%Catt_sno * snowthickness))
+  ! end if
 
    ! CAGLAR
    ! checks - whether the biomass of plankton is below a predefined threshold,
