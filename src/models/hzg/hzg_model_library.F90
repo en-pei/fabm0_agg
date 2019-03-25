@@ -22,6 +22,7 @@ contains
       use fabm_hzg_test
       use fabm_hzg_icealgea
       use hzg_icelight
+      use hzg_uvlight
       ! Add your own model module here...
 
       class (type_factory),intent(in) :: self
@@ -34,6 +35,7 @@ contains
          case ('test');         allocate(type_hzg_test::model)
          case ('icealgea');     allocate(type_hzg_icealgea::model)
          case ('icelight');     allocate(type_hzg_icelight::model)
+         case ('uvlight');      allocate(type_hzg_uvlight::model)
          ! Add your new model here
       end select
 
