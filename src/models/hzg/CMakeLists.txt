@@ -5,6 +5,7 @@ add_library(fabm_models_hzg OBJECT
             test/test.F90
             icealgea/icealgea.F90
             icelight/icelight.F90
+            uvlight/uvlight.F90
            )
 
 add_dependencies(fabm_models_hzg fabm_base)
