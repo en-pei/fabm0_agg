@@ -30,12 +30,12 @@
       type (type_state_variable_id)      :: id_phyc,id_detc
       type (type_state_variable_id)      :: id_doc
       type (type_diagnostic_variable_id) :: id_aggvol,id_G,id_Breakup,id_ws
+      type (type_diagnostic_variable_id) :: id_esd
       type (type_dependency_id) :: id_eps,id_num
       
 !     Model parameters
       real(rk) :: dens_lpm
       real(rk) :: specvol_org
-      real(rk) :: ws_agg ! sinking velocity
       real(rk) :: coagulation_rate
       real(rk) :: deg_chl
       real(rk) :: agg_porosity
@@ -55,7 +55,7 @@
       real(rk) :: breakup_factor
       real(rk) :: doc_min
       real(rk) :: doc_mean
-      real(rk) :: mean_size
+      real(rk) :: max_size
       real(rk) :: tep_remin
 
       contains
@@ -64,6 +64,8 @@
       procedure :: initialize
       procedure :: do
       procedure :: get_vertical_movement
+      procedure :: sinking_velocity
+      procedure :: meansize
 
    end type
 
@@ -80,9 +82,9 @@
 
    real(rk), parameter :: secs_pr_day = 86400.d0 ! s
    real(rk), parameter :: one_pr_day = 1.0d0/86400.d0 ! 1/s
-   real(rk)            :: aggorg_init=0.3        ! g/l
-   real(rk)            :: aggchl_init=0.1        ! g/l
-   real(rk)            :: agglpm_init=0.1        ! g/l
+   real(rk)            :: aggorg_init=0.3        ! µg/l
+   real(rk)            :: aggchl_init=0.1        ! µg/l
+   real(rk)            :: agglpm_init=0.1        ! mg/l
    character(len=64)   :: phyn_variable=''
    character(len=64)   :: phyc_variable=''
    character(len=64)   :: detn_variable=''
@@ -98,8 +100,7 @@
 
    call self%get_parameter(self%dens_lpm, 'dens_lpm', 'kg/m3', 'density of lithogenic suspended matter', default=2100.0_rk)
    call self%get_parameter(self%dens_org, 'dens_org', 'kg/m3', 'density of organic suspended matter', default=1000.0_rk)
-   call self%get_parameter(self%ws_agg, 'ws_agg', 'm/s', 'sining valocity of aggregates', default=-5.0_rk, scale_factor=one_pr_day)
-   call self%get_parameter(self%coagulation_rate, 'coagulation_rate', '1/mum3/d', 'coagulation rate', default=0.5_rk, scale_factor=one_pr_day)
+   call self%get_parameter(self%coagulation_rate, 'coagulation_rate', '', 'coagulation rate', default=0.5_rk)
    call self%get_parameter(self%agg_porosity, 'agg_porosity', '1/1', 'aggregates porosity', default=0.98_rk)
    call self%get_parameter(self%deg_chl, 'deg_chl', '1/d', 'degradation rate of chl', default=0.5_rk, scale_factor=one_pr_day)
 
@@ -121,29 +122,27 @@
    call self%get_parameter(doc_variable, 'doc_variable', '', 'variable name of DOC', default='')
    self%use_doc = doc_variable.ne.''
 
-   self%NC_agg = _ONE_/16
-   self%NP_agg = _ONE_/6
-   self%org2N  = _ONE_/(_NMASS_+_CMASS_/self%NC_agg) ! g->mol
+   self%NC_agg = 16.0_rk/106.0_rk  ! Redfield
+   self%NP_agg = 16.0_rk           ! Redfield
+   self%org2N  = 16.0_rk/3550.0_rk ! g->molN
 
    call self%get_parameter(self%doc_min, 'doc_min', 'mmolC/m3', 'minimum doc concentration', default=1.0_rk)
    call self%get_parameter(self%doc_mean,'doc_mean', 'mmolC/m3', 'mean doc concentration', default=100.0_rk)
    ! minimim factor for coagulation rate is doc_min/opt_doc
 
    call self%get_parameter(self%breakup_factor, 'breakup_factor', 's**0.5/m**2', 'breakup factor', default=12068.0_rk) ! from Maerz.etal2010 [s**0.5/m**2]
-   call self%get_parameter(self%mean_size, 'mean_size', 'm', 'mean aggregate size', default=250.0e-6_rk)
+   call self%get_parameter(self%max_size, 'max_size', 'm', 'maximum aggregate size', default=250.0e-6_rk)
    call self%get_parameter(self%tep_remin, 'tep_remin', '1/d', 'remineralization rate of TEP', default=0.0_rk, scale_factor=one_pr_day)
 
    ! Register state variables
    call self%register_state_variable(self%id_aggorg,'aggorg','mg/m**3', &
                           'concentration of biomass in aggregates',    &
                           aggorg_init,minimum=_ZERO_, &
-                          vertical_movement=self%ws_agg, &
                           no_river_dilution=.true.)
 
    call self%register_state_variable(self%id_agglpm,'agglpm', &
                           'mg/l','concentration of LPM in aggregates', &
                           agglpm_init,minimum=_ZERO_, &
-                          vertical_movement=self%ws_agg, &
                           no_river_dilution=.true.)
 
 #ifndef AGG_WO_CHL
@@ -151,7 +150,6 @@
       call self%register_state_variable(self%id_aggchl,'aggchl', &
                           'mg/m**3','chlorophyll in aggregates', &
                           agglpm_init,minimum=_ZERO_, &
-                          vertical_movement=self%ws_agg, &
                           no_river_dilution=.true.)
 #endif
 
@@ -160,6 +158,7 @@
    call self%register_diagnostic_variable(self%id_breakup,'Breakup','1/d','breakup rate',time_treatment=time_treatment_last)
    call self%register_diagnostic_variable(self%id_aggvol,'Vol_agg','m**3/m**3','relative Volume of aggregates',time_treatment=time_treatment_last)
     call self%register_diagnostic_variable(self%id_ws,'ws','m/s','sinking velocity',time_treatment=time_treatment_last)
+    call self%register_diagnostic_variable(self%id_esd,'esd','m','mean ESD',time_treatment=time_treatment_last)
 
    ! Register conserved quantities
    
@@ -218,8 +217,8 @@
    _GET_DEPENDENCY_(self%id_num, num) ! kinematic (turbulent) viscosity [m**2/s]
    G = sqrt((eps+1.d-11)/(num+1.d-8)) ! turbulent shear
 
-   breakup = self%breakup_factor * G**1.5d0 * meansize(agglpm+aggorg,self%mean_size,G)**2
-   !breakup = self%breakup_factor * G**1.5d0 * self%mean_size**2 ! [1/s]
+   breakup = self%breakup_factor * G**1.5d0 * self%meansize(agglpm+1.d-3*aggorg,G)**2
+   !breakup = self%breakup_factor * G**1.5d0 * self%max_size**2 ! [1/s]
    !breakup_factor is in Xu.etal2008: efficiency*sqrt(viscosity/yield_strength)*2 with
    !yield_strength=10.e-10 and efficiency=?
 
@@ -242,15 +241,13 @@
 
       sms=A1_phyn + A2_phyn ![mmol/m**3/s]
       _SET_ODE_(self%id_phyn,-sms)
-      _SET_ODE_(self%id_aggorg,_NMASS_*sms)
+      _SET_ODE_(self%id_aggorg,sms/self%org2N)
       if (self%use_phyc) then
          _SET_ODE_(self%id_phyc,-sms/self%NC_agg)
          ! possibly _GET_STATE_(self%id_phyc,phyc)
          ! possibly better: _SET_ODE_(self%id_phyc,-coagulation*Vol_agg*phyc)
          !_SET_ODE_(self%id_aggorg,_CMASS_/self%NC_agg*sms)
       endif
-      _SET_ODE_(self%id_aggorg,_CMASS_*self%NC_agg*sms)
-!write(0,*) 'sms_phyn',sms
 
 #ifndef AGG_WO_CHL      
       if (self%use_chl) then
@@ -265,16 +262,15 @@
    if (self%use_detn) then
 #endif
       _GET_STATE_(self%id_detn,detn) !
-      A1_detn=coagulation/self%dens_org * 1.d-6 * detn**2
+      A1_detn=coagulation/self%dens_org *self%org2N * 1.d-6 * detn**2
       A2_detn=coagulation * Vol_agg * detn
 
       sms= A1_detn + A2_detn - (decomposition + breakup)*aggorg*self%org2N ![mmolN/m3/s]
       _SET_ODE_(self%id_detn,-sms)
-      _SET_ODE_(self%id_aggorg,_NMASS_*sms)
+      _SET_ODE_(self%id_aggorg,sms/self%org2N)
       if (self%use_detc) then
          _SET_ODE_(self%id_detc,_ONE_/self%NC_agg*(-sms))
       endif
-      _SET_ODE_(self%id_aggorg,_CMASS_/self%NC_agg*sms)
 #ifndef LESS_IFS
    end if
 #endif
@@ -290,8 +286,10 @@
    endif
 
    _SET_DIAGNOSTIC_(self%id_G,G)
-   _SET_DIAGNOSTIC_(self%id_breakup,breakup)!Loss_lpm - A1_lpm - A2_lpm)
+   _SET_DIAGNOSTIC_(self%id_breakup,breakup)
    _SET_DIAGNOSTIC_(self%id_aggvol,Vol_agg)
+   _SET_DIAGNOSTIC_(self%id_ws,self%sinking_velocity(aggorg,agglpm,G))
+   _SET_DIAGNOSTIC_(self%id_esd,self%meansize(aggorg*1.d-3+agglpm,G))
 
    _LOOP_END_
 
@@ -323,16 +321,8 @@
    _GET_DEPENDENCY_(self%id_num, num) ! kinematic (turbulent) viscosity [m**2/s]
    G = sqrt((eps+1.d-11)/(num+1.d-8)) ! turbulent shear
 
-   rho_water = 1025.d0 ! [kg/m**3]
-   visc = 1.1d-3 ! dynamic viscosity for about 17 degC water [kg/(m*s)]
-   Vol_agg=1.d-3*(agglpm/self%dens_lpm + 1.d-3*aggorg/self%dens_org)/(_ONE_-self%agg_porosity)
-   agg_mass = 1.d-3*aggorg+agglpm
-   rho_part = (_ONE_-self%agg_porosity)*1.d-3*agg_mass/Vol_agg + self%agg_porosity*rho_water
+   ws = self%sinking_velocity(aggorg,agglpm,G)
 
-   !Stokes law:
-   ws = 2.d0*(rho_part - rho_water)*9.81d0/(9.d0*visc) * \
-         (meansize(agg_mass,self%mean_size,G)/2.d0)**2
-   
    _SET_VERTICAL_MOVEMENT_(self%id_agglpm,ws)
    _SET_VERTICAL_MOVEMENT_(self%id_aggorg,ws)
 #ifndef AGG_WO_CHL
@@ -346,29 +336,49 @@
    end subroutine get_vertical_movement
 
 
-
-
-   real(rk) function meansize(agg_mass,max_size,G)
+   real(rk) function sinking_velocity(self,aggorg,agglpm,G)
    implicit none
+   class(type_hzg_agg)        :: self
+   real(rk), intent(in)       :: aggorg
+   real(rk), intent(in)       :: agglpm
+   real(rk), intent(in)       :: G
+   real(rk)                   :: rho_part,rho_water,visc
+   real(rk)                   :: agg_mass,Vol_agg
 
+   rho_water = 1025.d0 ! [kg/m**3]
+   visc = 1.1d-3 ! dynamic viscosity for about 17 degC water [kg/(m*s)]
+   Vol_agg=1.d-3*(agglpm/self%dens_lpm + 1.d-3*aggorg/self%dens_org)/(_ONE_-self%agg_porosity)
+   agg_mass = 1.d-3*aggorg+agglpm
+   rho_part = (_ONE_-self%agg_porosity)*1.d-3*agg_mass/Vol_agg + self%agg_porosity*rho_water
+
+   !Stokes law:
+   sinking_velocity = 2.d0*(rho_part - rho_water)*9.81d0/(9.d0*visc) * \
+         (self%meansize(agg_mass,G)/2.d0)**2
+
+   end function sinking_velocity
+
+
+   real(rk) function meansize(self,agg_mass,G)
+   implicit none
+   class(type_hzg_agg)        :: self
    real(rk), intent(in)       :: agg_mass
-   real(rk), intent(in)       :: max_size  ! maximum of size distribution
    real(rk), intent(in)       :: G
    real(rk)                   :: modesize,sigma
    real(rk), parameter        :: minsize= 50.d-6 ! [m] minimum size of arregates
-   real(rk), parameter        :: k_size = 50.d0 ! [mg/m**3] half-saturation constant for size distribution
+   real(rk), parameter        :: k_size = 50.d0  ! [g/m**3] half-saturation constant for size distribution
 
-#if 1
+#if 0
    ! Get mean size from log-normal distribution:
-   !   most probable (mode) size is approaching self%mean_size for high SPM
-   modesize = minsize+(max_size - minsize)*agg_mass/(agg_mass+k_size)
+   !   most probable (mode) size is approaching self%max_size for high SPM
+   modesize = minsize+(self%max_size - minsize)*agg_mass/(agg_mass+k_size)
 #else
    ! from 1d experiments in Xu.etal2008
-   ! equilibrium D50 value depending on agg_mass and G
-   modesize=0.01d-6 + 0.02d-6 * agg_mass/G
-   meansize = modesize
+   ! equilibrium D50 value depending on agg_mass [g/l] and G
+   modesize=0.0001_rk + 0.0004_rk * 1.d-3*agg_mass/sqrt(G)
+   meansize = min(modesize,self%max_size)
 #endif
-#if 1
+#if 0
+   modesize = min(modesize,self%max_size)
    !   width of distribution increases with SPM up to sigma=0.75
    sigma = 0.75d0*agg_mass/(agg_mass+k_size)
    meansize = modesize*exp(1.5d0 * sigma**2) 
