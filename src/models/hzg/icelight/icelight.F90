@@ -14,6 +14,8 @@ module hzg_icelight
       type (type_horizontal_dependency_id)          :: id_iceh ! Ice thickness
       type (type_horizontal_dependency_id)          :: id_icec ! Ice concentration
       type (type_horizontal_dependency_id)          :: id_snowh ! Snow thickness
+      type (type_horizontal_dependency_id)          :: id_icealgea ! Ice algea concentration
+      type (type_horizontal_dependency_id)          :: id_h_bal ! Ice biological active layer height
       type (type_dependency_id)                     :: id_dz   ! Cell thickness
       type (type_dependency_id)                     :: id_ext  ! Attentuation coefficient for PAR
 
@@ -25,6 +27,9 @@ module hzg_icelight
       ! Parameters
       real(rk) :: a,g1,g2
       real(rk) :: gice
+      real(rk) :: h_BAL, g_ia
+      logical  :: use_icealgea
+      logical  :: use_external_bal
       logical  :: use_snow
    contains
 !     Model procedures
@@ -41,15 +46,22 @@ contains
 ! !INPUT PARAMETERS:
       class (type_hzg_icelight),intent(inout),target :: self
       integer,                  intent(in)           :: configunit
+      character(len=265)                             :: icealgea_name,h_bal_name
 !
 !EOP
 !-----------------------------------------------------------------------
 !BOC
       call self%get_parameter(self%a, 'a', '-','non-visible fraction of shortwave radiation',default=0.58_rk) 
       call self%get_parameter(self%g1,'g1','m','e-folding depth of non-visible fraction',    default=0.35_rk)
-      call self%get_parameter(self%g2,'g2','m','e-folding depth of visible fraction',        default=23.0_rk) 
-      call self%get_parameter(self%gice,'g_ice','m','e-folding depth of radiation in ice',        default=0.1_rk) 
+      call self%get_parameter(self%g2,'g2','m','e-folding depth of visible fraction', default=23.0_rk) 
+      call self%get_parameter(self%gice,'g_ice','m','e-folding depth of radiation in ice', default=0.1_rk) 
       call self%get_parameter(self%use_snow,'use_snow','true/false','switch use of snow thickness', default=.false.) 
+      call self%get_parameter(icealgea_name,'icealgea_name','-','name of icealgea variable', default='')
+      self%use_icealgea = icealgea_name .ne. '' 
+      call self%get_parameter(self%g_ia,'g_ia','m/(mmolC/m2)','e-folding depth of radiation by ice algea concentration', default=3.0_rk) 
+      call self%get_parameter(h_bal_name,'h_bal_name','-','name of BAL variable', default='')
+      self%use_external_bal = h_bal_name .ne. '' 
+      call self%get_parameter(self%h_bal,'h_bal','m','height of biological active layer in ice', default=0.05_rk) 
 
       ! Register diagnostic variables
       call self%register_diagnostic_variable(self%id_swr,'swr','W/m^2','shortwave radiation', &
@@ -67,6 +79,10 @@ contains
       call self%register_dependency(self%id_icec, standard_variables%ice_concentration)
       if (self%use_snow) &
         call self%register_dependency(self%id_snowh, standard_variables%snow_thickness)
+      if (self%use_icealgea) &
+        call self%register_dependency(self%id_icealgea, icealgea_name, 'mmolC/m2', 'ice algea mass in ice')
+      if (self%use_external_bal) &
+        call self%register_dependency(self%id_h_bal, h_bal_name, 'm', 'height of BAL layer in ice')
    end subroutine
    
    subroutine get_light(self,_ARGUMENTS_VERTICAL_)
@@ -75,16 +91,28 @@ contains
 
       real(rk) :: swr0,dz,swr,par,z,ext,bioext
       real(rk) :: iceh, icec, snowh, par0ice, swr0ice
+      real(rk) :: icea, h_bal
 
       _GET_HORIZONTAL_(self%id_swr0,swr0)
       _GET_HORIZONTAL_(self%id_iceh,iceh)
       _GET_HORIZONTAL_(self%id_icec,icec)
+      if (self%use_icealgea) then
+        _GET_HORIZONTAL_(self%id_icealgea,icea)
+      else
+        icea = 0.0_rk ! no shading by ice algea
+      endif
+      if (self%use_external_bal) then
+        _GET_HORIZONTAL_(self%id_h_bal,h_bal)
+      else
+        h_bal = self%h_bal ! use parameter from namelist instead
+      endif
       if (self%use_snow) then
         _GET_HORIZONTAL_(self%id_snowh,snowh)
       end if
 
       ! so far, snow thickness not used
-      swr0ice = swr0*(1-icec) + icec*swr0*exp(-iceh/self%gice)
+      !k_ia scales the algea mass in the biological active layer into an extinction factor [1/m]
+      swr0ice = swr0*(1-icec) + icec*swr0*exp(-iceh/self%gice-icea/self%g_ia*h_bal)
       par0ice = swr0ice*(1-self%a)
 
       _SET_HORIZONTAL_DIAGNOSTIC_(self%id_par0,par0ice)
