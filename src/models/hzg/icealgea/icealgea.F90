@@ -34,10 +34,11 @@
       type (type_surface_state_variable_id)          :: id_Ioxy, id_Ialg, id_Idet
       type (type_state_variable_id)                  :: id_Wno3, id_Wnh4, id_Wpho, id_Wsil
       type (type_state_variable_id)                  :: id_Wdia, id_Wdet, id_Wmesozoo, id_Wmicrozoo, id_Woxy
-      type (type_horizontal_diagnostic_variable_id)  :: id_primprod, id_l_limit, id_n_limit, id_denit, id_BAL, id_entrap, id_flush, id_sal_limit, id_temp_limit
+      type (type_horizontal_diagnostic_variable_id)  :: id_primprod, id_l_limit, id_n_limit, id_denit, id_dhice, id_entIA, id_meltIA, id_sal_limit, id_temp_limit
+      type (type_horizontal_diagnostic_variable_id)  :: id_entno3, id_entnh4, id_entpho, id_entsil, id_meltno3, id_meltnh4, id_meltpho, id_meltsil
       type (type_horizontal_diagnostic_variable_id)  :: id_remineralisation, id_mortality, id_grazing, id_lightIA, id_pno3, id_hice, id_Walg
       type (type_dependency_id)                      :: id_temp, id_U0
-      type (type_horizontal_dependency_id)           :: id_air_temp, id_par
+      type (type_horizontal_dependency_id)           :: id_air_temp, id_Fsw
       type (type_horizontal_dependency_id)           :: id_h, id_hs, id_c, id_icetemp, id_icesalt, id_brsalt, id_balpar
       type (type_horizontal_dependency_id)           :: id_hbio, id_icedh
 
@@ -114,31 +115,31 @@
 
 !------------------------------------------------------------------------------------
 
-   call self%get_parameter(self%muIA,    'muIA',    '1/day',                  'ice algae maximum growth rate',                  default=0.001_rk, scale_factor=one_pr_day)
-   call self%get_parameter(self%TctrlIA, 'TctrlIA', '1/degC',                 'temperature growth dependency',                  default=0.001_rk)
-   call self%get_parameter(self%rM,      'rM',      '1/day',                  'ice algae mortality rate',                       default=0.001_rk, scale_factor=one_pr_day)
-   call self%get_parameter(self%rGr,     'rGr',     '1/day',                  'ice algae grazing rate',                         default=0.001_rk, scale_factor=one_pr_day)
-   call self%get_parameter(self%aaIA,    'aaIA',    'mgC/mgchla/h/Einst/m/s', 'photosynthesis ef-cy',                           default=0.5_rk,   scale_factor=one_pr_hour)
-   call self%get_parameter(self%Pm,      'Pm',      'mgC/mgchla/h',           'maximum photosynhtetic rate',                    default=0.5_rk,   scale_factor=one_pr_hour)
-   call self%get_parameter(self%rNO3,    'rNO3',    'mmolN/m**3',             'NO3 half saturation',                            default=0.5_rk)!,   scale_factor=redf(1)*redf(6))
-   call self%get_parameter(self%rPO4,    'rPO4',    'mmolP/m**3',             'PO4 half saturation',                            default=0.5_rk)!,   scale_factor=redf(2)*redf(6))
-   call self%get_parameter(self%rSi,     'rSi',     'mmolSi/m**3',            'SiO2 half saturation',                           default=0.5_rk)!,   scale_factor=redf(3)*redf(6))
-   call self%get_parameter(self%rnit,    'rnit',    '1/day',                  'nitrification rate',                             default=0.001_rk, scale_factor=one_pr_day)
-   call self%get_parameter(self%rrem,    'rrem',    '1/day',                  'remineralisation rate',                          default=0.001_rk, scale_factor=one_pr_day)
-   call self%get_parameter(self%vn,      'vn',      'mmolN/m**3',             'preferential uptake of nitrate half saturation', default=0.5_rk)!,   scale_factor=redf(1)*redf(6))
-   call self%get_parameter(self%C0,      'C0',      '',                       'part of incoming radiation absorbed',            default=0.3_rk)
-   call self%get_parameter(self%Catt_ice,'Catt_ice','1/m',                    'ice attenuation coefficent',                     default=0.5_rk)                
-   call self%get_parameter(self%Catt_sno,'Catt_sno','1/m',                    'snow attenuation coefficent',                    default=0.5_rk)                
-   call self%get_parameter(self%ice_alb, 'ice_alb', '',                       'albedo in the ice',                              default=0.5_rk)                
-   call self%get_parameter(self%sno_alb, 'sno_alb', '',                       'albedo in the snow',                             default=0.5_rk)                
-   call self%get_parameter(self%v,       'v',       'm**2/s',                 'kinematic viscosity of seawater',                default=0.0_rk)                
-   call self%get_parameter(self%Ui,      'Ui',      'm/s',                    'horizontal velocity of ice',                     default=0.0_rk)                
-   call self%get_parameter(self%Cio,     'Cio',     'm**2/s',                 'drag coefficient',                               default=0.0_rk)                
-   call self%get_parameter(self%D,       'D',       'm**2/s',                 'molecular diffusion coefficient',                default=0.0_rk)                
-   call self%get_parameter(self%rgrow,   'rgrow',   'm/d',                    'growth rate of ice',                             default=0.0_rk)                
-   call self%get_parameter(self%dice,    'dice',    'kg/m**3',                'density od sea ice',                             default=0.0_rk)
-   call self%get_parameter(self%dwater,  'dwater',  'kg/m**3',                'density of the sea water',                       default=0.0_rk)  
-   call self%get_parameter(self%couple_ice, 'couple_ice', '', 'switch coupling to ice', default=.false.)
+   call self%get_parameter(self%muIA,       'muIA',       '1/day',                  'ice algae maximum growth rate',                  default=0.001_rk, scale_factor=one_pr_day)
+   call self%get_parameter(self%TctrlIA,    'TctrlIA',    '1/degC',                 'temperature growth dependency',                  default=0.001_rk)
+   call self%get_parameter(self%rM,         'rM',         '1/day',                  'ice algae mortality rate',                       default=0.001_rk, scale_factor=one_pr_day)
+   call self%get_parameter(self%rGr,        'rGr',        '1/day',                  'ice algae grazing rate',                         default=0.001_rk, scale_factor=one_pr_day)
+   call self%get_parameter(self%aaIA,       'aaIA',       'mgC/mgchla/h/Einst/m/s', 'photosynthesis ef-cy',                           default=0.5_rk,   scale_factor=one_pr_hour)
+   call self%get_parameter(self%Pm,         'Pm',         'mgC/mgchla/h',           'maximum photosynhtetic rate',                    default=0.5_rk,   scale_factor=one_pr_hour)
+   call self%get_parameter(self%rNO3,       'rNO3',       'mmolN/m**3',             'NO3 half saturation',                            default=0.5_rk)!,   scale_factor=redf(1)*redf(6))
+   call self%get_parameter(self%rPO4,       'rPO4',       'mmolP/m**3',             'PO4 half saturation',                            default=0.5_rk)!,   scale_factor=redf(2)*redf(6))
+   call self%get_parameter(self%rSi,        'rSi',        'mmolSi/m**3',            'SiO2 half saturation',                           default=0.5_rk)!,   scale_factor=redf(3)*redf(6))
+   call self%get_parameter(self%rnit,       'rnit',       '1/day',                  'nitrification rate',                             default=0.001_rk, scale_factor=one_pr_day)
+   call self%get_parameter(self%rrem,       'rrem',       '1/day',                  'remineralisation rate',                          default=0.001_rk, scale_factor=one_pr_day)
+   call self%get_parameter(self%vn,         'vn',         'mmolN/m**3',             'preferential uptake of nitrate half saturation', default=0.5_rk)!,   scale_factor=redf(1)*redf(6))
+   call self%get_parameter(self%C0,         'C0',         'unitless',               'part of incoming radiation absorbed',            default=0.3_rk)
+   call self%get_parameter(self%Catt_ice,   'Catt_ice',   '1/m',                    'ice attenuation coefficent',                     default=0.5_rk)                
+   call self%get_parameter(self%Catt_sno,   'Catt_sno',   '1/m',                    'snow attenuation coefficent',                    default=0.5_rk)                
+   call self%get_parameter(self%ice_alb,    'ice_alb',    'unitless',               'albedo in the ice',                              default=0.5_rk)                
+   call self%get_parameter(self%sno_alb,    'sno_alb',    'unitless',               'albedo in the snow',                             default=0.5_rk)                
+   call self%get_parameter(self%v,          'v',          'm**2/s',                 'kinematic viscosity of seawater',                default=0.0_rk)                
+   call self%get_parameter(self%Ui,         'Ui',         'm/s',                    'horizontal velocity of ice',                     default=0.0_rk)                
+   call self%get_parameter(self%Cio,        'Cio',        'm**2/s',                 'drag coefficient',                               default=0.0_rk)                
+   call self%get_parameter(self%D,          'D',          'm**2/s',                 'molecular diffusion coefficient',                default=0.0_rk)                
+   call self%get_parameter(self%rgrow,      'rgrow',      'm/d',                    'growth rate of ice',                             default=0.0_rk)                
+   call self%get_parameter(self%dice,       'dice',       'kg/m**3',                'density od sea ice',                             default=0.0_rk)
+   call self%get_parameter(self%dwater,     'dwater',     'kg/m**3',                'density of the sea water',                       default=0.0_rk)  
+   call self%get_parameter(self%couple_ice, 'couple_ice', 'true/false',             'switch coupling to ice',                         default=.false.)
 
    call self%register_surface_state_variable(self%id_Ialg,    'Ialg',   'mgC/m**2',   'ice algae', initial_value=0.1_rk, minimum=0.1_rk)
    call self%add_to_aggregate_variable(standard_variables%total_nitrogen,  self%id_Ialg, scale_factor=1.0_rk/redf(1)/redf(6))
@@ -153,52 +154,56 @@
    call self%register_surface_state_variable(self%id_Ino3,    'Ino3',   'mmolN/m**2',   'nitrate',        minimum=0.0_rk)
    call self%register_surface_state_variable(self%id_Inh4,    'Inh4',   'mmolN/m**2',   'nitrate',        minimum=0.0_rk)
    call self%register_surface_state_variable(self%id_Ipho,    'Ipho',   'mmolP/m**2',   'phosphate',      minimum=0.0_rk)
-   call self%register_surface_state_variable(self%id_Isil,    'Isil',   'mmolSi/m**2',   'silicate',      minimum=0.0_rk)
-   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,  self%id_Ino3)!,scale_factor=1.0_rk/redf(1)/redf(6))
-   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,  self%id_Inh4)!,scale_factor=1.0_rk/redf(1)/redf(6))
-   call self%add_to_aggregate_variable(standard_variables%total_phosphorus,self%id_Ipho)!,scale_factor=1.0_rk/redf(2)/redf(6))
-   call self%add_to_aggregate_variable(standard_variables%total_silicate,  self%id_Isil)!,scale_factor=1.0_rk/redf(3)/redf(6))
-   call self%register_surface_state_variable(self%id_ioxy,    'ioxy',   'mmolo2/m**2','oxygen',         minimum=0.0_rk)
+   call self%register_surface_state_variable(self%id_Isil,    'Isil',   'mmolSi/m**2',  'silicate',       minimum=0.0_rk)
+
+   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,  self%id_Ino3)
+   call self%add_to_aggregate_variable(standard_variables%total_nitrogen,  self%id_Inh4)
+   call self%add_to_aggregate_variable(standard_variables%total_phosphorus,self%id_Ipho)
+   call self%add_to_aggregate_variable(standard_variables%total_silicate,  self%id_Isil)
+   !call self%register_surface_state_variable(self%id_ioxy,    'ioxy',   'mmolo2/m**2','oxygen',         minimum=0.0_rk)
    
-   call self%register_horizontal_diagnostic_variable(self%id_primprod,  'primprodIA', 'mgC/m2/s',     'primary production')
-   call self%register_horizontal_diagnostic_variable(self%id_remineralisation,  'remIA', 'mgC/m3/s',     'remineralisation')
-   call self%register_horizontal_diagnostic_variable(self%id_mortality, 'mortalityIA','mgC/m3/s',     'mortality IA')
-   call self%register_horizontal_diagnostic_variable(self%id_grazing,   'grazingIA',  'mgC/m3/s',     'mortality IA by grazing')
-   call self%register_horizontal_diagnostic_variable(self%id_l_limit,   'l_limitIA',  ''        ,     'light limitation factor for ia')
-   call self%register_horizontal_diagnostic_variable(self%id_sal_limit,   'sal_limitIA',  ''        ,     'salinity limitation factor for ia')
-   call self%register_horizontal_diagnostic_variable(self%id_temp_limit,   'temp_limitIA',  ''        ,     'temperature limitation factor for ia')
-   call self%register_horizontal_diagnostic_variable(self%id_n_limit,   'n_limitIA',  ''        ,     'nutrient limitation factor for ia')
-   call self%register_horizontal_diagnostic_variable(self%id_lightIA,   'lightIA',    ''        ,     'light available for IA')
-   call self%register_horizontal_diagnostic_variable(self%id_hice,      'hice',           'm',            'thickness of ice pack')
-   call self%register_horizontal_diagnostic_variable(self%id_BAL,       'BAL',        'm',            'thickness of BAL')
-   call self%register_horizontal_diagnostic_variable(self%id_entrap,    'entrap',     'mmolN/m**3',   'nutrient entrap')
-   call self%register_horizontal_diagnostic_variable(self%id_flush,     'flush',      'mmolN/m**3',   'nutrient release')
-   call self%register_horizontal_diagnostic_variable(self%id_pno3,      'pno3',       '',             '')
-   call self%register_horizontal_diagnostic_variable(self%id_denit,     'denit_ice',  'mmolN/m**3/s', 'denitrification rate')
-   call self%register_horizontal_diagnostic_variable(self%id_Walg,     'phyto_wat',  'mmolN/m**3/s', 'phytoplankton come from water')
+   call self%register_horizontal_diagnostic_variable(self%id_primprod,         'primprodIA',  'mgC/m2/s',     'primary production')
+   call self%register_horizontal_diagnostic_variable(self%id_remineralisation, 'remIA',       'mgC/m3/s',     'remineralisation')
+   call self%register_horizontal_diagnostic_variable(self%id_mortality,        'mortalityIA', 'mgC/m3/s',     'mortality IA')
+   call self%register_horizontal_diagnostic_variable(self%id_grazing,          'grazingIA',   'mgC/m3/s',     'mortality IA by grazing')
+   call self%register_horizontal_diagnostic_variable(self%id_l_limit,          'l_limitIA',   'unitless',     'light limitation factor for ia')
+   call self%register_horizontal_diagnostic_variable(self%id_sal_limit,        'sal_limitIA', 'unitless',     'salinity limitation factor for ia')
+   call self%register_horizontal_diagnostic_variable(self%id_temp_limit,       'temp_limitIA','unitless',     'temperature limitation factor for ia')
+   call self%register_horizontal_diagnostic_variable(self%id_n_limit,          'n_limitIA',   'unitless',     'nutrient limitation factor for ia')
+   call self%register_horizontal_diagnostic_variable(self%id_lightIA,          'lightIA',     'unitless',     'light available for IA')
+   call self%register_horizontal_diagnostic_variable(self%id_hice,             'hice',        'm',            'thickness of ice pack')
+   call self%register_horizontal_diagnostic_variable(self%id_dhice,            'dh_ice',      'm',            'rate of change of the ice thickness')
+   call self%register_horizontal_diagnostic_variable(self%id_entIA,            'entrap_IA',   'mmolN/m**3',   'algae entrapment')
+   call self%register_horizontal_diagnostic_variable(self%id_meltIA,           'melt_IA',     'mmolN/m**3',   'algae release')
+   call self%register_horizontal_diagnostic_variable(self%id_pno3,             'pno3',        'unitless',     '')
+   call self%register_horizontal_diagnostic_variable(self%id_denit,            'denit_ice',   'mmolN/m**3/s', 'denitrification rate')
+   call self%register_horizontal_diagnostic_variable(self%id_Walg,             'phyto_wat',   'mmolN/m**3/s', 'phytoplankton come from water')
+   call self%register_horizontal_diagnostic_variable(self%id_entno3,           'entrap_no3',  'mmolN/m**3',   'no3 entrapment')
+   call self%register_horizontal_diagnostic_variable(self%id_meltno3,          'melt_no3',    'mmolN/m**3',   'no3 release')
+   call self%register_horizontal_diagnostic_variable(self%id_entnh4,           'entrap_nh4',  'mmolN/m**3',   'nh4 entrapment')
+   call self%register_horizontal_diagnostic_variable(self%id_meltnh4,          'melt_nh4',    'mmolN/m**3',   'nh4 release')
+   call self%register_horizontal_diagnostic_variable(self%id_entpho,           'entrap_pho',  'mmolN/m**3',   'pho entrapment')
+   call self%register_horizontal_diagnostic_variable(self%id_meltpho,          'melt_pho',    'mmolN/m**3',   'pho release')
+   call self%register_horizontal_diagnostic_variable(self%id_entsil,           'entrap_sil',  'mmolN/m**3',   'sil entrapment')
+   call self%register_horizontal_diagnostic_variable(self%id_meltsil,          'melt_sil',    'mmolN/m**3',   'sil release')
 
    ! Register dependencies
    call self%register_dependency(self%id_temp,standard_variables%temperature)
-   call self%register_horizontal_dependency(self%id_par, standard_variables%surface_downwelling_shortwave_flux)
+   call self%register_horizontal_dependency(self%id_Fsw, standard_variables%surface_downwelling_shortwave_flux)
    call self%register_horizontal_dependency( self%id_air_temp, standard_variables%surface_temperature)
 
 
-   call self%register_dependency(self%id_h,       'icethickness', 'm',    'ice thickness')
-   !call self%register_dependency(self%id_hs,      'snowthickness','m',    'snow thickness')
-   !call self%register_dependency(self%id_hbio,    'balthickness', 'm',    'BAL thickness')
-   !call self%register_dependency(self%id_icetemp, 'icetemp',      'degC', 'ice temperature')
-   !call self%register_dependency(self%id_icesalt, 'icesalt',      'PSU',  'ice salinity')
-   !call self%register_dependency(self%id_brsalt,  'brsalt',       'PSU',  'ice brine salinity')
-   !call self%register_dependency(self%id_balpar,  'balpar',       '',     'PAR at the BAL')
-   call self%register_dependency(self%id_icedh,   'icedh',        'm/s',  'rate of change of ice thickness')
+   call self%register_dependency(self%id_h,          'icethickness', 'm',    'ice thickness')
+   !call self%register_dependency(self%id_hs,        'snowthickness','m',    'snow thickness')
+   call self%register_dependency(self%id_icedh,      'icedh',        'm/s',  'rate of change of ice thickness')
 
-   call self%register_state_dependency(self%id_Wno3, 'Wno3', 'mmolN/m**3',  'nitrate come from surface water column')
-   call self%register_state_dependency(self%id_Wnh4, 'Wnh4', 'mmolN/m**3',  'ammonium come from surface water column')
-   call self%register_state_dependency(self%id_Wpho, 'Wpho', 'mmolP/m**3',  'phosphate come from surface water column')
-   call self%register_state_dependency(self%id_Wsil, 'Wsil', 'mmolSi/m**3', 'silicate come from surface water column')
-   call self%register_state_dependency(self%id_Woxy, 'Woxy', 'mmolO2/m**3', 'oxygen come from surface water column')
-   call self%register_state_dependency(self%id_Wdia, 'Wdia', 'mgC/m**3',    'diatom come from surface water column')
-   call self%register_state_dependency(self%id_Wdet, 'Wdet', 'mgC/m**3',    'detritus come from surface water column')
+   call self%register_state_dependency(self%id_Wno3, 'Wno3',         'mmolN/m**3',  'nitrate come from surface water column')
+   call self%register_state_dependency(self%id_Wnh4, 'Wnh4',         'mmolN/m**3',  'ammonium come from surface water column')
+   call self%register_state_dependency(self%id_Wpho, 'Wpho',         'mmolP/m**3',  'phosphate come from surface water column')
+   call self%register_state_dependency(self%id_Wsil, 'Wsil',         'mmolSi/m**3', 'silicate come from surface water column')
+   call self%register_state_dependency(self%id_Woxy, 'Woxy',         'mmolO2/m**3', 'oxygen come from surface water column')
+   call self%register_state_dependency(self%id_Wdia, 'Wdia',         'mgC/m**3',    'diatom come from surface water column')
+   call self%register_state_dependency(self%id_Wdet, 'Wdet',         'mgC/m**3',    'detritus come from surface water column')
 
    return
 
@@ -216,21 +221,21 @@
    real(rk) :: ice_top_temp, ice_salt, br_salt
    real(rk) :: Ialg, Idet
    real(rk) :: up_Ino3, up_Ipho, up_Isil
-   real(rk) :: flux_nit, ent_Inh4, ent_Ipho, ent_Isil, flush
+   real(rk) :: flux_nit, ent_Inh4, ent_Ipho, ent_Isil, melt
    real(rk) :: pno3, rhs_Init, rhs_Iamm, rhs_Ipho, rhs_Isil
    real(rk) :: blight, tdep, sdep
    real(rk) :: rem, rem_amn, nit, IA_prod, Prod, IA_loss, IA_gr 
    real(rk) :: icethickness, iceconc, ice_dh
    real(rk) :: snowthickness, hbio
-   real(rk) :: alb, par, bio_par
+   real(rk) :: alb, Fsw, bio_par
    real(rk) :: hv, diff_nit, U0
    real(rk) :: remmolN,uptMolN
    real(rk) :: molN2gC, molP2gC, molS2gC
-   real(rk) :: entrap_no3,flush_no3, flux_no3
-   real(rk) :: entrap_nh4,flush_nh4, flux_nh4
-   real(rk) :: entrap_pho,flush_pho, flux_pho
-   real(rk) :: entrap_sil,flush_sil, flux_sil
-   real(rk) :: flush_IA, flush_det
+   real(rk) :: entrap_no3,melt_no3, flux_no3
+   real(rk) :: entrap_nh4,melt_nh4, flux_nh4
+   real(rk) :: entrap_pho,melt_pho, flux_pho
+   real(rk) :: entrap_sil,melt_sil, flux_sil
+   real(rk) :: melt_IA, melt_det
    real(rk) :: entrap_IA, entrap_det
    real(rk) :: air_temp   
  
@@ -243,7 +248,7 @@
    _GET_(self%id_Wdia, Wdia)
    _GET_(self%id_Wdet, Wdet)
    _GET_HORIZONTAL_(self%id_air_temp, air_temp)
-   _GET_HORIZONTAL_(self%id_par, par) 
+   _GET_HORIZONTAL_(self%id_Fsw, Fsw) 
    _GET_HORIZONTAL_(self%id_Ino3, Ino3)
    _GET_HORIZONTAL_(self%id_Inh4, Inh4)
    _GET_HORIZONTAL_(self%id_Ipho, Ipho)
@@ -265,132 +270,184 @@
    snowthickness = 0.0_rk   
    hbio = 0.05
    U0   = 0.008
+   endif
 
-  !ice_dh = ice_dh  *  one_pr_day  
-   
+   !!!-------------------------------!!!
+   !!!       CONVERSION FACTOR       !!!
+   !!!-------------------------------!!!
 
    ! molN/gC = 1/(molC/molN * gC/molC) 
    molN2gC=(1/(redf(1)*redf(6)))
+   ! molP/gC = 1/(molC/molP * gC/molC)
    molP2gC=(1/(redf(2)*redf(6)))
+   ! molSi/gC = 1/(molC/molSi * gC/molC) 
    molS2gC=(1/(redf(3)*redf(6)))
 
-   ! par on the bottom ice
+   !!!-------------------------------!!!
+   !!!       LIGHT IN THE ICE        !!!
+   !!!-------------------------------!!!
+
+   !**! PAR available to ice algae
+   !__ Albedo value choice (depend about the constituent on the top ice)
    if(snowthickness > 0.0_rk) then
 	alb = self%sno_alb
    else 
 	alb = self%ice_alb
    end if
-
-   bio_par = par * (1.0 - alb) * self%C0 * exp((-self%Catt_ice * icethickness) - (self%Catt_sno * snowthickness))
    
-   ! loss terms
+   !__ PAR reaching the ice algae
+   bio_par = Fsw * (1.0_rk - alb) * self%C0 * exp((-self%Catt_ice * icethickness) - (self%Catt_sno * snowthickness))
+   bio_par = 0.49 * 4.91 * bio_par   
+
+   !!!-------------------------------!!!
+   !!!       NUTRIENTS DYNAMIC       !!!
+   !!!-------------------------------!!!
+
+   !**! Brine release flux
+   ! br_release = ((9.667*10**-9) + (4.49*10**-6) * ice_dh - (1.39*10**-7) * ice_dh**2)/100
+   ! br_flux = self%fr * br_release * self%Zbot * ()      
+
+   !**! Diffusion flux
+   hv = (self%v / abs(self%Ui - U0)) * (self%Cio ** (-0.5))
+   diff_nit = (self%D * hv) * ((Wno3 - Ino3)/ hbio)  
+
+   !**! Congelation (entrapment) flux
+   entrap_no3 = molN2gC * (max(0.0_rk, ice_dh) * max(0.0_rk, Wno3)) * 0.7 * (self%dice/self%dwater) 
+   melt_no3  = (min(0.0_rk, ice_dh/icethickness) * max(0.0_rk, Ino3))
+   flux_no3   = entrap_no3 + melt_no3
+ 
+   entrap_nh4 = molN2gC * (max(0.0_rk, ice_dh) * max(0.0_rk, Wnh4)) * 0.7 * (self%dice/self%dwater)
+   melt_nh4  = (min(0.0_rk, ice_dh/icethickness) * max(0.0_rk, Inh4)) 
+   flux_nh4   = entrap_nh4 + melt_nh4
+
+   entrap_sil = molS2gC * (max(0.0_rk, ice_dh) * max(0.0_rk, Wsil)) * 0.7 * (self%dice/self%dwater) 
+   melt_sil  = (min(0.0_rk, ice_dh/icethickness) * max(0.0_rk, Isil)) 
+   flux_sil   = entrap_sil + melt_sil
+
+   entrap_pho = molP2gC * (max(0.0_rk, ice_dh) * max(0.0_rk, Wpho)) * 0.7 * (self%dice/self%dwater) 
+   melt_pho  = (min(0.0_rk, ice_dh/icethickness) * max(0.0_rk, Ipho))
+   flux_pho   = entrap_pho + melt_pho
+
+   !!!-------------------------------!!!
+   !!!         ALGAE DYNAMIC         !!!
+   !!!-------------------------------!!!
+
+   !**! Growth / Melt fluxes
+   melt_IA    = min(0.0_rk, ice_dh/icethickness) * max(0.0_rk, Ialg)
+   entrap_IA  = (max(0.0_rk, ice_dh) * max(0.0_rk, Wdia))  * (self%dice/self%dwater) 
+
+
+   !**! Loss terms
    IA_loss = max(0.0_rk, (self%rM * Ialg))
    
-   ! remineralisation rate
-   rem = self%rrem * Idet    
-
-   ! nitrification rate
+   !**! Nitrification rate
    nit = self%rnit * Inh4 
    
-   ! nutrient limitation factors
+   !**! Nutrient limitation factors
    up_Ino3 = Ino3/(self%rNO3 + Ino3)
    up_Ipho = Ipho/(self%rPO4 + Ipho)
    up_Isil = Isil/(self%rSi + Isil)
 
-   ! light limitation
+   !**! Light limitation
    blight = max(1 - exp(-(self%aaIA * bio_par) / self%Pm), 0.0_rk)
 
-   ! temperature and salt dependence
+   !**! Temperature and salt dependence
    !Tdep = exp(self%TctrlIA * ice_top_temp)
    !Sdep = exp(-(2.16 - 8.30 * (10**-5) * (br_salt ** 2.11) - 0.55 * log(br_salt)) ** 2)  
    Tdep = 1
    Sdep = 1
 
-   ! ice algae production and nutrient uptake
+   !**!  Grazing term
+  ! IA_gr = max(0.0_rk, (self%rGr * prod))
+  
+   !!!-------------------------------!!!
+   !!!       DETRITUS DYNAMIC        !!!
+   !!!-------------------------------!!!
+
+   !**! Growth / Melt fluxes
+   melt_det   = min(0.0_rk, ice_dh/icethickness) * max(0.0_rk, Idet)
+   entrap_det = (max(0.0_rk, ice_dh) * max(0.0_rk, Wdet))  * (self%dice/self%dwater) 
+
+   !**! Remineralisation rate
+   rem = self%rrem * Idet    
+
+   !!!-------------------------------!!!
+   !!!     BIOGEO RATE OF CHANGE     !!!
+   !!!-------------------------------!!!
+
+   !**! Ice Algae change (production and nutrient uptake)
    IA_prod = Tdep * Sdep * min(blight, up_Ino3, up_Ipho, up_Isil) 
    Prod = self%muIA * Ialg * IA_prod
 
-   ! grazing term
-  ! IA_gr = max(0.0_rk, (self%rGr * prod))
-
-   ! nutrients entrapment and flushing
-   entrap_no3 = molN2gC * (max(0.0_rk, ice_dh) * max(0.0_rk, Wno3)) * 0.7 * (self%dice/self%dwater) 
-   flush_no3  = (min(0.0_rk, ice_dh/icethickness) * max(0.0_rk, Ino3))
-   flux_no3   = entrap_no3 + flush_no3
- 
-   entrap_nh4 = molN2gC * (max(0.0_rk, ice_dh) * max(0.0_rk, Wnh4)) * 0.7 * (self%dice/self%dwater)
-   flush_nh4  = (min(0.0_rk, ice_dh/icethickness) * max(0.0_rk, Inh4)) 
-   flux_nh4   = entrap_nh4 + flush_nh4
-
-   entrap_sil = molS2gC * (max(0.0_rk, ice_dh) * max(0.0_rk, Wsil)) * 0.7 * (self%dice/self%dwater) 
-   flush_sil  = (min(0.0_rk, ice_dh/icethickness) * max(0.0_rk, Isil)) 
-   flux_sil   = entrap_sil + flush_sil
-
-   entrap_pho = molP2gC * (max(0.0_rk, ice_dh) * max(0.0_rk, Wpho)) * 0.7 * (self%dice/self%dwater) 
-   flush_pho  = (min(0.0_rk, ice_dh/icethickness) * max(0.0_rk, Ipho))
-   flux_pho   = entrap_pho + flush_pho
-
-   ! 
-   flush_IA   = min(0.0_rk, ice_dh/icethickness) * max(0.0_rk, Ialg)
-   entrap_IA  = (max(0.0_rk, ice_dh) * max(0.0_rk, Wdia))  * (self%dice/self%dwater) 
-   flush_det  = min(0.0_rk, ice_dh/icethickness) * max(0.0_rk, Idet)
-   entrap_det = (max(0.0_rk, ice_dh) * max(0.0_rk, Wdet))  * (self%dice/self%dwater) 
-
-   ! nutrients  diffusion
-   hv = (self%v / abs(self%Ui - U0)) * (self%Cio ** (-0.5))
-   diff_nit = (self%D * hv) * ((Wno3 - Ino3)/ hbio)  
-  
-   ! nutrients change 
+   !**!  Nutrients change 
    pno3 = self%vn / (self%vn + Inh4)
 
    rhs_Init = molN2gC * (- Prod * pno3) + nit 
+
    rhs_Iamm = molN2gC * ((- Prod * (1-pno3)) + rem) - nit
 
-   !rhs_Iamm = remMolN - uptMolN - nit    
-   !write (*,*)'uptMolN,remMolN:',uptMolN,remMolN
-   ! mmolN/m2/s = 1/(molC/molN * gC/molC) * (mgC * - ) + mgC/m2/s - mmolN/m2 
-   !            = molN/gC*                *  mgC
-   rhs_Ipho = (1/(redf(2)*redf(6))) * (- Prod + rem)
-   rhs_Isil = (1/(redf(3)*redf(6))) * (- Prod + rem)
+   rhs_Ipho = molP2gC * (- Prod + rem)
 
-   _SET_SURFACE_ODE_(self%id_Ialg, Prod - IA_loss + flush_IA + entrap_IA )
-   _SET_SURFACE_ODE_(self%id_Idet, IA_loss  - rem + flush_det + entrap_det)
+   rhs_Isil = molS2gC * (- Prod + rem)
+
+   !!!-------------------------------!!!
+   !!!    APPLY AND WRITE CHANGE     !!!
+   !!!-------------------------------!!!
+    
+   !**! ODE function
+   _SET_SURFACE_ODE_(self%id_Ialg, Prod - IA_loss + melt_IA + entrap_IA )
+   _SET_SURFACE_ODE_(self%id_Idet, IA_loss  - rem + melt_det + entrap_det)
    _SET_SURFACE_ODE_(self%id_Ino3, rhs_Init + flux_no3)
    _SET_SURFACE_ODE_(self%id_Inh4, rhs_Iamm + flux_nh4)
    _SET_SURFACE_ODE_(self%id_Ipho, rhs_Ipho + flux_pho)
    _SET_SURFACE_ODE_(self%id_Isil, rhs_Isil + flux_sil)
  
+   !**! Exchange with water column function  
    if(self%couple_ice) then 
    _SET_SURFACE_EXCHANGE_(self%id_Wno3, -flux_no3 / molN2gC)
    _SET_SURFACE_EXCHANGE_(self%id_Wnh4, -flux_nh4 / molN2gC)
    _SET_SURFACE_EXCHANGE_(self%id_Wsil, -flux_sil / molS2gC)
    _SET_SURFACE_EXCHANGE_(self%id_Wpho, -flux_pho / molP2gC)
-   _SET_SURFACE_EXCHANGE_(self%id_Wdia, -flush_IA - entrap_IA )
-   _SET_SURFACE_EXCHANGE_(self%id_Wdet, -flush_det - entrap_det )
+   _SET_SURFACE_EXCHANGE_(self%id_Wdia, -melt_IA - entrap_IA )
+   _SET_SURFACE_EXCHANGE_(self%id_Wdet, -melt_det - entrap_det )
    end if 
-
-   end if 
-
-  !  write (*,*)'dh_ice , water no3', ice_dh, Wno3
-
+   
+   !**! Save diagnostic variables
+   !__ Algae
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_primprod, Prod)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_remineralisation, nit)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_mortality, IA_loss)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_grazing, IA_gr)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_l_limit, blight)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_sal_limit, Sdep)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_temp_limit, Tdep)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_n_limit, IA_prod)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_lightIA, par)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_BAL, ice_dh)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_entIA, entrap_IA)  
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_meltIA, melt_IA)  
+   
+   !__ Detritus
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_remineralisation, nit)
+   
+   !__ Nutients
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_pno3, pno3)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_entrap, entrap_IA)  
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_flush, flush_IA)  
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_entno3, entrap_no3)  
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_entnh4, entrap_nh4)  
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_entpho, entrap_pho)  
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_entsil, entrap_sil)  
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_meltno3, melt_no3)  
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_meltnh4, melt_nh4)  
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_meltpho, melt_pho)  
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_meltsil, melt_sil)  
+
+   !__ Environmental 
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_lightIA, Fsw)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_hice, icethickness)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dhice, ice_dh)
+
+   !__ Pelagic 
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_Walg, Wdia)
-
-   _HORIZONTAL_LOOP_END_
-
+ 
+    _HORIZONTAL_LOOP_END_
+  
    end subroutine do_surface
 
 
