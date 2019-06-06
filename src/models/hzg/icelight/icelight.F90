@@ -93,9 +93,9 @@ contains
       if (self%use_snow) &
         call self%register_dependency(self%id_snowh, standard_variables%snow_thickness)
       if (self%use_icealgea) &
-        call self%register_dependency(self%id_icealgea, icealgea_name, 'mmolC/m2', 'ice algea mass in ice')
+        call self%register_horizontal_dependency(self%id_icealgea, icealgea_name, 'mmolC/m2', 'ice algea mass in ice')
       if (self%use_external_bal) &
-        call self%register_dependency(self%id_h_bal, h_bal_name, 'm', 'height of BAL layer in ice')
+        call self%register_horizontal_dependency(self%id_h_bal, h_bal_name, 'm', 'height of BAL layer in ice')
    end subroutine
    
    subroutine get_light(self,_ARGUMENTS_VERTICAL_)
