@@ -56,6 +56,7 @@
       real(rk) :: doc_min
       real(rk) :: doc_mean
       real(rk) :: max_size
+      integer  :: size_method
       real(rk) :: tep_remin
 
       contains
@@ -132,6 +133,7 @@
 
    call self%get_parameter(self%breakup_factor, 'breakup_factor', 's**0.5/m**2', 'breakup factor', default=12068.0_rk) ! from Maerz.etal2010 [s**0.5/m**2]
    call self%get_parameter(self%max_size, 'max_size', 'm', 'maximum aggregate size', default=250.0e-6_rk)
+   call self%get_parameter(self%size_method, 'size_method', '-', 'size method: 1: sigmoid, 2: Xu et al. (2008) steady-state, 3: Xu ea. (2008) Bale experiment,  4: Winterwerp (1998)', default=2)
    call self%get_parameter(self%tep_remin, 'tep_remin', '1/d', 'remineralization rate of TEP', default=0.0_rk, scale_factor=one_pr_day)
 
    ! Register state variables
@@ -189,7 +191,7 @@
 
    real(rk)                   :: lpm,phyn,phyc,detn,detc
    real(rk)                   :: doc, tep
-   real(rk)                   :: G,eps,num
+   real(rk)                   :: G,eps,num_turb
    real(rk)                   :: coagulation, decomposition, breakup
    real(rk)                   :: A1_lpm,A2_lpm, Loss_lpm
    real(rk)                   :: A1_phyn,A2_phyn
@@ -199,6 +201,7 @@
    real(rk)                   :: aggchl,phychl
 #endif
    real(rk)                   :: Vol_agg
+   real(rk)                   :: num_water=1.1d-3/1025_rk
 
    _LOOP_BEGIN_
    
@@ -214,8 +217,8 @@
 
    ! Retrieve dependencies
    _GET_DEPENDENCY_(self%id_eps, eps) ! dissipation [m**2/s**3]
-   _GET_DEPENDENCY_(self%id_num, num) ! kinematic (turbulent) viscosity [m**2/s]
-   G = sqrt((eps+1.d-11)/(num+1.d-8)) ! turbulent shear
+   _GET_DEPENDENCY_(self%id_num, num_turb) ! kinematic (turbulent) viscosity [m**2/s]
+   G = sqrt(eps/(num_turb + num_water)) ! turbulent shear
 
    breakup = self%breakup_factor * G**1.5d0 * self%meansize(agglpm+1.d-3*aggorg,G)**2
    !breakup = self%breakup_factor * G**1.5d0 * self%max_size**2 ! [1/s]
@@ -307,8 +310,9 @@
 
    real(rk)                :: aggorg, agglpm, agg_mass, Vol_agg
    real(rk)                :: rho_part,rho_water,visc
-   real(rk)                :: G,eps,num
+   real(rk)                :: G,eps,num_turb
    real(rk)                :: ws
+   real(rk)                :: num_water=1.1d-3/1025_rk
    
    _LOOP_BEGIN_
 
@@ -318,8 +322,8 @@
 
    ! Retrieve dependencies
    _GET_DEPENDENCY_(self%id_eps, eps) ! dissipation [m**2/s**3]
-   _GET_DEPENDENCY_(self%id_num, num) ! kinematic (turbulent) viscosity [m**2/s]
-   G = sqrt((eps+1.d-11)/(num+1.d-8)) ! turbulent shear
+   _GET_DEPENDENCY_(self%id_num, num_turb) ! kinematic (turbulent) viscosity [m**2/s]
+   G = sqrt(eps/(num_turb + num_water)) ! turbulent shear
 
    ws = self%sinking_velocity(aggorg,agglpm,G)
 
@@ -367,16 +371,25 @@
    real(rk), parameter        :: minsize= 50.d-6 ! [m] minimum size of arregates
    real(rk), parameter        :: k_size = 50.d0  ! [g/m**3] half-saturation constant for size distribution
 
-#if 0
-   ! Get mean size from log-normal distribution:
-   !   most probable (mode) size is approaching self%max_size for high SPM
-   modesize = minsize+(self%max_size - minsize)*agg_mass/(agg_mass+k_size)
-#else
-   ! from 1d experiments in Xu.etal2008
-   ! equilibrium D50 value depending on agg_mass [g/l] and G
-   modesize=0.0001_rk + 0.0004_rk * 1.d-3*agg_mass/sqrt(G)
+   if (self%size_method == 1) then
+     ! Get mean size from log-normal distribution:
+     !   most probable (mode) size is approaching self%max_size for high SPM
+     modesize = minsize+(self%max_size - minsize)*agg_mass/(agg_mass+k_size)
+   else if (self%size_method == 2) then
+     ! from 1d experiments in Xu.etal2008
+     ! equilibrium D50 value depending on agg_mass [g/l] and G
+     ! resulting from steady-state experiment
+     modesize=0.0001_rk + 0.0004_rk * 1.d-3*agg_mass/sqrt(G)
+   else if (self%size_method == 3) then
+     ! from 1d experiments in Xu.etal2008
+     ! equilibrium D50 value depending on agg_mass [g/l] and G
+     ! resulting from the tank experiment
+     modesize=0.0001_rk + 0.0003_rk*1.d-3*agg_mass/G
+   else if (self%size_method == 4) then
+     ! Winterwerp et al (1998)
+     modesize = 4.e-6 + 4.e-3*1.e-3*agg_mass/sqrt(G)
+   end if
    meansize = min(modesize,self%max_size)
-#endif
 #if 0
    modesize = min(modesize,self%max_size)
    !   width of distribution increases with SPM up to sigma=0.75
