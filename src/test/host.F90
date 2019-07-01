@@ -50,14 +50,18 @@ integer :: _LOCATION_
 !  No mask but variable bottom index. Index of depth dimension must be 1.
 !  All loops over inner dimension should skip points below bottom.
 #  ifdef _FABM_VERTICAL_BOTTOM_TO_SURFACE_
-#    define _IRANGE_ bottom_index _INDEX_HORIZONTAL_LOCATION_,domain_extent(1)
+#    define _IMIN_ bottom_index _INDEX_HORIZONTAL_LOCATION_
+#    define _IMAX_ domain_extent(1)
 #  else
-#    define _IRANGE_ 1,bottom_index _INDEX_HORIZONTAL_LOCATION_
+#    define _IMIN_ 1
+#    define _IMAX_ bottom_index _INDEX_HORIZONTAL_LOCATION_
 #  endif
 #else
 !  Loops over inner dimension should span full domain
-#  define _IRANGE_ 1,domain_extent(1)
+#  define _IMIN_ 1
+#  define _IMAX_ domain_extent(1)
 #endif
+#define _IRANGE_ _IMIN_,_IMAX_
 
 #if _FABM_DIMENSION_COUNT_==0
 #  define _BEGIN_GLOBAL_LOOP_
@@ -192,6 +196,7 @@ integer :: mode = 1
 integer :: ntest = -1
 
 ! Parse command line arguments
+call start_test('parsing command line arguments')
 i = 1
 do
    call get_command_argument(i, arg)
@@ -209,15 +214,7 @@ do
       stop 2
    end select
 end do
-
-! Set defaults
-if (ntest == -1) then
-   if (mode == 1) then
-      ntest = 1
-   else
-      ntest = 1000
-   end if
-end if
+call report_test_result()
 
 #if _FABM_DIMENSION_COUNT_>0
 i__=50
@@ -231,9 +228,20 @@ k__=45
 
 #if _FABM_DIMENSION_COUNT_>0
 domain_extent = (/ _LOCATION_ /)
+interior_count = product(domain_extent)
+#else
+interior_count = 1
 #endif
 
-interior_count = product(domain_extent)
+! Set defaults
+if (ntest == -1) then
+   if (mode == 1) then
+      ntest = 1
+   else
+      ntest = 50000000/interior_count
+   end if
+end if
+
 #ifdef _FABM_DEPTH_DIMENSION_INDEX_
 horizontal_count = interior_count / domain_extent(_FABM_DEPTH_DIMENSION_INDEX_)
 #else
@@ -249,8 +257,12 @@ allocate(tmp _INDEX_LOCATION_)
 allocate(tmp_hz _INDEX_HORIZONTAL_LOCATION_)
 
 allocate(type_test_driver::driver)
-call fabm_initialize_library()
 
+call start_test('fabm_initialize_library')
+call fabm_initialize_library()
+call report_test_result()
+
+call start_test('building model tree')
 select case (mode)
 case (1)
     ! Unit testing with built-in model
@@ -260,6 +272,7 @@ case (2)
     ! Test with user-provided fabm.yaml
     call fabm_create_model_from_yaml_file(model, do_not_initialize=.true.)
 end select
+call report_test_result()
 
 call start_test('fabm_initialize')
 call fabm_initialize(model)
@@ -402,11 +415,11 @@ contains
 
    subroutine read_environment
       use yaml, only: yaml_parse => parse, yaml_error_length => error_length
-      use yaml_types, only: type_yaml_node => type_node, type_yaml_dictionary => type_dictionary, type_yaml_scalar => type_scalar, type_yaml_key_value_pair => type_key_value_pair
+      use yaml_types, only: type_node, type_yaml_dictionary => type_dictionary, type_yaml_scalar => type_scalar, type_yaml_key_value_pair => type_key_value_pair
 
       integer, parameter :: yaml_unit = 100
       character(yaml_error_length) :: yaml_error
-      class (type_yaml_node),pointer :: yaml_root
+      class (type_node),pointer :: yaml_root
       type (type_yaml_key_value_pair), pointer :: yaml_pair
       real(rk) :: value
       logical :: success
@@ -469,6 +482,16 @@ contains
    end subroutine read_environment
 
    subroutine randomize_mask
+#if _FABM_BOTTOM_INDEX_==-1
+      ! Depth index of bottom varies in the horizontal - pick random numbers between 0 (land) and maximum index
+      call random_number(tmp_hz)
+      bottom_index = floor(tmp_hz*(1+domain_extent(_FABM_DEPTH_DIMENSION_INDEX_)))
+#  ifdef _FABM_VERTICAL_BOTTOM_TO_SURFACE_
+     ! Ensure invalid bottom indices [land points] are set such that vertical loops have 0 iterations.
+     where (bottom_index == 0) bottom_index = domain_extent(_FABM_DEPTH_DIMENSION_INDEX_) + 1
+#  endif
+#endif
+
 #ifdef _HAS_MASK_
 #  ifdef _FABM_HORIZONTAL_MASK_
       ! Apply random mask across horizontal domain (half of grid cells masked)
@@ -488,24 +511,16 @@ contains
       where (tmp>0.5_rk) mask = _FABM_MASKED_VALUE_
 
 #    if _FABM_BOTTOM_INDEX_==-1
-      ! Depth index of bottom varies in the horizontal - pick random numbers between 0 (land) and maximum index
-      call random_number(tmp_hz)
-      bottom_index = floor(tmp_hz*(1+domain_extent(_FABM_DEPTH_DIMENSION_INDEX_)))
-
-      ! Based on value for bottom index (0 or higher), either mask all point in the column, or unmask the bottom point
+      ! Bottom index varies in the horizontal. Ensure the bottom cell itself is unmasked, and anything deeper is masked.
       _BEGIN_GLOBAL_HORIZONTAL_LOOP_
-         if (bottom_index _INDEX_HORIZONTAL_LOCATION_==0) then
-            ! All land - mask entire column
-            mask _INDEX_GLOBAL_VERTICAL_(:) = _FABM_MASKED_VALUE_
-         else
-            ! Valid bottom index - unmask associated cell, then mask all deeper ones
-            mask _INDEX_GLOBAL_VERTICAL_(bottom_index _INDEX_HORIZONTAL_LOCATION_) = _FABM_UNMASKED_VALUE_
+         ! Valid bottom index - unmask associated cell, then mask all deeper ones
 #      ifdef _FABM_VERTICAL_BOTTOM_TO_SURFACE_
-            mask _INDEX_GLOBAL_VERTICAL_(:bottom_index _INDEX_HORIZONTAL_LOCATION_ - 1) = _FABM_MASKED_VALUE_
+         if (bottom_index _INDEX_HORIZONTAL_LOCATION_ <= domain_extent(_FABM_DEPTH_DIMENSION_INDEX_)) mask _INDEX_GLOBAL_VERTICAL_(bottom_index _INDEX_HORIZONTAL_LOCATION_) = _FABM_UNMASKED_VALUE_
+         mask _INDEX_GLOBAL_VERTICAL_(:bottom_index _INDEX_HORIZONTAL_LOCATION_ - 1) = _FABM_MASKED_VALUE_
 #      else
-            mask _INDEX_GLOBAL_VERTICAL_(bottom_index _INDEX_HORIZONTAL_LOCATION_ + 1:) = _FABM_MASKED_VALUE_
+         if (bottom_index _INDEX_HORIZONTAL_LOCATION_ >= 1) mask _INDEX_GLOBAL_VERTICAL_(bottom_index _INDEX_HORIZONTAL_LOCATION_) = _FABM_UNMASKED_VALUE_
+         mask _INDEX_GLOBAL_VERTICAL_(bottom_index _INDEX_HORIZONTAL_LOCATION_ + 1:) = _FABM_MASKED_VALUE_
 #      endif
-         end if
       _END_GLOBAL_HORIZONTAL_LOOP_
 #    endif
 
@@ -526,20 +541,13 @@ contains
       interior_count = count(_IS_UNMASKED_(mask))
 #  endif
 #elif _FABM_BOTTOM_INDEX_==-1
-      ! No mask but variable bottom index
-      call random_number(tmp_hz)
-      bottom_index = floor(tmp_hz*(1+domain_extent(_FABM_DEPTH_DIMENSION_INDEX_)))
-      horizontal_count = count(bottom_index > 0)
 #  ifdef _FABM_VERTICAL_BOTTOM_TO_SURFACE_
+      horizontal_count = count(bottom_index <= domain_extent(_FABM_DEPTH_DIMENSION_INDEX_))
       interior_count = sum(domain_extent(_FABM_DEPTH_DIMENSION_INDEX_) - bottom_index + 1)
 #  else
+      horizontal_count = count(bottom_index >= 1)
       interior_count = sum(bottom_index)
 #  endif
-#endif
-
-     ! Ensure invalid bottom indices [land points] are set such that vertical loops have 0 iterations.
-#if _FABM_BOTTOM_INDEX_==-1 && defined(_FABM_VERTICAL_BOTTOM_TO_SURFACE_)
-     where (bottom_index == 0) bottom_index = domain_extent(_FABM_DEPTH_DIMENSION_INDEX_) + 1
 #endif
    end subroutine randomize_mask
 
@@ -719,7 +727,13 @@ contains
       loop_count = 0
       _BEGIN_OUTER_INTERIOR_LOOP_
          dy = 0
+#if _FABM_BOTTOM_INDEX_==-1 && !defined(_HAS_MASK_) && _FABM_VECTORIZED_DIMENSION_INDEX_==_FABM_DEPTH_DIMENSION_INDEX_ && defined(_FABM_DEPTH_DIMENSION_INDEX_)
+         ! We are looping over depth, but as we have a non-constant bottom index (yet no mask), we need to skip everything below bottom
+         if (bottom_index _INDEX_HORIZONTAL_LOCATION_ >= 1 .and. bottom_index _INDEX_HORIZONTAL_LOCATION_ <= domain_extent(_FABM_DEPTH_DIMENSION_INDEX_)) &
+            call fabm_do(model,_IMIN_,_IMAX_ _ARG_INTERIOR_FIXED_LOCATION_,dy(_IMIN_:_IMAX_,:))
+#else
          call fabm_do(model _ARGUMENTS_INTERIOR_IN_,dy)
+#endif
          do ivar=1,size(model%state_variables)
             call check_interior_slice_plus_1(dy,ivar,0.0_rk,-real(ivar+interior_state_offset,rk) _ARGUMENTS_INTERIOR_IN_)
          end do
@@ -752,6 +766,9 @@ contains
       call start_test('fabm_do_surface')
       loop_count = 0
       _BEGIN_OUTER_HORIZONTAL_LOOP_
+#if _FABM_BOTTOM_INDEX_==-1 && !defined(_HAS_MASK_)
+         if (bottom_index _INDEX_HORIZONTAL_LOCATION_ >= 1 .and. bottom_index _INDEX_HORIZONTAL_LOCATION_ <= domain_extent(_FABM_DEPTH_DIMENSION_INDEX_)) then
+#endif
          flux = 0
          sms_sf = 0
          call fabm_do_surface(model _ARGUMENTS_HORIZONTAL_IN_,flux,sms_sf)
@@ -761,6 +778,9 @@ contains
          do ivar=1,size(model%surface_state_variables)
             call check_horizontal_slice_plus_1(sms_sf,ivar,0.0_rk,-real(ivar+surface_state_offset,rk) _ARGUMENTS_HORIZONTAL_IN_)
          end do
+#if _FABM_BOTTOM_INDEX_==-1 && !defined(_HAS_MASK_)
+         endif
+#endif
       _END_OUTER_HORIZONTAL_LOOP_
       call assert(loop_count == horizontal_count, 'fabm_do_surface', 'call count does not match number of (unmasked) horizontal points')
 
@@ -790,6 +810,9 @@ contains
       call start_test('fabm_do_bottom')
       loop_count = 0
       _BEGIN_OUTER_HORIZONTAL_LOOP_
+#if _FABM_BOTTOM_INDEX_==-1 && !defined(_HAS_MASK_)
+         if (bottom_index _INDEX_HORIZONTAL_LOCATION_ >= 1 .and. bottom_index _INDEX_HORIZONTAL_LOCATION_ <= domain_extent(_FABM_DEPTH_DIMENSION_INDEX_)) then
+#endif
          flux = 0
          sms_bt = 0
          call fabm_do_bottom(model _ARGUMENTS_HORIZONTAL_IN_,flux,sms_bt)
@@ -799,6 +822,9 @@ contains
          do ivar=1,size(model%bottom_state_variables)
             call check_horizontal_slice_plus_1(sms_bt,ivar,0.0_rk,-real(ivar+bottom_state_offset,rk) _ARGUMENTS_HORIZONTAL_IN_)
          end do
+#if _FABM_BOTTOM_INDEX_==-1 && !defined(_HAS_MASK_)
+         endif
+#endif
       _END_OUTER_HORIZONTAL_LOOP_
       call assert(loop_count == horizontal_count, 'fabm_do_surface', 'call count does not match number of (unmasked) horizontal points')
 
@@ -822,7 +848,7 @@ contains
 #  if _FABM_BOTTOM_INDEX_==-1 && !defined(_HAS_MASK_)
          ! No mask but non-constant bottom index. We need to skip everything below bottom
          if (bottom_index _INDEX_HORIZONTAL_LOCATION_ >= 1 .and. bottom_index _INDEX_HORIZONTAL_LOCATION_ <= domain_extent(_FABM_DEPTH_DIMENSION_INDEX_)) &
-            call fabm_get_light(model,_IRANGE_ _ARG_VERTICAL_FIXED_LOCATION_)
+            call fabm_get_light(model,_IMIN_,_IMAX_ _ARG_VERTICAL_FIXED_LOCATION_)
 #  else
          call fabm_get_light(model,1,domain_extent(_FABM_DEPTH_DIMENSION_INDEX_) _ARG_VERTICAL_FIXED_LOCATION_)
 #  endif
@@ -855,7 +881,13 @@ contains
       call start_test('fabm_get_vertical_movement')
       loop_count = 0
       _BEGIN_OUTER_INTERIOR_LOOP_
+#if _FABM_BOTTOM_INDEX_==-1 && !defined(_HAS_MASK_) && _FABM_VECTORIZED_DIMENSION_INDEX_==_FABM_DEPTH_DIMENSION_INDEX_ && defined(_FABM_DEPTH_DIMENSION_INDEX_)
+         ! We are looping over depth, but as we have a non-constant bottom index (yet no mask), we need to skip everything below bottom
+         if (bottom_index _INDEX_HORIZONTAL_LOCATION_ >= 1 .and. bottom_index _INDEX_HORIZONTAL_LOCATION_ <= domain_extent(_FABM_DEPTH_DIMENSION_INDEX_)) &
+            call fabm_get_vertical_movement(model,_IMIN_,_IMAX_ _ARG_INTERIOR_FIXED_LOCATION_,w(_IMIN_:_IMAX_,:))
+#else
          call fabm_get_vertical_movement(model _ARGUMENTS_INTERIOR_IN_,w)
+#endif
          do ivar=1,size(model%state_variables)
             if (mod(ivar, 2) == 0) then
                call check_interior_slice_plus_1(w,ivar,0.0_rk,real(ivar+interior_state_offset,rk) _ARGUMENTS_INTERIOR_IN_)
@@ -1091,7 +1123,7 @@ contains
          'check_interior_slice', 'one or more non-masked cells do not have the value required.')
 #  endif
 #elif defined(_INTERIOR_IS_VECTORIZED_)
-      call assert(all(slice_data == required_value), 'check_interior_slice', 'one or more cells do not have the value required.')
+      call assert(all(slice_data(_IMIN_:_IMAX_) == required_value), 'check_interior_slice', 'one or more cells do not have the value required.')
 #else
       call assert(slice_data == required_value, 'check_interior_slice', 'variable does not have the value required.')
 #endif
