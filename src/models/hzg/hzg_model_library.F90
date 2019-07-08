@@ -18,7 +18,7 @@ contains
    subroutine create(self,name,model)
 
       use fabm_hzg_ecosmo
-      use fabm_hzg_omexdia_p
+      use hzg_omexdia_p
       use fabm_hzg_test
       use fabm_hzg_icealgea
       use hzg_icelight
