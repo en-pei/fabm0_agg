@@ -1,0 +1,49 @@
+!-------------------------------------------------------------------------------
+! MAECS switches
+!-------------------------------------------------------------------------------
+! RubiscoOn      [bool]
+!                  use Rubisco- here in C-units
+! PhotoacclimOn  [bool]
+!                  use Photoacclimation
+! PhosphorusOn   [bool]
+!                  resolve Phosphorus cycle
+! SiliconOn      [bool]
+!                  resolve Silicon cycle
+! GrazingOn      [bool]
+!                  use Zooplankton grazing
+! BioOxyOn       [bool]
+!                  use oxygen&ODU from OMEXDIA
+! DiagOn         [bool]
+!                  output of major analysis diagnostics
+! DebugDiagOn    [bool]
+!                  output of all diagnostics
+! ChemostatOn    [bool]
+!                  use Chemostat mode 
+! NResOn         [bool]
+!                  use long-term N-reservoir
+! ZooSinkMeth    [integer]
+!                  method of Zoo vertical movement 0:no 1:=v_phy 2: diel migration  
+! kwFzmaxMeth    [integer]
+!                  background extinction method
+! detritus_no_river_dilution [bool]
+!                  use riverine det import
+! plankton_no_river_dilution [bool]
+!                  use riverine det import
+!-------------------------------------------------------------------------------
+
+&maecs_switch
+   RubiscoOn = .true.,
+   PhotoacclimOn = .true.,
+   PhosphorusOn = .true.,
+   SiliconOn = .false., 
+   GrazingOn = .true.,
+   BioOxyOn = .true.,
+   DiagOn = .false.,
+   DebugDiagOn = .false.,
+   ChemostatOn = .false.,
+   NResOn = .false.,
+   kwFzmaxMeth = 0,
+   ZooSinkMeth = 0,
+   detritus_no_river_dilution=.false.,
+   plankton_no_river_dilution=.true.,
+/
