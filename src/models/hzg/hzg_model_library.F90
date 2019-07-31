@@ -40,7 +40,7 @@ contains
       use hzg_benthic_pool
       use hzg_Ndepoden
       use fabm_hzg_dependencies
-      !use hzg_agg
+      use hzg_agg
       !use hzg_kristineb
 
       ! Add more models modules here
@@ -69,7 +69,7 @@ contains
          case ('Ndepoden'); allocate(type_hzg_Ndepoden::model)
          case ('benthic_pool'); allocate(type_hzg_benthic_pool::model)
          case ('dependencies'); allocate(type_hzg_dependencies::model)
-         !case ('agg'); allocate(type_hzg_agg::model)
+         case ('agg'); allocate(type_hzg_agg::model)
          ! Add your model type here, and make sure
          ! they appear in the use statement above
       end select

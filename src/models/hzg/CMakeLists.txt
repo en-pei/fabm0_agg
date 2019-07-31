@@ -23,7 +23,7 @@ add_library(fabm_models_hzg OBJECT
             maecs/maecs_grazing.F90
             maecs/maecs_primprod.F90
             dependencies/dependencies.F90
-            #agg/agg.F90
+            agg/agg.F90
             #kristineb/kristineb_gen.F90
            )
 

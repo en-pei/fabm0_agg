@@ -175,8 +175,13 @@
 #endif
    if (self%use_doc) call self%register_state_dependency(self%id_doc,doc_variable)
 
-   call self%register_dependency(self%id_eps, standard_variables%turbulence_dissipation)
-   call self%register_dependency(self%id_num, standard_variables%eddy_viscosity)
+   !call self%register_dependency(self%id_eps, standard_variables%turbulence_dissipation)
+   call self%register_dependency(self%id_eps, &
+      type_bulk_standard_variable(name='turbulence_dissipation',units='W kg-1', &
+      cf_names='specific_turbulent_kinetic_energy_dissipation_in_sea_water')) !same as m2 s-3
+   call self%register_dependency(self%id_num, &
+      type_bulk_standard_variable(name='eddy_viscosity',units='m2 s-1'))
+   !call self%register_dependency(self%id_num, standard_variables%eddy_viscosity)
    
    return
 
