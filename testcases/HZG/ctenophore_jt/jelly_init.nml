@@ -1,0 +1,31 @@
+!-------------------------------------------------------------------------------
+! hzg_jelly - simple size-based phytoplankton model
+!-------------------------------------------------------------------------------
+! B_Pp_initial  [float, unit = µg-C/L] $B_\mathrm{Pp}$
+!              initial P.Pileus biomass
+! l_Pp_initial [float, unit = log(ESD/mm)] $\ell_\mathrm{Pp}$
+!              initial P.Pileus mean log size
+! B_Be_initial  [float, unit = µg-C/L] $B_\mathrm{Be}$
+!              initial Beroe biomass
+! l_Be_initial [float, unit = log(ESD/mm)] $\ell_\mathrm{Be}$
+!              initial Beroe mean log size
+! B_Det_initial [float, unit = µg-C/L] $\ell_\mathrm{Det}$
+!              initial detritus
+! ParasPp_initial [float, unit = µg-C/L] $\B_\mathrm{Pars,Pp}$
+!              initial parasite of P.Pileus
+! ParasBe_initial [float, unit = µg-C/L] $\B_\mathrm{Pars,Be}$
+!              initial parasite of Beroe
+! BenTime_initial [float, unit = d] $t$
+!              initial time 
+!-------------------------------------------------------------------------------
+
+&jelly_init
+   B_Pp_initial		= 3E-2, 
+   l_Pp_initial		= 1.,
+   B_Be_initial		= 0.5E-4, 
+   l_Be_initial		= 1.4,
+   B_Det_initial	= 1000.,
+   ParasPp_initial	= 200.,
+   ParasBe_initial	= 200.,
+   BenTime_initial	= 0.,
+/

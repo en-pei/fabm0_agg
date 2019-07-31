@@ -1,0 +1,22 @@
+!-------------------------------------------------------------------------------
+! ctenophore model switches
+!-------------------------------------------------------------------------------
+! TransectOn      [bool]
+!                  mixing between coastal transect boxes
+! SizeDynOn       [bool]
+!                  life stage cycling enabled
+! LowPassOn       [bool]
+!                  filter high frequency in forcing
+! OptionOn        [bool]
+!                  generic
+! TEcophysOn      [bool]
+!                  size dependency in mortality
+!-------------------------------------------------------------------------------
+
+&jelly_switch
+   TransectOn = .false.,
+   SizeDynOn = .true., 
+   LowPassOn = .true.,
+   OptionOn  = .false., 
+   TEcophysOn= .false., 
+/

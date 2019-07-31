@@ -1,0 +1,18 @@
+output:
+#   title: Ctenophore_JT in the North Sea
+   file: res/cten_GB74_9.dat
+   format: netcdf
+   time_unit: dt
+   time_step: 480
+   variables:
+      - source: *
+#      - source: par
+#      - source: temp
+#      - source: salt
+#      - source: fasham_phy
+#      - source: fasham_zoo
+#      - source: fasham_bac
+#      - source: fasham_det
+#      - source: fasham_nit
+#      - source: fasham_amm
+#      - source: fasham_ldn
