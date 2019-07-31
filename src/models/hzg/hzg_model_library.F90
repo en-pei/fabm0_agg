@@ -34,6 +34,7 @@ contains
       use hzg_mpb
       !use hzg_mpb_cnp
       use hzg_jelly
+      use hzg_ctenophore_jt
       use hzg_n2pzdq
       use hzg_medmac
       use hzg_maecs
@@ -70,6 +71,7 @@ contains
          case ('benthic_pool'); allocate(type_hzg_benthic_pool::model)
          case ('dependencies'); allocate(type_hzg_dependencies::model)
          !case ('agg'); allocate(type_hzg_agg::model)
+         case ('ctenophore_jt'); allocate(type_hzg_ctenophore_jt::model)
          ! Add your model type here, and make sure
          ! they appear in the use statement above
       end select

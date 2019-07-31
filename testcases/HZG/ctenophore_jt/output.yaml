@@ -1,6 +1,6 @@
 output:
 #   title: Ctenophore_JT in the North Sea
-   file: res/cten_GB74_9.dat
+#   file: res/cten_GB74_9.dat
    format: netcdf
    time_unit: dt
    time_step: 480

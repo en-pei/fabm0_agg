@@ -25,6 +25,7 @@ add_library(fabm_models_hzg OBJECT
             dependencies/dependencies.F90
             #agg/agg.F90
             #kristineb/kristineb_gen.F90
+            ctenophore_jt/ctenophore_jt.F90
            )
 
 add_dependencies(fabm_models_hzg fabm_base)
