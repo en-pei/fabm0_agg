@@ -1,5 +1,5 @@
 !-------------------------------------------------------------------------------
-! hzg_jelly - simple size-based phytoplankton model
+! hzg_ctenophore_jt - simple size-based phytoplankton model
 !-------------------------------------------------------------------------------
 ! B_Pp_initial  [float, unit = µg-C/L] $B_\mathrm{Pp}$
 !              initial P.Pileus biomass
@@ -20,12 +20,12 @@
 !-------------------------------------------------------------------------------
 
 &jelly_init
-   B_Pp_initial		= 3E-2, 
-   l_Pp_initial		= 1.,
-   B_Be_initial		= 0.5E-4, 
-   l_Be_initial		= 1.4,
-   B_Det_initial	= 1000.,
-   ParasPp_initial	= 200.,
-   ParasBe_initial	= 200.,
+   Biomass_PleurobrachiaPileus_initial		= 3E-2, 
+   Size_PleurobrachiaPileus_initial		= 1.,
+   Biomass_Beroe_initial		= 0.5E-4, 
+   Size_Beroe_initial		= 1.4,
+   Biomass_Detritus_initial	= 1000.,
+   Parasites_PleurobrachiaPileus_initial	= 200.,
+   Parasites_Beroe_initial	= 200.,
    BenTime_initial	= 0.,
 /
