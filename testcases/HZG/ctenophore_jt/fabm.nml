@@ -6,5 +6,5 @@
 !-------------------------------------------------------------------------------
 &fabm_nml
 !   models = 'examples_npzd_f2003'  ! note this is the F2003 version
-   models = 'hzg_jelly' 
+   models = 'hzg_ctenophore_jt' 
 /

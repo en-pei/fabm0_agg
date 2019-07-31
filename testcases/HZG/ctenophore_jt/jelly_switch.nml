@@ -18,5 +18,5 @@
    SizeDynOn = .true., 
    LowPassOn = .true.,
    OptionOn  = .false., 
-   TEcophysOn= .false., 
+   TECopepodshysOn= .false., 
 /
