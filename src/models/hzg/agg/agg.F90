@@ -179,29 +179,26 @@
 
    ! The dissipation of the turbulent kinetic energy is usually abbreviated as
    ! eps with greek symbol notation $\epsilon$. Its unit is W kg-1, or,
-   ! equivalently m2 s-3.  The name should be improved to 
-   ! more closely reflect the CF name and adhere to FABM guidelines for standard 
-   ! names turbulence_dissipation => turbulent_kinetic_energy_dissipation
-   if (standard_variable_set%contains('turbulence_dissipation')) then 
-     !call self%register_dependency(self%id_eps, standard_variables%turbulence_dissipation)
+   ! equivalently m2 s-3.
+   if (standard_variable_set%contains('turbulent_kinetic_energy_dissipation')) then 
+     !call self%register_dependency(self%id_eps, standard_variables%turbulent_kinetic_energy_dissipation)
      call self%register_dependency(self%id_eps, &
-       type_bulk_standard_variable(name='turbulence_dissipation'))
+       type_bulk_standard_variable(name='turbulent_kinetic_energy_dissipation'))
    else
      call self%register_dependency(self%id_eps, &
-       type_bulk_standard_variable(name='turbulence_dissipation',units='W kg-1', &
+       type_bulk_standard_variable(name='turbulent_kinetic_energy_dissipation',units='W kg-1', &
        cf_names='specific_turbulent_kinetic_energy_dissipation_in_sea_water'))
    endif
 
    ! The vertical eddy viscosity or momentum diffusivity is usually abbreviated as num with greek
-   ! symbol $\nu_m$.  Its unit is m2 s-1.  Its name should be improved 
-   ! eddy_viscosity => momentum_diffusivity 
-   if (standard_variable_set%contains('eddy_viscosity')) then 
-     !call self%register_dependency(self%id_num, standard_variables%eddy_viscosity)
+   ! symbol $\nu_m$.  Its unit is m2 s-1 and it was renamed eddy_viscosity => momentum_diffusivity 
+   if (standard_variable_set%contains('momentum_diffusivity')) then 
+     !call self%register_dependency(self%id_num, standard_variables%momentum_diffusivity)
      call self%register_dependency(self%id_num, &
-       type_bulk_standard_variable(name='eddy_viscosity'))
+       type_bulk_standard_variable(name='momentum_diffusivity'))
    else
      call self%register_dependency(self%id_num, &
-       type_bulk_standard_variable(name='eddy_viscosity',units='m2 s-1', &
+       type_bulk_standard_variable(name='momentum_diffusivity',units='m2 s-1', &
        cf_names='ocean_vertical_momentum_diffusivity'))
    endif
    
