@@ -19,12 +19,14 @@ type (type_bulk_standard_variable) :: mole_concentration_of_dissolved_iron
 type (type_bulk_standard_variable) :: mole_concentration_of_nitrate
 type (type_bulk_standard_variable) :: mole_concentration_of_phosphate
 type (type_bulk_standard_variable) :: mole_concentration_of_silicate
+type (type_bulk_standard_variable) :: momentum_diffusivity
 type (type_bulk_standard_variable) :: net_rate_of_absorption_of_shortwave_energy_in_layer
 type (type_bulk_standard_variable) :: ph_reported_on_total_scale
 type (type_bulk_standard_variable) :: practical_salinity
 type (type_bulk_standard_variable) :: pressure
 type (type_bulk_standard_variable) :: secchi_depth
 type (type_bulk_standard_variable) :: temperature
+type (type_bulk_standard_variable) :: turbulent_kinetic_energy_dissipation
 
 ! Horizontal variables
 type (type_horizontal_standard_variable) :: bottom_depth
@@ -35,7 +37,6 @@ type (type_horizontal_standard_variable) :: cloud_area_fraction
 type (type_horizontal_standard_variable) :: latitude
 type (type_horizontal_standard_variable) :: longitude
 type (type_horizontal_standard_variable) :: mole_fraction_of_carbon_dioxide_in_air
-type (type_horizontal_standard_variable) :: momentum_diffusivity
 type (type_horizontal_standard_variable) :: surface_air_pressure
 type (type_horizontal_standard_variable) :: surface_downwelling_photosynthetic_radiative_flux
 type (type_horizontal_standard_variable) :: surface_downwelling_photosynthetic_radiative_flux_in_air
@@ -43,7 +44,6 @@ type (type_horizontal_standard_variable) :: surface_downwelling_shortwave_flux
 type (type_horizontal_standard_variable) :: surface_downwelling_shortwave_flux_in_air
 type (type_horizontal_standard_variable) :: surface_specific_humidity
 type (type_horizontal_standard_variable) :: surface_temperature
-type (type_horizontal_standard_variable) :: turbulent_kinetic_energy_dissipation
 type (type_horizontal_standard_variable) :: wind_speed
 type (type_horizontal_standard_variable) :: ice_thickness
 type (type_horizontal_standard_variable) :: snow_thickness
