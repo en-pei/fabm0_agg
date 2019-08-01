@@ -35,6 +35,7 @@ type (type_horizontal_standard_variable) :: cloud_area_fraction
 type (type_horizontal_standard_variable) :: latitude
 type (type_horizontal_standard_variable) :: longitude
 type (type_horizontal_standard_variable) :: mole_fraction_of_carbon_dioxide_in_air
+type (type_horizontal_standard_variable) :: momentum_diffusivity
 type (type_horizontal_standard_variable) :: surface_air_pressure
 type (type_horizontal_standard_variable) :: surface_downwelling_photosynthetic_radiative_flux
 type (type_horizontal_standard_variable) :: surface_downwelling_photosynthetic_radiative_flux_in_air
@@ -42,6 +43,7 @@ type (type_horizontal_standard_variable) :: surface_downwelling_shortwave_flux
 type (type_horizontal_standard_variable) :: surface_downwelling_shortwave_flux_in_air
 type (type_horizontal_standard_variable) :: surface_specific_humidity
 type (type_horizontal_standard_variable) :: surface_temperature
+type (type_horizontal_standard_variable) :: turbulent_kinetic_energy_dissipation
 type (type_horizontal_standard_variable) :: wind_speed
 type (type_horizontal_standard_variable) :: ice_thickness
 type (type_horizontal_standard_variable) :: snow_thickness

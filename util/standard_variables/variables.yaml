@@ -87,6 +87,14 @@ horizontal:
     units: Pa
   - name: surface_temperature
     units: degree_Celsius
+  - name: turbulent_kinetic_energy_dissipation
+    units: W kg-1
+    synonyms: [turbulence_dissipation]
+    cf_names: [specific_turbulent_kinetic_energy_dissipation_in_sea_water]
+  - name: momentum_diffusivity
+    units: m2 s-1
+    synonyms: [eddy_viscosity]
+    cf_names: [ocean_vertical_momentum_diffusivity]
 global:
   - name: number_of_days_since_start_of_the_year
     units: d
