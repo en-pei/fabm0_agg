@@ -19,12 +19,14 @@ type (type_bulk_standard_variable) :: mole_concentration_of_dissolved_iron
 type (type_bulk_standard_variable) :: mole_concentration_of_nitrate
 type (type_bulk_standard_variable) :: mole_concentration_of_phosphate
 type (type_bulk_standard_variable) :: mole_concentration_of_silicate
+type (type_bulk_standard_variable) :: momentum_diffusivity
 type (type_bulk_standard_variable) :: net_rate_of_absorption_of_shortwave_energy_in_layer
 type (type_bulk_standard_variable) :: ph_reported_on_total_scale
 type (type_bulk_standard_variable) :: practical_salinity
 type (type_bulk_standard_variable) :: pressure
 type (type_bulk_standard_variable) :: secchi_depth
 type (type_bulk_standard_variable) :: temperature
+type (type_bulk_standard_variable) :: turbulent_kinetic_energy_dissipation
 
 ! Horizontal variables
 type (type_horizontal_standard_variable) :: bottom_depth

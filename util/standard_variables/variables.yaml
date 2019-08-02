@@ -52,6 +52,14 @@ interior:
     units: m
   - name: net_rate_of_absorption_of_shortwave_energy_in_layer
     units: W m-2
+  - name: turbulent_kinetic_energy_dissipation
+    units: W kg-1
+    synonyms: [turbulence_dissipation]
+    cf_names: [specific_turbulent_kinetic_energy_dissipation_in_sea_water]
+  - name: momentum_diffusivity
+    units: m2 s-1
+    synonyms: [eddy_viscosity]
+    cf_names: [ocean_vertical_momentum_diffusivity]
 horizontal:
   - name: bottom_depth_below_geoid
     units: m
