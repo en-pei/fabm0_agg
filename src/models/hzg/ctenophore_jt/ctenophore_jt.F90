@@ -7,7 +7,6 @@
 !
 ! --------------------------------------------
 
-
 module hzg_ctenophore_jt
   !
   ! !USES:
@@ -48,7 +47,7 @@ module hzg_ctenophore_jt
      type (type_dependency_id)            :: id_Biomass_Phytoplankton
      type (type_diagnostic_variable_id)   :: id_prod_Be, id_Mort_Be, id_fA_Be, id_Imax_Be, id_optimal_prey_size_Be,id_optimal_prey_size_Pp, id_optimal_prey_size_Cop, id_prod_Pp, id_Mort_Pp, id_fA_Pp, id_Imax_Pp
      type (type_diagnostic_variable_id) ::id_mort_P_Be, id_mort_S_Be, id_mort_R_Be, id_mort_G_Be, id_mort_J_Be, id_mort_T_Be, id_somgrowth_Be, id_recruit_Be, id_paras_dl_Be, id_som_dl_Be, id_turb_dl_Be, id_init_dl_Be, id_graz_dl_Be, id_sen_dl_Be, id_prod_dl_Be, id_resp_dl_Be, id_dl_prey_Be, id_dl_pred_Be, id_al_Im_Be, id_mixBmass_Be, id_mixlsize_Be, id_Tdep_Be,id_mort_top_Be
-     type (type_diagnostic_variable_id) ::id_mort_P_Pp, id_mort_S_Pp, id_mort_R_Pp, id_mort_G_Pp, id_mort_J_Pp, id_mort_T_Pp, id_somgrowth_Pp, id_recruit_Pp, id_paras_dl_Pp, id_som_dl_Pp, id_turb_dl_Pp, id_init_dl_Pp, id_graz_dl_Pp, id_sen_dl_Pp, id_prod_dl_Pp, id_resp_dl_Pp, id_dl_prey_Pp, id_dl_pred_Pp, id_al_Im_Pp, id_mixBmass_Pp, id_mixlsize_Pp, id_Tdep_Pp,id_mort_top_Pp
+     type (type_diagnostic_variable_id) ::id_mort_P_Pp, id_mort_S_Pp, id_mort_R_Pp, id_mort_G_Pp, id_mort_J_Pp, id_mort_T_Pp, id_somgrowth_Pp, id_recruit_Pp, id_paras_dl_Pp, id_som_dl_Pp, id_turb_dl_Pp, id_init_dl_Pp, id_graz_dl_Pp, id_sen_dl_Pp, id_prod_dl_Pp, id_resp_dl_Pp, id_dl_prey_Pp, id_dl_pred_Pp, id_al_Im_Pp, id_mixBmass_Pp, id_mixlsize_Pp, id_Tdep_Pp,id_mort_top_Pp,id_cnidaria
      type (type_diagnostic_variable_id) :: id_dummy1,id_dummy2,id_dummy3,id_dummy4,id_dummy5,id_dummy6
      real(rk) ::  Biomass_PleurobrachiaPileus_initial, Size_PleurobrachiaPileus_initial, Biomass_Beroe_initial, Size_Beroe_initial, Biomass_Detritus_initial, Parasites_PleurobrachiaPileus_initial, Parasites_Beroe_initial, BenTime_initial
      real(rk) ::  Size_Adult, size_offspring, lstarv, sigma, Imax_pot_star, yield, mR, mS, mP, mT, Q10, Tc, Bcrit, relCVDens, m_predBe, optimal_prey_size_adult_PleurobrachiaPileus, optimal_prey_size_adult_Beroe, optimal_prey_size_adult_Copepod, immigr, rDet, rParasite, fTDmort, m_pcap, mDisturb, Temperature_Change_Rate, Copepod_Temperature_Change_Rate
@@ -104,9 +103,6 @@ contains
   !> \describepar{mDisturb     , B_\mathrm{cd}     , critical mass concentration detection disturbance   , 3. µg-C/L}
   !> \describepar{Temperature_Change_Rate       , \Delta T       , global Temperature change    , 0. ^oC}
   !> \describepar{Copepod_Temperature_Change_Rate     , \Delta_{Copepods}     , correlation Copepodsepod vs. Temperature change    , 0. µg-C/L/^oC}
-
-
-
 
   subroutine initialize(self, configunit)
 
@@ -336,10 +332,6 @@ contains
     call self%register_diagnostic_variable(self%id_Imax_Pp, 'Imax_Pp','1/d', 'maximum ingestion rate adult Beroe Imax_Pp', &
          output=output_instantaneous)
 
-
-
-
-
     call self%register_diagnostic_variable(self%id_mort_P_Be,  'mort_P_Be','1/d', 'density dependent mortality parasites mort_P_Be', &
          output=output_instantaneous)
     call self%register_diagnostic_variable(self%id_mort_S_Be,  'mort_S_Be','1/d', 'Biomass_Phytoplanktonsiological adult mortality rate mort_S_Be', &
@@ -388,8 +380,6 @@ contains
          output=output_instantaneous)
 
 
-
-
     call self%register_diagnostic_variable(self%id_mort_P_Pp,  'mort_P_Pp','1/d', 'density dependent mortality parasites mort_P_Pp', &
          output=output_instantaneous)
     call self%register_diagnostic_variable(self%id_mort_S_Pp,  'mort_S_Pp','1/d', 'Biomass_Phytoplanktonsiological adult mortality rate mort_S_Pp', &
@@ -436,12 +426,8 @@ contains
          output=output_instantaneous)
     call self%register_diagnostic_variable(self%id_Tdep_Pp,    'Tdep_Pp','1/d', 'Temperature dependency Tdep_Pp', &
          output=output_instantaneous)
-
-
-
-
-
-
+    call self%register_diagnostic_variable(self%id_cnidaria,    'cnidaria','1/d', 'cnidaria', &
+         output=output_instantaneous)
 
     call self%register_diagnostic_variable(self%id_dummy1,    'dummy1','1/d', 'Dummy1', &
          output=output_instantaneous)
@@ -457,11 +443,6 @@ contains
          output=output_instantaneous)
 
 
-
-
-
-
-
     !!------- Register environmental dependencies  ------- 
     !!-------------------------redo this with a nicer way of reading in data
     call self%register_dependency(self%id_Copepods,standard_variables%downwelling_photosynthetic_radiative_flux)
@@ -473,7 +454,6 @@ contains
 
     relC    = self%Temperature_Change_Rate * self%Copepod_Temperature_Change_Rate / 29.d0
     fC      = (1.0d0+relC)/(1.d0 + relC * (1.d0 - 0.5*exp(0.5+3*relC*relC*relC)));
-
 
     return
 
@@ -559,9 +539,7 @@ contains
     mCyanea60  =(/ 0.033,0.000,0.000,0.780,0.423,0.195,0.033,0.553,0.033,0.000,0.000,0.748,1.301,0.065,2.211,0.325,0.585,0.228,0.033,0.033,0.325,5.236,0.358,0.423,0.520,9.138,2.699,0.585,1.528,1.691,5.463,2.472,0.065,3.089,1.203,0.195,10.862,0.748,0.358,0.423,0.260,0.455,1.789,6.667,1.203,0.390,2.146,11.740,1.171,0.098,0.618 /)
 
 
-
     !-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 
     ! Enter spatial loops (if any)
     _FABM_LOOP_BEGIN_
@@ -665,8 +643,6 @@ contains
        Change_of_optimal_prey_size(2)= prey_development(experimental_optimal_prey_size_adult(2),self%size_offspring,self%Size_Adult)
        Change_of_optimal_prey_size(3)= prey_development(experimental_optimal_prey_size_adult(3),self%size_offspring,log_mean_size(3))
 
-
-
        Temperature_dep(3) = f_Temperature(self%Q10+1.0d0, Temperaturep, 0.0d0)
 
        ! re-gauge coefficient to apply  Imax-scaling of Wirtz JPR,2012 
@@ -674,18 +650,13 @@ contains
        ! optimum size/stage with minimal life-stage dependent mortality 
        lavg    = 0.5d0*(self%Size_Adult + self%size_offspring) ! 0.4
        !  loop over ctenophore populations:  1: Beroe 2: Ppileus 
-
-
        !
-
        ! Temperature experiment; separate effect on parasite dynamics through altered Copepodsepod/detrital mass
        !  if(self%OptionOn .and. abs(self%Copepod_Temperature_Change_Rate) .gt. 1E-3 .and. abs(self%Temperature_Change_Rate) .gt. 1E-3) then 
        !     mass(3)   =  mass(3)* fC * (1.0d0+relC*(1.d0-exp(1.d0-mass(3)/29.d0)))
        !  endif
        !  if(mass(3) .gt. 175.) mass(3) = 175.0d0
-
        !***!
-
 
        do i = 1, max_number_of_predators
           lco(i)       = log(1E3/relDens(i))
@@ -710,7 +681,6 @@ contains
           lesdr   = log_mean_size(i)
           optimal_prey_sizem   = optimal_prey_size(i) ! optimal prey size
           !    endif
-
 
           ! Temperature dependency for egg spawning, somatic growth and mortalities 
           if (i .lt. 3) then  !only for i=1,2 aka Beroe Pleurobrachia!!
@@ -748,8 +718,6 @@ contains
        Temperaturep  = var(ib)%Temperature
        !  endif
 
-
-
        ft2(i)     = f_Temperature(self%Q10,Temperaturep , self%Tc)
        ft      = self%fTDmort/(self%fTDmort+ft2(i))
 
@@ -761,10 +729,7 @@ contains
        mben=timedefine(var(1)%BenTime)
        !mben=0.0
 
-
-
        mass_sum(i)= ((1*mben + 000.0 + 1*var(ib)%Biomass_Detritus) + mass(1)+ mass(2)+ mass(3) + var(ib)%Biomass_Phytoplankton )*exp(-ft2(i))!*exp(ft-1)
-
 
        do j = 1, 3
           dg_dly(j) = 0.0d0
@@ -791,8 +756,6 @@ contains
           !m_host(2)=0.8d0*mass(1)+mass(2)+fLc(2)*mass(3)
           m_host(i) = mass(i) + fLc(i)*mass(3)
           !!    m_host(i) = mass(1) +mass(2) + fLc(i)*mass(3)
-
-
           ! quadratic parasite mortality 
           ft3(i)       = var(ib)%Biomass_Detritus/self%m_pcap
 
@@ -844,8 +807,6 @@ contains
           !***!
           mort_P(i)  = self%mP * Temperature_dep(3) *(no_age+pS(i)) *bcrit1 ! * 4.0d0/(4.0d0+self%mP * bcrit1)
           ! if (mort_P(i) .gt. 3.0d0 ) write (*,'(A,1(I2),3(F14.3))') 'mp=',i,paras(i),m_host(i),mort_P(i)
-
-
 
           detect=density_disturbance(self%Size_Adult,log_mean_size(3),log_size_variance_mesozoo(3),mass(1),mass(2),mass(3),self%mDisturb)
           ! affinity contains depes on food type (gel), consumer density, Temperature, size(swimming)
@@ -923,15 +884,11 @@ contains
           !   argA1   = (prod(i)-exp(-1.0)*self%mR)/(mort_R(i)+exp(-1.0)*self%mR)
           ft       = self%fTDmort/(self%fTDmort+Temperature_dep(i))
 
-
           starv(i)    = exp(-Temperature_dep(i)-argA1)!self%yield *
 
           mort_S0(i)  = self%mS * starv(i) !*exp(-optimal_prey_size(i))
 
           mort_S(i)   = mort_S0(i)  *(no_age+pS(i))!*(1.0d0-eS) 
-
-
-
 
           ! Biomass_Physical damage (turbulence); can be avoided by active swimming
           mort_T0(i)  = mT0 * starv(i) 
@@ -945,10 +902,8 @@ contains
 
           errf     = (1-exp(-argA2*2.45d0))/(1+exp(-argA2*2.45d0)) !error function
 
-
           ! relative fraction of adults 
           fA(i)       = 0.5d0*(1.0d0 - errf) 
-
 
           ! size derivative of adult fraction
           !   dfA_dl= sqrt(2.d0*3.1415)/sig(i) * eargA1
@@ -957,7 +912,6 @@ contains
           !  if (eargA2 .gt. 1.2 .or. eargA2 .lt. 0.0001) write (*,'(A,1(I2),5(F12.5))') 'fA=',i,log_mean_size(i),sig(i) ,argA2,eargA2, fA 
 
           lm_adult = log_mean_size(i) + sig(i) / sqrt(2.d0*3.1415) * eargA2 / (abs(fA(i))+0.05d0)
-
 
           ! fraction of adult secondary production allocated to recruitment
           !***!
@@ -974,7 +928,6 @@ contains
 
           !  sum of all mortality rates
           mort_sum(i) = mort_R(i) + mort_S(i)  + mGrz(i)+ mort_P(i) + mort_top(i)
-
 
           ! ----------  stage and size dynamics  -------------------
           !
@@ -994,7 +947,6 @@ contains
              ! size derivative 
              dummy_reused_variable4       = 2 * pS(i)**2 * exp(2*(self%Size_Adult-log_mean_size(i)))/(no_div_zero_eps+no_age+pS(i))
              sen_dl(i)   = -log_size_variance_mesozoo(i) *  mort_S0(i) * dummy_reused_variable4
-
 
              !  marginal size shift due to respiration and turbulence (same scaling exponent)
 
@@ -1026,8 +978,6 @@ contains
                 bound_dl(i) = 0.0
              endif
              sum_dl(i)   = sum_dl(i) + bound_dl(i)
-
-
              !  sum of all size selective forces
              sum_dl(i)  = sum_dl(i) + graz_dl(i) + sen_dl(i) +  turb_dl(i) + paras_dl(i)
           else
@@ -1057,7 +1007,6 @@ contains
                 _SET_DIAGNOSTIC_(self%id_al_Im_Be, fLc(i))              !step_integrated size scaling expoentent Imax 
                 _SET_DIAGNOSTIC_(self%id_optimal_prey_size_Be, optimal_prey_size(1))                !step_integrated optimum prey size Beroe
 
-
                 _SET_DIAGNOSTIC_(self%id_som_dl_Be, som_dl(i))                  !step_integrated marginal size shift due to promotion
                 _SET_DIAGNOSTIC_(self%id_init_dl_Be, init_dl(i))                !step_integrated marginal size shift due to egg production
                 _SET_DIAGNOSTIC_(self%id_graz_dl_Be, graz_dl(i))                !step_integrated marginal size shift due to selective grazing
@@ -1081,14 +1030,12 @@ contains
                 !_SET_DIAGNOSTIC_(self%id_mort_J_Be, mben)                  !step_integrated juvenile mortality
                 _SET_DIAGNOSTIC_(self%id_mort_T_Be, mort_T(i))                !step_integrated damaging effect of turbulence 
 
-
                 _SET_DIAGNOSTIC_(self%id_somgrowth_Be, somgrwth(i))             !step_integrated somatic growth rate 
 		! TODO:???
                 _SET_DIAGNOSTIC_(self%id_recruit_Be, recruit(i))                !recruitstep_integrated egg production rate 
                 !_SET_DIAGNOSTIC_(self%id_mixBmass_Be,m_host(i))            !step_integrated mass exchange rate Coast-HR-Offshore 
                 !_SET_DIAGNOSTIC_(self%id_mixlsize_Be, mass(3))           !dTrait(2,1)step_integrated trait exchange rate Coast-HR-Offshore
                 _SET_DIAGNOSTIC_(self%id_Tdep_Be, Temperature_dep(i))                  !step_integrated Temperature dependence
-
 
              endif
              ! TODO : elseif (i .eq. 2)then
@@ -1106,7 +1053,6 @@ contains
                 _SET_DIAGNOSTIC_(self%id_Imax_Pp, Imax(2))                !step_integrated maximum ingestion rate adult Beroe
                 _SET_DIAGNOSTIC_(self%id_al_Im_Pp, fLc(i))              !step_integrated size scaling expoentent Imax 
                 _SET_DIAGNOSTIC_(self%id_optimal_prey_size_Pp, optimal_prey_size(2))                !step_integrated optimum prey size Beroe
-
 
                 _SET_DIAGNOSTIC_(self%id_som_dl_Pp, som_dl(i))                  !step_integrated marginal size shift due to promotion
                 _SET_DIAGNOSTIC_(self%id_init_dl_Pp, init_dl(i))                !step_integrated marginal size shift due to egg production
@@ -1130,14 +1076,13 @@ contains
                 !_SET_DIAGNOSTIC_(self%id_mort_J_Pp, mben)                  !step_integrated juvenile mortality
                 _SET_DIAGNOSTIC_(self%id_mort_T_Pp, mort_T(i))                !step_integrated damaging effect of turbulence 
 
-
                 _SET_DIAGNOSTIC_(self%id_somgrowth_Pp, somgrwth(i))             !step_integrated somatic growth rate 
 		! TODO:???
                 _SET_DIAGNOSTIC_(self%id_recruit_Pp, recruit(i))                !recruitstep_integrated egg production rate 
                 !_SET_DIAGNOSTIC_(self%id_mixBmass_Pp,m_host(i))            !step_integrated mass exchange rate Coast-HR-Offshore 
                 !_SET_DIAGNOSTIC_(self%id_mixlsize_Pp, mass(3))           !dTrait(2,1)step_integrated trait exchange rate Coast-HR-Offshore
                 _SET_DIAGNOSTIC_(self%id_Tdep_Pp, Temperature_dep(i))                  !step_integrated Temperature dependence
-
+                _SET_DIAGNOSTIC_(self%id_cnidaria, cnidaria)                  !step_integrated marginal size shift due to physical damage 
 
              endif
           endif
@@ -1272,7 +1217,6 @@ contains
     real(rk),intent(in) :: Size_Adult, log_mean_size3,log_size_variance_mesozoo3,mass1,mass2,mass3,mDisturb
     real(rk) ::detect,dummy_reused_variable0
     ! consumer density reduces food visibility
-
 
     dummy_reused_variable0      = 1.*exp(-(Size_Adult-log_mean_size3)**2/(2*log_size_variance_mesozoo3)) * mass3
 
