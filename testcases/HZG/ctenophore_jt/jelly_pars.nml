@@ -1,0 +1,82 @@
+!-------------------------------------------------------------------------
+! size- & distribution based ctenophore model
+!-------------------------------------------------------------------------
+! lA    	[float, unit = log(ESD/mm)] $\ell_A$
+!               adult ctenophore size        
+! l0    	[float, unit = log(ESD/mm)] $\ell_0$
+!               offspring size
+! lstarv	[float, unit = log(ESD/mm)] $\ell_S$ !1.5 2.5 3
+!               minimum starvation size
+! sigma    	[float, unit = log(ESD/mm)^2] $\sigma'$ ~1.34 1.46 2
+!               log-size specific std deviation 
+! Imax_pot    	[float, unit = 1/d] $I_\mathrm{max}^*$
+!               maximum ingestion rate for ideal consumer, prey, T, and food 
+! yield       	[float, unit = ] $y_0$ !0.66 0.74 3
+!               assimilation efficiency
+! mR       	[float, unit = 1/d] $m_R^0$ !0.04 0.08 3
+!               temperature dependent, natural mortality rate 
+! mS       	[float, unit = 1/d] $m_S^0$ !0.0 0.03 2
+!               physiological mortality under senescence 
+! mP       	[float, unit = 1/d.µg-C/L] $m_P^0$ !1.8E-3 2.2E-3 3
+!               density dependent mortality rate (parasites)
+! mT       	[float, unit = 1/d] $m_{T}^0$ !0.02 0.1 3
+!               mortality due to physical damage (turbulence) 0.028
+! Q10      	[float, unit = ] $Q_{10}$ !2.0 2.4 3
+!               rate increase at 10C temperature rise
+! Tc        	[float, unit = $^o$C] $T_c$ !0 5 3
+!               critical threshold temperature
+! Bcrit 	[float, unit = µg-C/L] $B^*$ !7 13 3
+!               minimal prey biomass (Holling-III) 
+! relCVDens 	[float, unit = µg-C/L] $R_\rho$ !78 84 2
+!               C-biovolume density ratio non-gelatinous/gelatinous plankton
+! m_predBe	[float, unit = 1/d] $m_\mathrm{top}$
+!               loss rate of Beroe due to top-predator 
+! loptA_Pp	[float, unit = ] $\lcsize_\mathrm{opt,Pp}^A$ !-0.8 -0.5 2 
+!               optimal prey size adult P.pileus 
+! loptA_Be	[float, unit = ] $\lcsize_\mathrm{opt,Be}^A$ !1.1 1.3 3
+!               optimal prey size adult Beroe 
+! immigr	[float, unit = µg-C/L.d] $\epsilon_\mathrm{in}$ !2E-6 4E-6 3
+!               migration mass inflow rate 
+! rDet       	[float, unit = 1/d] $r_\mathrm{Det}$ !0.01 0.02 2
+!               detritus turnover rate 
+! rParasite 	[float, unit = ] $r_\mathrm{Pars}$ !1.15 1.3 4
+!               turnover parasite dynamics
+! fTDmort   	[float, unit = ] $f_0$ !0 1 2
+!               warm temperature detritus ''feed-back''   
+! m_pcap   	[float, unit = ]  !0 1 2
+!               dependency of parasite dynamics on host/detritus biomass
+! mDisturb	[float, unit = µg-C/L] $B_\mathrm{cd}$ !0 10 7
+!               critical mass concentration detection disturbance   
+! deltaT	[float, unit = ^oC] $\Delta T$ !0 10 7
+!               global temperature change    
+! deltaCop	[float, unit = µg-C/L/^oC] $\Delta_{cop}$ !0 10 7
+!               correlation copepod vs. temperature change    
+!-----------------------------------------------------------------------
+
+&jelly_pars
+   Size_Adult    	= 2.0, 
+   size_offspring    	= -1.2,
+   lstarv 	= 2., 
+   sigma 	= 1., 
+   Imax_pot_star    	= 173. ,
+   yield 	= 0.44, 
+   mR 		= 0.03, 
+   mS 		= 8.E-2, 
+   mP 		= 2.E-3, 
+   mT 		= 0.
+   Q10 		= 2.2, 
+   Tc 		= 4.5, 
+   Bcrit 	= 25., 
+   relCVDens 	= 150.0, 
+   m_predBe 	= 0.01,
+   optimal_prey_size_adult_PleurobrachiaPileus 	= -0.5, 
+   optimal_prey_size_adult_Beroe 	= 2., 
+   immigr 	= 5e-06, 
+   rDet 	= 0.04, 
+   rParasite 	= 0.002, 
+   fTDmort 	= 0.35, 
+   m_pcap 	= 100., 
+   mDisturb 	= 4., 
+   Temperature_Change_Rate	= 0.,
+   Copepod_Temperature_Change_Rate	= 0.,
+/

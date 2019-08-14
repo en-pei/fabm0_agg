@@ -40,6 +40,7 @@ module fabm_coupling
 
    type type_call_list_node
       class (type_base_model),          pointer :: model => null()
+      logical                                   :: active = .true.
       integer                                   :: source = source_unknown
       type (type_copy_command), allocatable     :: copy_commands_int(:)
       type (type_copy_command), allocatable     :: copy_commands_hz(:)
@@ -835,12 +836,13 @@ recursive subroutine find_dependencies(self,list,forbidden)
    type (type_model_list_node),pointer :: node
    character(len=2048)                 :: chain
 
-   if (associated(list%find(self))) return
+   ! Directly below and further down: use of generic procedure list%find confuses PGI 18.10 (Jorn 2019-04-24)
+   if (associated(list%find_model(self))) return
 
    ! Check the list of forbidden model (i.e., models that indirectly request the current model)
    ! If the current model is on this list, there is a circular dependency between models.
    if (present(forbidden)) then
-      node => forbidden%find(self)
+      node => forbidden%find_model(self)
       if (associated(node)) then
          ! Circular dependency found - report as fatal error.
          chain = ''
@@ -849,6 +851,7 @@ recursive subroutine find_dependencies(self,list,forbidden)
             node => node%next
          end do
          call fatal_error('find_dependencies','circular dependency found: '//trim(chain(2:))//' '//trim(self%get_path()))
+         return
       end if
       call forbidden_with_self%extend(forbidden)
    end if
@@ -1104,6 +1107,7 @@ recursive subroutine find_dependencies2(self,source,allowed_sources,list,forbidd
             node => node%next
          end do
          call fatal_error('find_dependencies','circular dependency found: '//trim(chain(2:))//' '//trim(self%get_path()))
+         return
       end if
       call forbidden_with_self%extend(forbidden)
    end if
@@ -1253,7 +1257,7 @@ contains
       maxwrite = -1
       node => call_list_node%written_variables%first
       do while (associated(node))
-         if (node%target%write_indices%is_empty()) call driver%fatal_error('call_list_node_initialize','BUG: target without write indices')
+         if (node%target%write_indices%is_empty()) call fatal_error('call_list_node_initialize','BUG: target without write indices')
          if (iand(node%target%domain,domain)/=0) then
             n = n + 1
             maxwrite = max(maxwrite,node%target%write_indices%value)

@@ -1,0 +1,10 @@
+!-------------------------------------------------------------------------------
+! fabm_nml
+!-------------------------------------------------------------------------------
+! models             [string array]
+!                     a comma-separated list of one or model model names
+!-------------------------------------------------------------------------------
+&fabm_nml
+!   models = 'examples_npzd_f2003'  ! note this is the F2003 version
+   models = 'hzg_ctenophore_jt' 
+/

@@ -295,6 +295,10 @@
      call self%register_state_dependency(self%id_alk, 'alk_target','mmol m-3','alkalinity budget')
    end if
 
+!   call self%register_dependency(self%id_h,       'icethickness', 'm',    'ice thickness')
+!   call self%register_dependency(self%id_hs,      'snowthickness','m',    'snow thickness')
+   
+
    return
 
 end subroutine initialize
