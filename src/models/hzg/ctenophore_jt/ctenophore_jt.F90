@@ -48,7 +48,8 @@ module hzg_ctenophore_jt
      type (type_diagnostic_variable_id)   :: id_prod_Be, id_Mort_Be, id_fA_Be, id_Imax_Be, id_optimal_prey_size_Be,id_optimal_prey_size_Pp, id_optimal_prey_size_Cop, id_prod_Pp, id_Mort_Pp, id_fA_Pp, id_Imax_Pp
      type (type_diagnostic_variable_id) ::id_mort_P_Be, id_mort_S_Be, id_mort_R_Be, id_mort_G_Be, id_mort_J_Be, id_mort_T_Be, id_somgrowth_Be, id_recruit_Be, id_paras_dl_Be, id_som_dl_Be, id_turb_dl_Be, id_init_dl_Be, id_graz_dl_Be, id_sen_dl_Be, id_prod_dl_Be, id_resp_dl_Be, id_dl_prey_Be, id_dl_pred_Be, id_al_Im_Be, id_mixBmass_Be, id_mixlsize_Be, id_Tdep_Be,id_mort_top_Be
      type (type_diagnostic_variable_id) ::id_mort_P_Pp, id_mort_S_Pp, id_mort_R_Pp, id_mort_G_Pp, id_mort_J_Pp, id_mort_T_Pp, id_somgrowth_Pp, id_recruit_Pp, id_paras_dl_Pp, id_som_dl_Pp, id_turb_dl_Pp, id_init_dl_Pp, id_graz_dl_Pp, id_sen_dl_Pp, id_prod_dl_Pp, id_resp_dl_Pp, id_dl_prey_Pp, id_dl_pred_Pp, id_al_Im_Pp, id_mixBmass_Pp, id_mixlsize_Pp, id_Tdep_Pp,id_mort_top_Pp,id_cnidaria
-     type (type_diagnostic_variable_id) :: id_dummy1,id_dummy2,id_dummy3,id_dummy4,id_dummy5,id_dummy6
+     type (type_diagnostic_variable_id) :: id_dummy1,id_dummy2,id_dummy3,id_dummy4,id_dummy5,id_dummy6,id_dummy7,id_dummy8,id_dummy9
+     type(type_diagnostic_variable_id):: id_grazingpressure1,id_grazingpressure2,id_grazingpressure3,id_grazingpressure4,id_grazingpressure5,id_grazingpressure6,id_grazingpressure7,id_grazingpressure8,id_grazingpressure9
      real(rk) ::  Biomass_PleurobrachiaPileus_initial, Size_PleurobrachiaPileus_initial, Biomass_Beroe_initial, Size_Beroe_initial, Biomass_Detritus_initial, Parasites_PleurobrachiaPileus_initial, Parasites_Beroe_initial, BenTime_initial
      real(rk) ::  Size_Adult, size_offspring, lstarv, sigma, Imax_pot_star, yield, mR, mS, mP, mT, Q10, Tc, Bcrit, relCVDens, m_predBe, optimal_prey_size_adult_PleurobrachiaPileus, optimal_prey_size_adult_Beroe, optimal_prey_size_adult_Copepod, immigr, rDet, rParasite, fTDmort, m_pcap, mDisturb, Temperature_Change_Rate, Copepod_Temperature_Change_Rate
      logical  ::  TransectOn, SizeDynOn, LowPassOn, OptionOn, TECopepodshysOn
@@ -264,8 +265,8 @@ contains
     call self%get_parameter(self%Parasites_Beroe_initial ,'Parasites_Beroe_initial',  default=Parasites_Beroe_initial)
     call self%get_parameter(self%BenTime_initial ,'BenTime_initial',  default=BenTime_initial)
 
-    !!------- model parameters from nml-list jelly_pars ------- 
-    call self%get_parameter(self%Size_Adult           ,'Size_Adult',            default=Size_Adult)
+!!------- model parameters from nml-list jelly_pars -------
+call self%get_parameter(self%Size_Adult           ,'Size_Adult',            default=Size_Adult)
     call self%get_parameter(self%size_offspring           ,'size_offspring',            default=size_offspring)
     call self%get_parameter(self%lstarv       ,'lstarv',        default=lstarv)
     call self%get_parameter(self%sigma        ,'sigma',         default=sigma)
@@ -280,9 +281,9 @@ contains
     call self%get_parameter(self%Bcrit        ,'Bcrit',         default=Bcrit)
     call self%get_parameter(self%relCVDens    ,'relCVDens',     default=relCVDens)
     call self%get_parameter(self%m_predBe     ,'m_predBe',      default=m_predBe)
-    call self%get_parameter(self%optimal_prey_size_adult_PleurobrachiaPileus     ,'optimal_prey_size_adult_PleurobrachiaPileus',      default=optimal_prey_size_adult_PleurobrachiaPileus)
-    call self%get_parameter(self%optimal_prey_size_adult_Beroe     ,'optimal_prey_size_adult_Beroe',      default=optimal_prey_size_adult_Beroe)
-    call self%get_parameter(self%optimal_prey_size_adult_Copepod	,'real(rk)  :: optimal_prey_size_adult_Copepod',	default=optimal_prey_size_adult_Copepod)
+    call self%get_parameter(self%optimal_prey_size_adult_PleurobrachiaPileus,'optimal_prey_size_adult_PleurobrachiaPileus',      default=optimal_prey_size_adult_PleurobrachiaPileus)
+    call self%get_parameter(self%optimal_prey_size_adult_Beroe,'optimal_prey_size_adult_Beroe',      default=optimal_prey_size_adult_Beroe)
+call self%get_parameter(self%optimal_prey_size_adult_Copepod,'real(rk)::optimal_prey_size_adult_Copepod',default=optimal_prey_size_adult_Copepod)
     call self%get_parameter(self%immigr       ,'immigr',        default=immigr)
     call self%get_parameter(self%rDet         ,'rDet',          default=rDet)
     call self%get_parameter(self%rParasite    ,'rParasite',     default=rParasite)
@@ -441,6 +442,31 @@ contains
          output=output_instantaneous)
     call self%register_diagnostic_variable(self%id_dummy6,    'dummy6','1/d', 'Dummy6', &
          output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_dummy7,    'dummy7','1/d', 'Dummy6', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_dummy8,    'dummy8','1/d', 'Dummy6', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_dummy9,    'dummy9','1/d', 'Dummy6', &
+         output=output_instantaneous)
+
+    call self%register_diagnostic_variable(self%id_grazingpressure1,    'grazingpressure1','1/d', 'grazingpressure1', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_grazingpressure2,    'grazingpressure2','1/d', 'grazingpressure2', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_grazingpressure3,    'grazingpressure3','1/d', 'grazingpressure3', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_grazingpressure4,    'grazingpressure4','1/d', 'grazingpressure4', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_grazingpressure5,    'grazingpressure5','1/d', 'grazingpressure5', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_grazingpressure6,    'grazingpressure6','1/d', 'grazingpressure6', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_grazingpressure7,    'grazingpressure7','1/d', 'grazingpressure6', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_grazingpressure8,    'grazingpressure8','1/d', 'grazingpressure6', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_grazingpressure9,    'grazingpressure9','1/d', 'grazingpressure6', &
+         output=output_instantaneous)
 
 
     !!------- Register environmental dependencies  ------- 
@@ -486,29 +512,35 @@ contains
     !type (type_diff)      :: diff,diff2
     !real(rk)              :: d2mudl2_d, dmu2=0.0_rk, mfac
     !  type (type_environment),   intent(inout)  :: environment 
-    real(rk),dimension(3) :: mort_S, mort_S0, mort_T0, mort_G, mort_top
-    real(rk),dimension(3) :: mort_J, mort_T, mort_sum, mass_sum
-    real(rk) :: errf, eargA1,eargA2, argA0,argA1,argA2,argA3, aa, eS, eS0, asize_offspring,alr, yield_factor, affin
-    real(rk) :: Imaxr, lesdr, efn, efp, dll,optimal_prey_sizem, sBDet, detect, dummy_reused_variable1, dummy_reused_variable2, dummy_reused_variable3, dummy_reused_variable4, dummy_reused_variable5, ft
+    real(rk),dimension(3) :: mort_S, mort_S0, mort_T0, mort_top
+    real(rk),dimension(3) :: mort_T, mort_sum, mass_sum
+    real(rk) :: errf, eargA1,eargA2,argA1,argA2,argA3, eS0
+    real(rk) :: lesdr, optimal_prey_sizem, detect, dummy_reused_variable2, dummy_reused_variable3, dummy_reused_variable4, dummy_reused_variable5, ft
     real(rk),dimension(3) :: somgrwth, recruit,lco, starv, dal_dl, min_dl, bound_dl
     real(rk),dimension(3) :: prod_dl, sum_dl, resp_dl,paras_dl, turb_dl
     real(rk),dimension(3) :: graz_dl, som_dl, init_dl, sen_dl,ft2,ft3
-    real(rk), dimension(2,number_of_boxes) :: dConc,dTrait
+    real(rk),dimension(3):: yield_factor
+    
     real(rk), dimension(3) :: Imax, Imact, di_dl, di0_dl, dg_dly, dprod_dl
     real(rk), dimension(3) :: Change_of_optimal_prey_size,optimal_prey_size, graz,Temperature_dep,sig13, sig23, ksat
     real(rk), dimension(3) :: mGrz, sig, log_size_variance_mesozoo, log_mean_size, mass, relDens
     real(rk), dimension(3) :: mort_R, mort_R0, mort_P
-    real(rk), dimension(3) :: optimal_prey_size_adult,experimental_optimal_prey_size_adult, preyc, paras, fLc, m_host,rpara, pS
-    real(rk), dimension(3,3):: grss
+    real(rk), dimension(3) :: optimal_prey_size_adult,experimental_optimal_prey_size_adult, preyc, paras, fLc, m_host,rpara, pS, test0
+    real(rk), dimension(3,3):: grss,grazing_pressure_ji 
     real(rk), dimension(51):: mAurelia60, mCyanea60
-    real(rk) :: dsize_offspring, dl, dl2, bcrit0,bcrit1,bcrit2, prey, preyE, preyT, preyTa, mGP
-    real(rk) :: fR, dfA_dl, lm_adult, al, lprey, lavg, aff, activ, no_div_zero_eps,mean_Temperature_HR,mben,Temperaturep, mass3
-    real(rk) :: gross, dg_dB, dp_dB, dp_dl, mS0, mT0, ratf, no_age, cnidaria
+    real(rk) :: dl, bcrit1, preyE
+    real(rk) :: fR, lm_adult, al, lavg, aff, activ, no_div_zero_eps,mean_Temperature_HR,mben,Temperaturep
+    real(rk) :: dp_dB, mT, no_age, cnidaria
+    real(rk),dimension(3)::gross,prey_mass_after_selection, prey_mass_after_selection_relative_biovolume,dp_dl,affin
     real(rk), dimension(3) :: prod,fA
-    integer  :: ib, ic, i, j, max_number_of_predators, yi
+    integer  :: ib, i, j, max_number_of_predators
     logical  :: Is_Copepod_biomass_negative, Is_Copepod_biomass_exhausted, IsMaxIng 
+    logical :: TopPredationSwitch=.TRUE.!.FALSE.
     !					Be     Pp     Copepods
-    integer  :: webtopo(3,3) = reshape((/0,1,0, 1,1,1, 0,0,0/), (/3,3/))
+    ! integer  :: webtopo(3,3) = reshape((/0,1,0, 1,1,1, 0,0,0/), (/3,3/))
+    !    logical  :: webtopo(3,3) = reshape((/.False.,.True.,.False., .True.,.True.,.True., .False.,.False.,.False./),(/3,3/))
+
+    logical  :: webtopo(3,3) = reshape((/.True.,.True.,.False., .True.,.True.,.True., .True.,.True.,.False./),(/3,3/))
     !  fortran organizes arrays as column major
     !  real(rk) :: inflow=2E-1, Adorm=2E-3
 
@@ -528,10 +560,13 @@ contains
     mean_Temperature_HR    =  10.2d0  ! mean HR water Temperature (only used for scenario runs)
     no_age   =  0.5d0   ! relative importance of stage independent sensitivity
     !write (*,'(A,4(I3))') 'w=',webtopo(3,1),webtopo(2,2),webtopo(1,3),webtopo(3,3)
-    if(webtopo(1,3)+webtopo(2,3)+webtopo(3,3) .gt. 0) then
+    !    if(webtopo(1,3)+webtopo(2,3)+webtopo(3,3) .gt. 0) then
+    if(webtopo(1,3).or.webtopo(2,3).or.webtopo(3,3)) then
        max_number_of_predators = 3
+       write (*,*) '3 predators'
     else
        max_number_of_predators = 2
+       write (*,*) '2 predators'
     endif
 
     ! annual TS abundance data for scyphomedusae from VanWalraven et al 2014 
@@ -760,7 +795,7 @@ contains
           ft3(i)       = var(ib)%Biomass_Detritus/self%m_pcap
 
           !***!
-
+          test0(i)=(ft3(i) * Temperature_dep(3) + no_div_zero_eps)
           rpara(i)  = (self%rParasite * paras(i)) * ((Temperature_dep(3) *m_host(i)/self%m_pcap * ft3(i)) - paras(i)/(ft3(i) * Temperature_dep(3) + no_div_zero_eps))
        end do
 
@@ -772,12 +807,13 @@ contains
        !
        !  loop over (ctenophore) predators
        do i = 1, max_number_of_predators
-          dp_dl   = 0.0d0
-          preyTa  = 0.0d0
-          preyT   = 0.0d0
-          gross   = 0.0d0
+          dp_dl(i)   = 0.0d0
+          prey_mass_after_selection_relative_biovolume(i)  = 0.0d0
+          prey_mass_after_selection(i)   = 0.0d0
+          gross(i)   = 0.0d0
           do j = 1, 3  ! calc total available prey biomass first
-             if (webtopo(j,i) .gt. 0) then
+             !             if (webtopo(j,i) .gt. 0) then
+             if (webtopo(j,i)) then
                 dl      = log_mean_size(j) - optimal_prey_size(i)     ! size match to prey
                 if(i .eq. 3 .and. dl .gt. 1.5 ) dl = log_mean_size(j) + 2*optimal_prey_size_adult(j) - optimal_prey_size(i)
                 ! ingestion kernel
@@ -789,8 +825,8 @@ contains
                 ! contribution to consumer size scaling in Imax 
                 di_dl(j)= di0_dl(i) + 3*dl*Change_of_optimal_prey_size(i)
                 !     preyc(j)= prey_effc(dl2)  ! effective prey mass after integration over selection kernel
-                preyT   = preyT + preyc(j) * mass(j)  ! effective  prey mass after integration over selection kernel
-                preyTa   = preyTa + preyc(j) * (relDens(j)**0.667) * mass(j)  ! tranformation into -relative- biovolume
+                prey_mass_after_selection(i)   = prey_mass_after_selection(i) + preyc(j) * mass(j)  ! effective  prey mass after integration over selection kernel
+                prey_mass_after_selection_relative_biovolume(i)   = prey_mass_after_selection_relative_biovolume(i) + preyc(j) * (relDens(j)**0.667) * mass(j)  ! tranformation into -relative- biovolume
              endif
           end do
 
@@ -811,8 +847,8 @@ contains
           detect=density_disturbance(self%Size_Adult,log_mean_size(3),log_size_variance_mesozoo(3),mass(1),mass(2),mass(3),self%mDisturb)
           ! affinity contains depes on food type (gel), consumer density, Temperature, size(swimming)
 
-          affin     = 1.0d0/self%Bcrit *Temperature_dep(i)* exp(0.5d0*log_mean_size(i))
-          !   dummy_reused_variable2      = 0.5*affin * preyTa / (self%mR*Temperature_dep(i)*exp(-0.5*log_mean_size(i)))
+          affin(i)    = 1.0d0/self%Bcrit *Temperature_dep(i)* exp(0.5d0*log_mean_size(i))
+          !   dummy_reused_variable2      = 0.5*affin(i) * prey_mass_after_selection_relative_biovolume(i) / (self%mR*Temperature_dep(i)*exp(-0.5*log_mean_size(i)))
           ! Temperature dependent loss, with surface-to-volume scaling
           !   mort_R  = self%mR * Temperature_dep(i) * exp(-0.5*log_mean_size(i)+lavg-0*optimal_prey_size(i))!)
           dummy_reused_variable2 = f_Temperature(self%Q10+0.+ 0.*optimal_prey_size_adult(i), Temperaturep, self%Tc)
@@ -820,24 +856,29 @@ contains
           mort_R0(i) = self%mR * dummy_reused_variable2 * exp(-0.5*log_mean_size(i)-0.*optimal_prey_size_adult(i))!)
 
           !***!
-          dummy_reused_variable3        = affin * preyTa /(mort_R0(i)+no_div_zero_eps)
-          !   dummy_reused_variable3      = 2*affin * preyTa /(self%mR+no_div_zero_eps)
+          dummy_reused_variable3        = affin(i) * prey_mass_after_selection_relative_biovolume(i) /(mort_R0(i)+no_div_zero_eps)
+          !   dummy_reused_variable3      = 2*affin(i) * prey_mass_after_selection_relative_biovolume(i) /(self%mR+no_div_zero_eps)
           activ     = 1.0d0 - exp(-dummy_reused_variable3)
           mort_R(i) = activ * mort_R0(i)
           !   affin   = affin  * dummy_reused_variable3/(1.0d0 + dummy_reused_variable3)log_mean_size(i)
-          affin     = affin  * activ * exp(-detect*detect) 
+          affin(i)     = affin(i) * activ * exp(-detect*detect) 
           !  loop over prey populations:  1: Beroe 2: Ppileus 3: Copepodss
           do j = 1, 3 ! calc total available prey biomass first
-             if (webtopo(j,i) .gt. 0) then
-
-                ksat(j)    = Imact(j)/affin
+             ! if (webtopo(j,i) .gt. 0) then
+             if (webtopo(j,i)) then
+                ksat(j)    = Imact(j)/affin(i)
                 preyE      = preyc(j)* mass(j) ! effective prey mass after integration over selection kernel  
-                eargA1      = exp(-(affin*preyTa)/Imact(j))
+                eargA1      = exp(-(affin(i)*prey_mass_after_selection_relative_biovolume(i))/Imact(j))
 
                 ! grazing rate (partial gross 2ndary production) of consumer i on prey j
-                grss(i,j)  = Imact(j) * (1.0d0-eargA1) * preyc(j)/(preyT+no_div_zero_eps) ! * exp(-0*mort_P(i)/Imax(i))
-                gross      = gross   + grss(i,j) * mass(j)
-                mGrz(j)    = mGrz(j) + grss(i,j) * mass(i)
+                grss(i,j)  = Imact(j) * (1.0d0-eargA1) * preyc(j)/(prey_mass_after_selection(i)+no_div_zero_eps) ! * exp(-0*mort_P(i)/Imax(i))
+                grazing_pressure_ji(i,j)=grss(i,j)*mass(j)
+
+                if (grazing_pressure_ji(i,j) .gt. 0.5) write (*,'(A,2(I2),F12.4)') 'grazingpressure',i,j,grazing_pressure_ji(i,j) 
+
+                gross(i)      = gross(i)   + grazing_pressure_ji(i,j)
+                        if (gross(i) .gt. 1)  write (*,'(A,2(i3),2(F12.4))' ) 'grazing of *i* on *j* is during ** quite large:',i,j,var(1)%BenTime, gross(i)
+                mGrz(j)    = mGrz(j) + (grss(i,j) * mass(i))
 
                 if (Is_Copepod_biomass_exhausted) write (*,'(A,2(I2),1(F12.4))') 'gr=',i,j,grss(i,j)*1E3
 
@@ -846,20 +887,28 @@ contains
                 ! derivative of selection kernelexp(-1.5d0*(dl**2))*
                 dg_dly(j)  = dg_dly(j) - (log_mean_size(j) - optimal_prey_size(i))* grss(i,j)* mass(i) 
                 ! affinity term; degree of food limitation (aff=0: g=Imax   aff=Imax: no food)
-                aff        = affin*preyE* eargA1  
+                aff        = affin(i)*preyE* eargA1  
                 ! derivative with respect to prey mass
-                dp_dB      = (grss(i,j)*(preyT-preyE)/(preyc(j)+no_div_zero_eps)+(relDens(j)**0.667) *aff)/(preyT+no_div_zero_eps)
+                dp_dB      = (grss(i,j)*(prey_mass_after_selection(i)-preyE)/(preyc(j)+no_div_zero_eps)+(relDens(j)**0.667) *aff)/(prey_mass_after_selection(i)+no_div_zero_eps)
                 ! production derivative with respect to consumer size
                 !***!
-                dp_dl      = dp_dl + dp_dB*2*sig23(j)*(log_mean_size(j)-optimal_prey_size(i))* Change_of_optimal_prey_size(i)
-                dp_dl      = dp_dl + (grss(i,j)*mass(j)-aff)*di_dl(j) + 0.5*aff
+                dp_dl(i)      = dp_dl(i) + dp_dB*2*sig23(j)*(log_mean_size(j)-optimal_prey_size(i))* Change_of_optimal_prey_size(i)
+                dp_dl(i)      = dp_dl(i) + (grss(i,j)*mass(j)-aff)*di_dl(j) + 0.5*aff
 !!! derivative with respect to consumer size (through optimal prey size dependency)     
+
+
+             else
+                grazing_pressure_ji(i,j)=-999.999
+
              endif
           end do
+
+          !write (*,'(A,2(I2),F12.8)') 'grazingpressure',3,2,grazing_pressure_ji(3,2) 
+
           ! update all flux stores
-          !   graz(i) = graz(i) + gross
-          graz(i)     = gross 
-          dprod_dl(i) = dp_dl
+          !   graz(i) = graz(i) + gross(i)
+          graz(i)     = gross(i) 
+          dprod_dl(i) = dp_dl(i)
        end do
 
        !  loop over dynamic ctenophore populations 
@@ -867,12 +916,12 @@ contains
 
           ! secondary production  
           ! Biomass_Phytoplanktonsiological/starvation status affects yield (Reeve1989)
-          !   yield_factor    = 1.0d0/(1.0d0+mort_P(i)/(self%yield* graz(i)))
-          !   yield_factor    = exp(-mort_P(i)/(self%yield* graz(i))+no_div_zero_eps)
-          yield_factor     = exp(-2*mort_P(i)/(self%yield* graz(i))+no_div_zero_eps)
-          !   yield_factor    = exp(-mort_P(i)/self%mR)
-          !   yield_factor    = 1.0d0
-          prod(i)     = self%yield * yield_factor * graz(i)
+          !!   yield_factor    = 1.0d0/(1.0d0+mort_P(i)/(self%yield* graz(i)))
+          !!   yield_factor    = exp(-mort_P(i)/(self%yield* graz(i))+no_div_zero_eps)
+          !yield_factor(i)     = exp(-2*mort_P(i)/(self%yield* graz(i))+no_div_zero_eps)
+          !!   yield_factor    = exp(-mort_P(i)/self%mR)
+          yield_factor    = 1.0d0
+          prod(i)     = self%yield * yield_factor(i) * graz(i)
           !
           ! ---------- energy losses & mortalities  -------------------
           !
@@ -891,7 +940,7 @@ contains
           mort_S(i)   = mort_S0(i)  *(no_age+pS(i))!*(1.0d0-eS) 
 
           ! Biomass_Physical damage (turbulence); can be avoided by active swimming
-          mort_T0(i)  = mT0 * starv(i) 
+          mort_T0(i)  = mT * starv(i) 
           eS0      = sig13(i)* exp(-sig23(i)*(self%Size_Adult-log_mean_size(i))**2)
           mort_T(i)   = mort_T0(i) * (1.0d0 - eS0) 
 
@@ -923,11 +972,16 @@ contains
           ! somatic growth : TODO: Temperature dependency
           somgrwth(i) = prod(i) - recruit(i) - mort_R(i)  ! can become negative which is OK
 
-          ! top-down pressure by larger jellies (cnidariaarians such as Aurelia Cyanea, or Chrysaora)
-          mort_top(i) = Temperature_dep(3)*self%m_predBe  * cnidaria !* mass(i)
-
+          if (TopPredationSwitch) then
+             ! top-down pressure by larger jellies (cnidariaarians such as Aurelia Cyanea, or Chrysaora)
+             ! TODO: why was the mass cut out from this??
+             mort_top(i) = Temperature_dep(3)*self%m_predBe  * cnidaria *mass(i)    !* mass(i)
+          else
+             mort_top(i)=0.0
+          endif
           !  sum of all mortality rates
           mort_sum(i) = mort_R(i) + mort_S(i)  + mGrz(i)+ mort_P(i) + mort_top(i)
+
 
           ! ----------  stage and size dynamics  -------------------
           !
@@ -960,7 +1014,7 @@ contains
 
              dummy_reused_variable5       = fA(i)*fR + mort_R(i)/(prod(i)+no_div_zero_eps) + 0.
              if(dummy_reused_variable5 .lt. 1.0d0) then
-                prod_dl(i)  = log_size_variance_mesozoo(i) * self%yield*yield_factor * (1.0d0 - dummy_reused_variable5) * dprod_dl(i)
+                prod_dl(i)  = log_size_variance_mesozoo(i) * self%yield*yield_factor(i) * (1.0d0 - dummy_reused_variable5) * dprod_dl(i)
              else
                 prod_dl(i)  = 0.0d0
              endif
@@ -982,6 +1036,15 @@ contains
              sum_dl(i)  = sum_dl(i) + graz_dl(i) + sen_dl(i) +  turb_dl(i) + paras_dl(i)
           else
              sum_dl(i)  = 0.0d0
+             graz_dl=-999
+             sen_dl=-999
+             turb_dl=-999
+             paras_dl=-999
+             som_dl=-999
+             prod_dl=-999
+             resp_dl=-999
+             init_dl=-999
+	dummy_reused_variable5=-999
           endif
 
           !#S__RHS
@@ -1037,6 +1100,13 @@ contains
                 !_SET_DIAGNOSTIC_(self%id_mixlsize_Be, mass(3))           !dTrait(2,1)step_integrated trait exchange rate Coast-HR-Offshore
                 _SET_DIAGNOSTIC_(self%id_Tdep_Be, Temperature_dep(i))                  !step_integrated Temperature dependence
 
+                _SET_DIAGNOSTIC_(self%id_dummy1, m_host(1)) 
+                _SET_DIAGNOSTIC_(self%id_dummy3, test0(1)) 
+                _SET_DIAGNOSTIC_(self%id_dummy5, dummy_reused_variable5) 
+                _SET_DIAGNOSTIC_(self%id_dummy6, graz(1)) 
+                _SET_DIAGNOSTIC_(self%id_dummy8, yield_factor(1)) 
+
+
              endif
              ! TODO : elseif (i .eq. 2)then
           else  !  P.Pileus
@@ -1084,12 +1154,33 @@ contains
                 _SET_DIAGNOSTIC_(self%id_Tdep_Pp, Temperature_dep(i))                  !step_integrated Temperature dependence
                 _SET_DIAGNOSTIC_(self%id_cnidaria, cnidaria)                  !step_integrated marginal size shift due to physical damage 
 
+
+                _SET_DIAGNOSTIC_(self%id_dummy2, m_host(2)) 
+                _SET_DIAGNOSTIC_(self%id_dummy4, test0(2)) 
+                _SET_DIAGNOSTIC_(self%id_dummy7,graz(2)) 
+                _SET_DIAGNOSTIC_(self%id_dummy9,yield_factor(2)) 
              endif
           endif
+
+          _SET_DIAGNOSTIC_(self%id_grazingpressure1, grazing_pressure_ji(1,1) )  
+          _SET_DIAGNOSTIC_(self%id_grazingpressure2, grazing_pressure_ji(1,2) ) 
+          _SET_DIAGNOSTIC_(self%id_grazingpressure3, grazing_pressure_ji(1,3) ) 
+
+          _SET_DIAGNOSTIC_(self%id_grazingpressure4, grazing_pressure_ji(2,1) ) 
+          _SET_DIAGNOSTIC_(self%id_grazingpressure5, grazing_pressure_ji(2,2) ) 
+          _SET_DIAGNOSTIC_(self%id_grazingpressure6, grazing_pressure_ji(2,3) ) 
+
+          _SET_DIAGNOSTIC_(self%id_grazingpressure7, grazing_pressure_ji(3,1) ) 
+          _SET_DIAGNOSTIC_(self%id_grazingpressure8, grazing_pressure_ji(3,2) ) 
+          _SET_DIAGNOSTIC_(self%id_grazingpressure9, grazing_pressure_ji(3,3) ) 
+
           !write (*,'(1(F10.6))')   ftd/ntd 
           !#S__DIA
           !#E__DIA
        end do
+
+
+
        ! ------------------------------------------------------------------------------
        !#S_ODE
        !---------- ODE for each state variable ----------
@@ -1149,7 +1240,7 @@ contains
   pure real(rk) function e_Temperature(T,T_c)
     implicit none
     real(rk), intent(in)      :: T,T_c
-    real(rk) par
+    
     e_Temperature  = 1.0d0/(1.0d0+ exp((T-T_c)/2+1.0d0) )
     !   e_Temperature  = exp(-T**2/(2*T_c**2))
     !   e_Temperature  = 0.1d0 + 0.9d0/(1.0d0+ exp(1*(T-T_c)) )
@@ -1178,7 +1269,7 @@ contains
     class (type_hzg_ctenophore_jt),intent(in) :: self
     real(rk), intent(in)      :: arg
     real(rk), intent(inout)   :: errf
-    real(rk)   :: art
+    
 
     errf  = (1-exp(-arg*2.45d0))/(1+exp(-arg*2.45d0))
 
