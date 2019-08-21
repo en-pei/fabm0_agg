@@ -284,7 +284,7 @@
    call self%get_parameter( self%alfaBG,     'alfaBG', 'mmolN m2/(mgChl day W)**-1', 'initial slope P-I curve BG', default=0.0393_rk, scale_factor=redf(1)*redf(6) )
    ! add switches
    call self%get_parameter( self%use_cyanos,     'use_cyanos', '', 'switch cyanobacteria', default=.true.)
-   call self%get_parameter( self%use_fish,     'use_fish', '', 'switch fish', default=.true.)
+   call self%get_parameter( self%use_fish,     'use_fish', '', 'switch fish', default=.false.)
    call self%get_parameter( self%couple_co2,     'couple_co2', '', 'switch coupling to carbonate module', default=.false.)
    call self%get_parameter( self%use_chl,     'use_chl', '', 'switch chlorophyll/c dynamics', default=.true.)
 
