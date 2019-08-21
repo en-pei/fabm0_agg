@@ -48,6 +48,16 @@
       type (type_diagnostic_variable_id)    :: id_parmean_diag
       type (type_diagnostic_variable_id)    :: id_c2chl_fla, id_c2chl_dia,id_c2chl_bg
       type (type_horizontal_diagnostic_variable_id)    :: id_tbsout
+      
+      type (type_state_variable_id)         :: id_fish1, id_fish2
+      type (type_bottom_state_variable_id)  :: id_mb1
+!id diagnostics for fish calculation - integration
+      type (type_horizontal_diagnostic_variable_id)    :: id_meso_integr,id_micro_integr,id_det_integr,id_fish_integr,id_fish2_integr
+      type (type_horizontal_dependency_id)             :: id_mesoint,id_microint, id_detint,id_fishint,id_fish2int
+      type (type_horizontal_diagnostic_variable_id)    :: id_dF1onZl,id_dF1onZs,id_dF1onDet
+      type (type_horizontal_diagnostic_variable_id)    :: id_dF2onZl,id_dF2onF1,id_dF2onDet
+      type (type_horizontal_dependency_id)             :: id_f1zl,id_f1zs, id_f1det, id_f1mb1
+      type (type_horizontal_dependency_id)             :: id_f2zl,id_f2f1, id_f2det, id_f2mb1
 
 !     Model parameters
       real(rk) :: BioC(45)
@@ -71,7 +81,25 @@
       real(rk) :: MAXchl2nPl, MINchl2nPl 
       real(rk) :: MAXchl2nBG, MINchl2nBG 
       real(rk) :: alfaPl, alfaPs, alfaBG 
-      logical  :: use_chl,use_cyanos,couple_co2
+! Ute MB parameter declaration   
+      real(rk) :: mMB1,excMB1,rMB1,tempcMB1
+      real(rk) :: GrMB1Z,GrMB1P,GrMB1Det,GrMB1Sed 
+      real(rk) :: prefMB1Zs
+      real(rk) :: prefMB1Zl
+      real(rk) :: prefMB1Sed
+      real(rk) :: prefMB1Det
+      real(rk) :: prefMB1P
+      real(rk) :: prefMB1Dom
+! Ute Fish parameter declaration   
+      real(rk) :: mF1,excF1,rF1,asefF1,tempcF1,rF1MB
+      real(rk) :: mF2,excF2,rF2,asefF2,tempcF2,rF2MB
+      real(rk) :: GrF1Zl,GrF1Zs,GrF1Det,GrF1MB1 
+      real(rk) :: GrF2Zl,GrF2F1,GrF2Det,GrF2MB1 
+      real(rk) :: prefF1Zl,prefF2Zl
+      real(rk) :: prefF1Zs,prefF2F1
+      real(rk) :: prefF1Det,prefF2Det
+      real(rk) :: prefF1MB1,prefF2MB1
+      logical  :: use_chl,use_cyanos,couple_co2, use_fish
       contains
 
 !     Model procedures
@@ -198,6 +226,52 @@
    call self%get_parameter( self%prefZlZs,  'prefZlZs',   '-',          'Grazing preference Zl on Zs',     default=0.15_rk)
    call self%get_parameter( self%prefZlD,   'prefZlD',    '-',          'Grazing preference Zl on Det.',   default=0.00_rk)
    call self%get_parameter( self%prefZlBG,  'prefZlBG',   '-',          'Grazing preference Zl on BG',     default=0.30_rk)
+   ! ute Macrobenthos parameter settings
+   call self%get_parameter( self%mMB1,      'mMB1',       '1/day', 'Macrobenthos mortality rate',     default=0.001_rk, scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%excMB1,    'excMB1',     '1/day', 'Macrobenthos excretion rate',     default=0.025_rk, scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%rMB1,      'rMB1',       'mmolN/m**3',  'MB grazing half saturation',      default=0.50_rk,  scale_factor=redf(1)*redf(6))
+   call self%get_parameter( self%GrMB1Z,    'GrMB1Z',     '1/day', 'Grazingrate MB1 on Zooplankton',  default=0.1_rk,   scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%GrMB1P,    'GrMB1P',     '1/day', 'Grazingrate MB1 on Phytoplankton',default=0.1_rk,   scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%GrMB1Det,  'GrMB1Det',   '1/day', 'Grazingrate MB1 on Detritus',     default=0.1_rk,   scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%GrMB1Sed,  'GrMB1Sed',   '1/day', 'Grazingrate MB1 on Sediment',     default=0.1_rk,   scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%tempcMB1,  'tempcMB1',   '1/day',      'MB1 temperature control excr.',   default=0._rk)
+   call self%get_parameter( self%prefMB1Zs, 'prefMB1Zs',  '-',          'Grazing preference MB1 on Zs',    default=0.20_rk)
+   call self%get_parameter( self%prefMB1Zl, 'prefMB1Zl',  '-',          'Grazing preference MB1 on Zl',    default=0.30_rk)
+   call self%get_parameter( self%prefMB1Det,'prefMB1Det', '-',          'Grazing preference MB1 on Det',   default=0.10_rk)
+   call self%get_parameter( self%prefMB1Sed,'prefMB1Sed', '-',          'Grazing preference MB1 on Sed',   default=0.10_rk)
+   call self%get_parameter( self%prefMB1P,  'prefMB1P',   '-',          'Grazing preference MB1 on P',     default=0.20_rk)
+   call self%get_parameter( self%prefMB1Dom,'prefMB1Dom', '-',          'Grazing preference MB1 on Dom',   default=0.10_rk)
+   !parameter for fish1 functional group
+   call self%get_parameter( self%mF1,      'mF1',       '1/day', 'fish1 mortality rate',     default=0.001_rk, scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%excF1,    'excF1',     '1/day', 'fish1 excretion rate',     default=0.002_rk, scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%rF1,      'rF1',       'mmolN/m**3', 'fish1 grazing half saturation',    default=0.70_rk,  scale_factor=redf(1)*redf(6))
+   call self%get_parameter( self%rF1MB,    'rF1MB',     'mmolN/m**3', 'fish1 grazing on MB half saturation',   default=0.90_rk,  scale_factor=redf(1)*redf(6))
+   call self%get_parameter( self%tempcF1,  'tempcF1',   '1/day',      'fish1 temperature control excr.',   default=0.5_rk)
+   call self%get_parameter( self%asefF1,   'asefF1',    '-',      'fish1 assimilation efficiency',           default=0.7_rk)
+   call self%get_parameter( self%GrF1Zl,   'GrF1Zl',    '1/day', 'Grazingrate fish1 on Mesozoo',           default=0.01_rk,   scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%GrF1Zs,   'GrF1Zs',    '1/day', 'Grazingrate fish1 on Microzoo',          default=0.01_rk,   scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%GrF1Det,  'GrF1Det',   '1/day', 'Grazingrate fish1 on Detritus',          default=0.05_rk,   scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%GrF1MB1,  'GrF1MB1',   '1/day', 'Grazingrate fish1 on macrobenthos1',     default=0.01_rk,   scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%prefF1Zl, 'prefF1Zl',  '-',          'Grazing preference fish1 on Zl',    default=0.45_rk)
+   call self%get_parameter( self%prefF1Zs, 'prefF1Zs',  '-',          'Grazing preference fish1 on Zs',    default=0.25_rk)
+   call self%get_parameter( self%prefF1Det,'prefF1Det', '-',          'Grazing preference fish1 on Det',   default=0.05_rk)
+   call self%get_parameter( self%prefF1MB1,'prefF1MB1', '-',          'Grazing preference fish1 on MB1',   default=0.25_rk)
+   !parameter for fish2 functional group
+   call self%get_parameter( self%mF2,      'mF2',       '1/day', 'fish2 mortality rate',     default=0.001_rk, scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%excF2,    'excF2',     '1/day', 'fish2 excretion rate',     default=0.002_rk, scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%rF2,      'rF2',       'mmolN/m**3', 'fish2 grazing half saturation',    default=0.70_rk,  scale_factor=redf(1)*redf(6))
+   call self%get_parameter( self%rF2MB,    'rF2MB',     'mmolN/m**3', 'fish2 grazing on MB half saturation',   default=0.90_rk,  scale_factor=redf(1)*redf(6))
+   call self%get_parameter( self%tempcF2,  'tempcF2',   '1/day',      'fish2 temperature control excr.',   default=0.5_rk)
+   call self%get_parameter( self%asefF2,   'asefF2',    '-',      'fish2 assimilation efficiency',           default=0.7_rk)
+   call self%get_parameter( self%GrF2Zl,   'GrF2Zl',    '1/day', 'Grazingrate fish2 on Mesozoo',           default=0.01_rk,   scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%GrF2F1,   'GrF2F1',    '1/day', 'Grazingrate fish2 on Microzoo',          default=0.01_rk,   scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%GrF2Det,  'GrF2Det',   '1/day', 'Grazingrate fish2 on Detritus',          default=0.05_rk,   scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%GrF2MB1,  'GrF2MB1',   '1/day', 'Grazingrate fish2 on macrobenthos1',     default=0.01_rk,   scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%prefF2Zl, 'prefF2Zl',  '-',          'Grazing preference fish2 on Zl',    default=0.45_rk)
+   call self%get_parameter( self%prefF2F1, 'prefF2F1',  '-',          'Grazing preference fish2 on F1',    default=0.25_rk)
+   call self%get_parameter( self%prefF2Det,'prefF2Det', '-',          'Grazing preference fish2 on Det',   default=0.05_rk)
+   call self%get_parameter( self%prefF2MB1,'prefF2MB1', '-',          'Grazing preference fish2 on MB1',   default=0.25_rk)
+
    ! chlorophyll-a constants
    call self%get_parameter( self%MINchl2nPs, 'MINchl2nPs', 'mgChl/mmolN', 'minimum Chl to N ratio Ps', default=0.50_rk, scale_factor=redf(11)*redf(16))
    call self%get_parameter( self%MAXchl2nPs, 'MAXchl2nPs', 'mgChl/mmolN', 'maximum Chl to N ratio Ps', default=3.83_rk, scale_factor=redf(11)*redf(16))
@@ -210,6 +284,7 @@
    call self%get_parameter( self%alfaBG,     'alfaBG', 'mmolN m2/(mgChl day W)**-1', 'initial slope P-I curve BG', default=0.0393_rk, scale_factor=redf(1)*redf(6) )
    ! add switches
    call self%get_parameter( self%use_cyanos,     'use_cyanos', '', 'switch cyanobacteria', default=.true.)
+   call self%get_parameter( self%use_fish,     'use_fish', '', 'switch fish', default=.true.)
    call self%get_parameter( self%couple_co2,     'couple_co2', '', 'switch coupling to carbonate module', default=.false.)
    call self%get_parameter( self%use_chl,     'use_chl', '', 'switch chlorophyll/c dynamics', default=.true.)
 
@@ -257,6 +332,16 @@
                                       initial_value=20.0_rk*redf(3)*redf(6)*redf(20) )
    call self%register_state_variable( self%id_sed3,     'sed3',    'mgC/m2',    'sediment adsorbed pho.',    minimum=0.0_rk , &
                                       initial_value=2.0_rk*redf(2)*redf(6)*redf(19) )
+     if (self%use_fish) then
+    !  ute register macrobenthos and Fish state variable
+   call self%register_state_variable( self%id_mb1,     'mb1',    'mgC/m2',    'macrobenthos',    minimum=0.0_rk,    &      
+                                      initial_value=1e-6_rk*redf(1)*redf(6) )
+   call self%register_state_variable( self%id_fish1,     'fis1',    'mgC/m3',    'fish functional group 1',    minimum=0.0_rk,    &      
+                                      initial_value=1e-6_rk*redf(1)*redf(6) )
+   call self%register_state_variable( self%id_fish2,     'fis2',    'mgC/m3',    'fish functional group 2',    minimum=0.0_rk,    &      
+                                      initial_value=1e-7_rk*redf(1)*redf(6) )
+    end if
+
    ! Register diagnostic variables
    call self%register_diagnostic_variable(self%id_denit,'denit','mmolN/m**3/s', &
          'denitrification rate', output=output_time_step_averaged)
@@ -280,6 +365,33 @@
 !   end if
    call self%register_diagnostic_variable(self%id_tbsout,'botstrss','fill_later', &
          'total bottom stress', output=output_time_step_averaged)
+    if (self%use_fish) then
+ !ute register diagnostics for fish calculation - integration
+   call self%register_diagnostic_variable(self%id_meso_integr,'Zlint','mgC/m**2', &
+         'depthintegrated mesozooplankton')
+   call self%register_diagnostic_variable(self%id_micro_integr,'Zsint','mgC/m**2', &
+         'depthintegrated microzooplankton')
+   call self%register_diagnostic_variable(self%id_det_integr,'Detint','mgC/m**2', &
+         'depthintegrated detritus')
+   call self%register_diagnostic_variable(self%id_fish_integr,'Fishint','mgC/m**2', &
+         'depthintegrated fish1')
+   call self%register_diagnostic_variable(self%id_dF1onZl,'F1Zl','mgC/m**2/s', &
+         'Fish feeding on Mesozoo')
+   call self%register_diagnostic_variable(self%id_dF1onZs,'F1Zs','mgC/m**2/s', &
+         'Fish feeding on Microzoo')
+   call self%register_diagnostic_variable(self%id_dF1onDet,'F1De','mgC/m**2/s', &
+         'Fish feeding on Detritus')
+!  fish 2
+   call self%register_diagnostic_variable(self%id_fish2_integr,'F2int','mgC/m**2', &
+         'depthintegrated fish2')
+   call self%register_diagnostic_variable(self%id_dF2onZl,'F2Zl','mgC/m**2/s', &
+         'Fish2 feeding on Mesozoo')
+   call self%register_diagnostic_variable(self%id_dF2onF1,'F2F1','mgC/m**2/s', &
+         'Fish2 feeding on Fish1')
+   call self%register_diagnostic_variable(self%id_dF2onDet,'F2De','mgC/m**2/s', &
+         'Fish2 feeding on Detritus')
+    endif
+
    ! Register dependencies
    call self%register_dependency(self%id_temp,standard_variables%temperature)
    call self%register_dependency(self%id_salt,standard_variables%practical_salinity)
@@ -298,6 +410,21 @@
 !   call self%register_dependency(self%id_h,       'icethickness', 'm',    'ice thickness')
 !   call self%register_dependency(self%id_hs,      'snowthickness','m',    'snow thickness')
    
+
+    if (self%use_fish) then
+   ! ute dependencies used for fish production 
+   call self%register_dependency(self%id_mesoint,vertical_integral(self%id_mesozoo))
+   call self%register_dependency(self%id_microint,vertical_integral(self%id_microzoo))
+   call self%register_dependency(self%id_detint,vertical_integral(self%id_det))
+   call self%register_dependency(self%id_fishint,vertical_integral(self%id_fish1))
+   call self%register_dependency(self%id_f1zl,'ECO_F1Zl')
+   call self%register_dependency(self%id_f1zs,'ECO_F1Zs')
+   call self%register_dependency(self%id_f1det,'ECO_F1De')
+   call self%register_dependency(self%id_fish2int,vertical_integral(self%id_fish2))
+   call self%register_dependency(self%id_f2zl,'ECO_F2Zl')
+   call self%register_dependency(self%id_f2f1,'ECO_F2F1')
+   call self%register_dependency(self%id_f2det,'ECO_F2De')
+   end if
 
    return
 
@@ -342,6 +469,11 @@ end subroutine initialize
    real(rk) :: mes_loss=1.0_rk
    real(rk) :: tbs
    real(rk) :: rhs_oxy,rhs_amm,rhs_nit
+! local variables for fish (Ute)   
+   real(rk) :: mesoi,microi,deti,fishi,F1onZl,F1onZs,F1onDet, Fish_prod,ttemp
+   real(rk) :: fish1,fish2
+   real(rk) :: fishi2,F2onZl,F2onF1,F2onDet, Fish2_prod
+! local variables for fish (Ute)   
 !EOP
 !-----------------------------------------------------------------------
 !BOC
@@ -379,6 +511,22 @@ end subroutine initialize
    _GET_(self%id_parmean,mean_par)
    _GET_HORIZONTAL_(self%id_meansfpar,mean_surface_par)
    _GET_HORIZONTAL_(self%id_tbs,tbs)
+  if(self%use_fish) then
+    ! get horizontal variables for fish estimates
+   _GET_HORIZONTAL_(self%id_mesoint,mesoi)
+   _GET_HORIZONTAL_(self%id_microint,microi)
+   _GET_HORIZONTAL_(self%id_detint,deti)
+   _GET_HORIZONTAL_(self%id_fishint,fishi)
+   _GET_HORIZONTAL_(self%id_fish2int,fishi2)
+   _GET_HORIZONTAL_(self%id_f1zl,F1onZl)
+   _GET_HORIZONTAL_(self%id_f1zs,F1onZs)
+   _GET_HORIZONTAL_(self%id_f1det,F1onDet)
+   _GET_HORIZONTAL_(self%id_f2zl,F2onZl)
+   _GET_HORIZONTAL_(self%id_f2f1,F2onF1)
+   _GET_HORIZONTAL_(self%id_f2det,F2onDet)
+   _GET_(self%id_fish2,fish2)
+   _GET_(self%id_fish1,fish1)
+   end if
 
    ! CAGLAR
    ! checks - whether the biomass of plankton is below a predefined threshold,
@@ -392,6 +540,8 @@ end subroutine initialize
    bg_loss  = max(sign(-1.0_rk,bg-0.01_rk),0.0_rk)        ! cyanobacteria
    mic_loss = max(sign(-1.0_rk,microzoo-0.001_rk),0.0_rk) !microzooplankton
    mes_loss = max(sign(-1.0_rk,mesozoo-0.001_rk),0.0_rk) ! mesozooplankton
+!c-----------------t dependy for fish & MB  -------------------------
+        ttemp=temp/((temp+273.15)*273.15)
 
    ! remineralisation rate
    frem = self%BioC(22) * (1._rk+20._rk*(temp**2/(13._rk**2+temp**2)))
@@ -434,6 +584,9 @@ end subroutine initialize
        Bg_fix = Tbg * min(blight, up_pho) - Bg_prod
      end if
      Prod = Prod + self%BioC(28)*Bg_prod*bg ! cyanobacteria production
+    else
+    Bg_prod =  0.0_rk
+    Bg_fix  = 0.0_rk
    end if
 
    if (self%use_chl) then   
@@ -528,12 +681,41 @@ end subroutine initialize
    Zs_prod = self%BioC(20)*(ZsonPs + ZsonPl + ZsonBg) + self%BioC(21)*ZsonD
    rhs = (Zs_prod - (self%BioC(16) + self%BioC(18) + self%zpr)*mic_loss) * microzoo &
          - ZlonZs * mesozoo
-   _SET_ODE_(self%id_microzoo, rhs)
+    if (self%use_fish) then
+     rhs=rhs - F1onZs*microzoo/microi*fishi  !fish1 predation
+!        - F2onZs*microzoo/microi*fishi2  !fish2 predation
+    end if
+  
+    _SET_ODE_(self%id_microzoo, rhs)
 
    ! mesozooplankton
    Zl_prod = self%BioC(19)*(ZlonPs + ZlonPl + ZlonBg + ZlonZs) + self%BioC(21)*ZlonD
    rhs = (Zl_prod - (self%BioC(15) + self%BioC(17) + self%zpr)*mes_loss) * mesozoo
+    if(self%use_fish)then
+    rhs=rhs- F1onZl*mesozoo/mesoi*fishi &
+          - F2onZl*mesozoo/mesoi*fishi2
+    end if
    _SET_ODE_(self%id_mesozoo, rhs)
+
+    if(self%use_fish)then
+   !fish1
+   Fish_prod=0.
+   Fish_prod=self%asefF1*(F1onZs*microzoo/microi  &
+             +F1onZl*mesozoo/mesoi  &
+             +F1onDet*det/deti)*fishi   !6,7,8,9
+   rhs=Fish_prod-(self%mF1+self%excF1*exp((self%tempcF1/(8.6173324*10.**(-5.)))*ttemp))*fish1  & 
+         - F2onF1*fish1/fishi*fishi2  !fish1 predation
+   _SET_ODE_(self%id_fish1, rhs)
+   !fish2
+   Fish2_prod=0.
+   Fish2_prod=self%asefF2*(F2onF1*fish1/fishi  &
+             +F2onZl*mesozoo/mesoi  &
+             +F2onDet*det/deti)*fishi2   !6,7,8,9
+!     print*,'test fish',Fish2_prod,rhs,fishi2
+   rhs=Fish2_prod-(self%mF2+self%excF2*exp((self%tempcF2/(8.6173324*10.**(-5.)))*ttemp))*fish2   
+   _SET_ODE_(self%id_fish2, rhs)
+!     print*,'test fish',Fish_prod,rhs,fish2
+    end if
 
    ! detritus
    dxxdet = (  ((1.0_rk-self%BioC(20))*(ZsonPs + ZsonPl + ZsonBg) &
@@ -545,11 +727,23 @@ end subroutine initialize
               + self%BioC(10) * fla * fla_loss &
               + self%BioC(9)  * dia * dia_loss &
               + self%BioC(32) * bg * bg_loss )
+   if (self%use_fish)then
+   dxxdet=dxxdet + (1.-self%asefF1)*(F1onZs*microzoo/microi+F1onZl*mesozoo/mesoi+F1onDet*det/deti)*fishi  &      !Fish 1 detritus
+              + self%mF1*fish1 & 
+              + (1.-self%asefF2)*(F2onF1*fish1/fishi+F2onZl*mesozoo/mesoi+F2onDet*det/deti)*fishi2  &      !Fish 1 detritus
+              + self%mF2*fish2
+   end if
 
    rhs = (1.0_rk-self%frr) * dxxdet &
          - ZsonD * microzoo &
          - ZlonD * mesozoo &
          - frem * det
+
+    if (self%use_fish)then 
+    rhs=rhs - F1onDet*det/deti*fishi &
+         - F2onDet*det/deti*fishi2
+    end if
+
    _SET_ODE_(self%id_det, rhs)
 
    ! labile dissolved organic matter
@@ -569,6 +763,11 @@ end subroutine initialize
          + self%BioC(17) * mesozoo * mes_loss &
          + frem * det &
          + fremDOM * dom - bioom1 * nh4
+    if(self%use_fish)then
+    rhs_amm = rhs_amm + self%excF1*exp((self%tempcF1/(8.6173324*10.**(-5.)))*ttemp)*fish1 &
+         + self%excF2*exp((self%tempcF2/(8.6173324*10.**(-5.)))*ttemp)*fish2
+    end if
+
    _SET_ODE_(self%id_nh4, rhs_amm)
 
    ! phosphate
@@ -577,6 +776,10 @@ end subroutine initialize
          + self%BioC(18) * microzoo * mic_loss &
          + self%BioC(17) * mesozoo * mes_loss &
          + frem*det + fremDOM*dom
+    if(self%use_fish)then
+    rhs = rhs + self%excF1*exp((self%tempcF1/(8.6173324*10.**(-5.)))*ttemp)*fish1 &
+         + self%excF2*exp((self%tempcF2/(8.6173324*10.**(-5.)))*ttemp)*fish2
+    end if
    _SET_ODE_(self%id_pho, rhs)
 
 
@@ -587,12 +790,25 @@ end subroutine initialize
    _SET_ODE_(self%id_opa, self%BioC(9)*dia*dia_loss + ZsonPl*microzoo + ZlonPl*mesozoo - self%BioC(27)*opa)
 
    ! oxygen
-   rhs_oxy = ((6.625*up_nh4 + 8.125*up_no3+1.d-10)/(up_n+1.d-10)*Prod &
+  
+    if(self%use_fish)then
+     rhs_oxy = ((6.625*up_nh4 + 8.125*up_no3+1.d-10)/(up_n+1.d-10)*Prod &
+         -bioom6*6.625*(self%BioC(18)*microzoo*mic_loss &
+         +self%BioC(17)*mesozoo*mes_loss &
+         + self%excF1*exp((self%tempcF1/(8.6173324*10.**(-5.)))*ttemp)*fish1 &
+         + self%excF2*exp((self%tempcF2/(8.6173324*10.**(-5.)))*ttemp)*fish2) &
+         -frem*det*(bioom6+bioom7)*6.625 &
+         -(bioom6+bioom7)*6.625*fremDOM*dom &
+         -2.0_rk*bioom1*nh4)*redf(11)*redf(16)
+    else
+    rhs_oxy = ((6.625*up_nh4 + 8.125*up_no3+1.d-10)/(up_n+1.d-10)*Prod &
          -bioom6*6.625*(self%BioC(18)*microzoo*mic_loss &
          +self%BioC(17)*mesozoo*mes_loss) &
          -frem*det*(bioom6+bioom7)*6.625 &
          -(bioom6+bioom7)*6.625*fremDOM*dom &
          -2.0_rk*bioom1*nh4)*redf(11)*redf(16)
+    end if
+
    _SET_ODE_(self%id_oxy, rhs_oxy)
 
    ! Carbonate dynamics
@@ -715,6 +931,15 @@ end subroutine initialize
    real(rk) :: pho, Rds, Rsd, Rsa, Rsdenit, Rsa_p, yt1, yt2
    real(rk) :: rhs, flux, alk_flux
    real(rk) :: bioom1, bioom2, bioom3, bioom4, bioom5, bioom6, bioom7, bioom8
+! ute mb new variables
+   real(rk) :: mb1
+   real(rk) :: FM,MBonMicro,MBonMeso,MBonDet,MBonSed,MBonFla,MBonDia,MBonDom
+   real(rk) :: dia, fla, microzoo,mesozoo,dom 
+   real(rk) :: ttemp, rcMB,rrcMB,MBflux 
+! ute add fish local variables integrated values
+   real(rk) :: mesoi,microi,deti,fishi,fishi1,fishi2,fishi3
+   real(rk) :: Ff1,F1onZl,F1onZs,F1onDet,F1onMB1
+   real(rk) :: Ff2,F2onZl,F2onF1,F2onDet,F2onMB1
 !EOP
 !-----------------------------------------------------------------------
 !BOC
@@ -729,6 +954,21 @@ end subroutine initialize
    _GET_HORIZONTAL_(self%id_sed2,sed2)
    _GET_HORIZONTAL_(self%id_sed3,sed3)
    _GET_HORIZONTAL_(self%id_tbs,tbs)
+   if (self%use_fish)then
+    !  ute get vars for MB
+   _GET_(self%id_microzoo,microzoo)
+   _GET_(self%id_mesozoo,mesozoo)
+   _GET_(self%id_dia,dia)
+   _GET_(self%id_fla,fla)
+   _GET_(self%id_dom,dom)
+   _GET_HORIZONTAL_(self%id_mb1,mb1)
+  !ute get dependencies for fish growth
+   _GET_HORIZONTAL_(self%id_mesoint,mesoi)
+   _GET_HORIZONTAL_(self%id_microint,microi)
+   _GET_HORIZONTAL_(self%id_detint,deti)
+   _GET_HORIZONTAL_(self%id_fishint,fishi)
+   _GET_HORIZONTAL_(self%id_fish2int,fishi2)
+   end if
 
    bioom1 = 0.0_rk
    bioom2 = 0.0_rk
@@ -751,6 +991,51 @@ end subroutine initialize
      end if
    end if
 
+    if (self%use_fish)then
+    !ute grazing fish
+    Ff1=self%prefF1Zl*mesoi+self%prefF1Zs*microi+self%prefF1Det*deti+self%prefF1MB1*mb1
+!    Ff2=self%prefF2Zl*mesoi+self%prefF2Zs*microi+self%prefF2Det*deti+self%prefF2MB1*mb1
+    Ff2=self%prefF2Zl*mesoi+self%prefF2F1*fishi+self%prefF2Det*deti+self%prefF2MB1*mb1
+!
+     F1onZl=0.
+     F1onZs=0.
+     F1onDet=0.
+     F1onMB1=0.
+    if(oxy .gt. 0.0)then
+       if(mesoi.ge.0.) F1onZl=self%prefF1Zl*self%GrF1Zl*mesoi/(self%rF1+Ff1)
+       if(microi.ge.0.) F1onZs=self%prefF1Zs*self%GrF1Zs*microi/(self%rF1+Ff1)
+       if(deti.ge.0.) F1onDet =self%prefF1Det*self%GrF1Det*deti/(self%rF1+Ff1)
+       if(mb1.ge.0.)F1onMB1=self%prefF1MB1*self%GrF1MB1*mb1/(self%rF1MB+Ff1)
+       if(mesoi.ge.0.) F2onZl=self%prefF2Zl*self%GrF2Zl*mesoi/(self%rF2+Ff2)
+       if(fishi.ge.0.) F2onF1=self%prefF2F1*self%GrF2F1*fishi/(self%rF2+Ff2)
+       if(deti.ge.0.) F2onDet =self%prefF2Det*self%GrF2Det*deti/(self%rF2+Ff2)
+       if(mb1.ge.0.)F2onMB1=self%prefF2MB1*self%GrF2MB1*mb1/(self%rF2MB+Ff2)
+     endif
+!c-----------------t dependy for fish & MB  -------------------------
+        ttemp=temp/((temp+273.15)*273.15)
+!---------------------------------------------------------------
+! Ute macrobenthos feeding preferences
+     FM=self%prefMB1Zs*microzoo+self%prefMB1Zl*mesozoo   &
+        +self%prefMB1Det*det+self%prefMB1Sed*sed1        &
+        +self%prefMB1P*fla+self%prefMB1P*dia+self%prefMB1Dom*dom
+        MBonMicro=0.
+        MBonMeso =0.
+        MBonDet  =0.
+        MBonSed  =0.
+        MBonFla  =0.
+        MBonDia  =0.
+        MBonDom  =0.
+
+       if(oxy .gt. 0.0)then
+       if(microzoo.ge.0.) MBonMicro=self%prefMB1Zs*self%GrMB1Z*microzoo/(self%rMB1+FM)
+       if(mesozoo.ge.0.) MBonMeso=self%prefMB1Zl*self%GrMB1Z*mesozoo/(self%rMB1+FM)
+       if(det.ge.0.) MBonDet =self%prefMB1Det*self%GrMB1Det*det/(self%rMB1+FM)
+       if(sed1.ge.0.) MBonSed =self%prefMB1Sed*self%GrMB1Sed*sed1/(self%rMB1+FM)
+       if(fla.ge.0.) MBonFla =self%prefMB1P*self%GrMB1P*fla/(self%rMB1+FM)
+       if(dia.ge.0.) MBonDia =self%prefMB1P*self%GrMB1P*dia/(self%rMB1+FM)
+       if(dom.ge.0.) MBonDom =self%prefMB1Dom*self%GrMB1Det*dom/(self%rMB1+FM)
+       endif
+      end if
 !----citical bottom shear stress
         if (tbs.ge.self%BioC(34)) then
           Rsd=min(self%BioC(35), self%BioC(35) * (tbs**3/(0.1+tbs**3)))
@@ -820,6 +1105,51 @@ end subroutine initialize
         _SET_BOTTOM_EXCHANGE_(self%id_sil, self%BioC(42)*sed2)
 
            _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tbsout, tbs)
+
+     if(self%use_fish)then
+       !Ute Macrobenthos & benthic fish
+         _SET_BOTTOM_EXCHANGE_(self%id_fish1,+self%asefF1*F1onMB1*fishi)
+         _SET_BOTTOM_EXCHANGE_(self%id_fish2,+self%asefF2*F2onMB1*fishi2)
+        rrcMB=(MBonSed+MBonDet+MBonDom+MBonMicro+MBonMeso+MBonDia+MBonFla) 
+        rcMB=(+self%BioC(21)*rrcMB  &
+             -self%mMB1 &
+           -self%excMB1*exp((self%tempcMB1/(8.6173324*10.**(-4.)))*ttemp))*mb1 &
+             -F1onMB1*fishi  &
+             -F2onMB1*fishi2  !
+         _SET_BOTTOM_ODE_(self%id_mb1,rcMB)     
+        MBflux=-MBonSed*mb1+(1.-self%frr)*((1.-self%BioC(21))*rrcMB+self%mMB1)*mb1
+         _SET_BOTTOM_ODE_(self%id_sed1,MBflux)     
+         _SET_BOTTOM_EXCHANGE_(self%id_microzoo,-MBonMicro*mb1)     
+         _SET_BOTTOM_EXCHANGE_(self%id_mesozoo,-MBonMeso*mb1)     
+         _SET_BOTTOM_EXCHANGE_(self%id_dia,-MBonDia*mb1)     
+         _SET_BOTTOM_EXCHANGE_(self%id_fla,-MBonFla*mb1)     
+         MBflux=-MBonDet*mb1  &
+         +(1.-self%frr)*((1.-self%asefF1)*F1onMB1*fishi &
+         +(1.-self%asefF2)*F2onMB1*fishi2)
+          _SET_BOTTOM_EXCHANGE_(self%id_det,MBflux)     
+         MBflux=-MBonDom*mb1+(self%frr)*(((1.-self%BioC(21))*rrcMB+self%mMB1)*mb1 &
+        +(1.-self%asefF1)*F1onMB1*fishi  &  !fish    
+        +(1.-self%asefF2)*F2onMB1*fishi2)    !fish    
+         _SET_BOTTOM_EXCHANGE_(self%id_dom,MBflux)     
+        MBflux=+self%excMB1*exp((self%tempcMB1/(8.6173324*10.**(-4.)))*ttemp)*mb1
+         _SET_BOTTOM_EXCHANGE_(self%id_nh4,MBflux)     
+         _SET_BOTTOM_EXCHANGE_(self%id_pho,MBflux) 
+        fishi1=fishi    
+        fishi3=fishi2    
+ !ute diagnostics for fish
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_meso_integr,mesoi)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_micro_integr,microi)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_det_integr,deti)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_fish_integr,fishi1)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_fish2_integr,fishi3)
+! diagnostics for dependency
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dF1onZl,F1onZl)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dF1onZs,F1onZs)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dF1onDet,F1onDet)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dF2onZl,F2onZl)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dF2onF1,F2onF1)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dF2onDet,F2onDet)
+    end if
 
    _HORIZONTAL_LOOP_END_
 
