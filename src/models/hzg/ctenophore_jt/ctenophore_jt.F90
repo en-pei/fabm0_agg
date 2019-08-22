@@ -49,11 +49,12 @@ module hzg_ctenophore_jt
      type (type_diagnostic_variable_id) ::id_mort_P_Be, id_mort_S_Be, id_mort_R_Be, id_mort_G_Be, id_mort_J_Be, id_mort_T_Be, id_somgrowth_Be, id_recruit_Be, id_paras_dl_Be, id_som_dl_Be, id_turb_dl_Be, id_init_dl_Be, id_graz_dl_Be, id_sen_dl_Be, id_prod_dl_Be, id_resp_dl_Be, id_dl_prey_Be, id_dl_pred_Be, id_al_Im_Be, id_mixBmass_Be, id_mixlsize_Be, id_Tdep_Be,id_mort_top_Be
      type (type_diagnostic_variable_id) ::id_mort_P_Pp, id_mort_S_Pp, id_mort_R_Pp, id_mort_G_Pp, id_mort_J_Pp, id_mort_T_Pp, id_somgrowth_Pp, id_recruit_Pp, id_paras_dl_Pp, id_som_dl_Pp, id_turb_dl_Pp, id_init_dl_Pp, id_graz_dl_Pp, id_sen_dl_Pp, id_prod_dl_Pp, id_resp_dl_Pp, id_dl_prey_Pp, id_dl_pred_Pp, id_al_Im_Pp, id_mixBmass_Pp, id_mixlsize_Pp, id_Tdep_Pp,id_mort_top_Pp,id_cnidaria
      type (type_diagnostic_variable_id) :: id_dummy1,id_dummy2,id_dummy3,id_dummy4,id_dummy5,id_dummy6,id_dummy7,id_dummy8,id_dummy9
+     type (type_diagnostic_variable_id) :: id_sig1,id_sig2,id_sig3,id_ObsMass1,id_ObsMass2,id_ObsMass3
      type(type_diagnostic_variable_id):: id_grazingpressure1,id_grazingpressure2,id_grazingpressure3,id_grazingpressure4,id_grazingpressure5,id_grazingpressure6,id_grazingpressure7,id_grazingpressure8,id_grazingpressure9
      real(rk) ::  Biomass_PleurobrachiaPileus_initial, Size_PleurobrachiaPileus_initial, Biomass_Beroe_initial, Size_Beroe_initial, Biomass_Detritus_initial, Parasites_PleurobrachiaPileus_initial, Parasites_Beroe_initial, BenTime_initial
      real(rk) ::  Size_Adult, size_offspring, lstarv, sigma, Imax_pot_star, yield, mR, mS, mP, mT, Q10, Tc, Bcrit, relCVDens, m_predBe, optimal_prey_size_adult_PleurobrachiaPileus, optimal_prey_size_adult_Beroe, optimal_prey_size_adult_Copepod, immigr, rDet, rParasite, fTDmort, m_pcap, mDisturb, Temperature_Change_Rate, Copepod_Temperature_Change_Rate
      logical  ::  TransectOn, SizeDynOn, LowPassOn, OptionOn, TECopepodshysOn
-
+     real(rk):: Size_observable
    contains
      !   Model procedures
      procedure :: initialize
@@ -155,6 +156,7 @@ contains
     !> describepar{Temperature_Change_Rate       , \Delta T       , global Temperature change    , 0. ^oC}
     !> describepar{Copepod_Temperature_Change_Rate     , \Delta_{Copepods}     , correlation Copepodsepod vs. Temperature change    , 0. µg-C/L/^oC}
     !!------- Parameters from nml-list jelly_pars ------- 
+    real(rk) :: Size_Observable
     real(rk)  :: Size_Adult           ! adult ctenophore size        
     real(rk)  :: size_offspring           ! offspring size
     real(rk)  :: lstarv       ! minimum starvation size
@@ -193,7 +195,7 @@ contains
          Parasites_PleurobrachiaPileus_initial, Parasites_Beroe_initial, BenTime_initial
 
     namelist /jelly_pars/ &
-         Size_Adult, size_offspring, lstarv, sigma, Imax_pot_star, yield, mR, mS, mP, mT, Q10, Tc, Bcrit, relCVDens, m_predBe, &
+         Size_Observable,Size_Adult, size_offspring, lstarv, sigma, Imax_pot_star, yield, mR, mS, mP, mT, Q10, Tc, Bcrit, relCVDens, m_predBe, &
          optimal_prey_size_adult_PleurobrachiaPileus, optimal_prey_size_adult_Beroe, immigr, rDet, rParasite, fTDmort, m_pcap, mDisturb, Temperature_Change_Rate, &
          Copepod_Temperature_Change_Rate
 
@@ -265,8 +267,8 @@ contains
     call self%get_parameter(self%Parasites_Beroe_initial ,'Parasites_Beroe_initial',  default=Parasites_Beroe_initial)
     call self%get_parameter(self%BenTime_initial ,'BenTime_initial',  default=BenTime_initial)
 
-!!------- model parameters from nml-list jelly_pars -------
-call self%get_parameter(self%Size_Adult           ,'Size_Adult',            default=Size_Adult)
+    !!------- model parameters from nml-list jelly_pars -------
+    call self%get_parameter(self%Size_Adult           ,'Size_Adult',            default=Size_Adult)
     call self%get_parameter(self%size_offspring           ,'size_offspring',            default=size_offspring)
     call self%get_parameter(self%lstarv       ,'lstarv',        default=lstarv)
     call self%get_parameter(self%sigma        ,'sigma',         default=sigma)
@@ -283,7 +285,7 @@ call self%get_parameter(self%Size_Adult           ,'Size_Adult',            defa
     call self%get_parameter(self%m_predBe     ,'m_predBe',      default=m_predBe)
     call self%get_parameter(self%optimal_prey_size_adult_PleurobrachiaPileus,'optimal_prey_size_adult_PleurobrachiaPileus',      default=optimal_prey_size_adult_PleurobrachiaPileus)
     call self%get_parameter(self%optimal_prey_size_adult_Beroe,'optimal_prey_size_adult_Beroe',      default=optimal_prey_size_adult_Beroe)
-call self%get_parameter(self%optimal_prey_size_adult_Copepod,'real(rk)::optimal_prey_size_adult_Copepod',default=optimal_prey_size_adult_Copepod)
+    call self%get_parameter(self%optimal_prey_size_adult_Copepod,'real(rk)::optimal_prey_size_adult_Copepod',default=optimal_prey_size_adult_Copepod)
     call self%get_parameter(self%immigr       ,'immigr',        default=immigr)
     call self%get_parameter(self%rDet         ,'rDet',          default=rDet)
     call self%get_parameter(self%rParasite    ,'rParasite',     default=rParasite)
@@ -468,6 +470,27 @@ call self%get_parameter(self%optimal_prey_size_adult_Copepod,'real(rk)::optimal_
     call self%register_diagnostic_variable(self%id_grazingpressure9,    'grazingpressure9','1/d', 'grazingpressure6', &
          output=output_instantaneous)
 
+    call self%register_diagnostic_variable(self%id_sig1,    'sig1','1/d', 'sig1', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_sig2,    'sig2','1/d', 'sig2', &
+         output=output_instantaneous)
+
+    call self%register_diagnostic_variable(self%id_sig3,    'sig3','1/d', 'sig3', &
+         output=output_instantaneous)
+
+    call self%register_diagnostic_variable(self%id_ObsMass1,    'ObsMass1','µg-C/L', 'Biomass_Observable_Beroe', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_ObsMass2,    'ObsMass2','µg-C/L', 'Biomass_Observalbe_Pleurobrachia_Pileus', &
+         output=output_instantaneous)
+
+    call self%register_diagnostic_variable(self%id_ObsMass3,    'ObsMass3','µg-C/L', 'Biomass_Observalbe_Copepods', &
+         output=output_instantaneous)
+
+
+
+
+
+
 
     !!------- Register environmental dependencies  ------- 
     !!-------------------------redo this with a nicer way of reading in data
@@ -514,13 +537,13 @@ call self%get_parameter(self%optimal_prey_size_adult_Copepod,'real(rk)::optimal_
     !  type (type_environment),   intent(inout)  :: environment 
     real(rk),dimension(3) :: mort_S, mort_S0, mort_T0, mort_top
     real(rk),dimension(3) :: mort_T, mort_sum, mass_sum
-    real(rk) :: errf, eargA1,eargA2,argA1,argA2,argA3, eS0
+    real(rk) :: errf, eargA1,eargA2,argA1,argA2,argA3, eS0, argA5,errf1
     real(rk) :: lesdr, optimal_prey_sizem, detect, dummy_reused_variable2, dummy_reused_variable3, dummy_reused_variable4, dummy_reused_variable5, ft
     real(rk),dimension(3) :: somgrwth, recruit,lco, starv, dal_dl, min_dl, bound_dl
     real(rk),dimension(3) :: prod_dl, sum_dl, resp_dl,paras_dl, turb_dl
     real(rk),dimension(3) :: graz_dl, som_dl, init_dl, sen_dl,ft2,ft3
     real(rk),dimension(3):: yield_factor
-    
+
     real(rk), dimension(3) :: Imax, Imact, di_dl, di0_dl, dg_dly, dprod_dl
     real(rk), dimension(3) :: Change_of_optimal_prey_size,optimal_prey_size, graz,Temperature_dep,sig13, sig23, ksat
     real(rk), dimension(3) :: mGrz, sig, log_size_variance_mesozoo, log_mean_size, mass, relDens
@@ -530,9 +553,9 @@ call self%get_parameter(self%optimal_prey_size_adult_Copepod,'real(rk)::optimal_
     real(rk), dimension(51):: mAurelia60, mCyanea60
     real(rk) :: dl, bcrit1, preyE
     real(rk) :: fR, lm_adult, al, lavg, aff, activ, no_div_zero_eps,mean_Temperature_HR,mben,Temperaturep
-    real(rk) :: dp_dB, mT, no_age, cnidaria
+    real(rk) :: dp_dB, no_age, cnidaria
     real(rk),dimension(3)::gross,prey_mass_after_selection, prey_mass_after_selection_relative_biovolume,dp_dl,affin
-    real(rk), dimension(3) :: prod,fA
+    real(rk), dimension(3) :: prod,fA,fObs,biomass_observable
     integer  :: ib, i, j, max_number_of_predators
     logical  :: Is_Copepod_biomass_negative, Is_Copepod_biomass_exhausted, IsMaxIng 
     logical :: TopPredationSwitch=.TRUE.!.FALSE.
@@ -540,7 +563,7 @@ call self%get_parameter(self%optimal_prey_size_adult_Copepod,'real(rk)::optimal_
     ! integer  :: webtopo(3,3) = reshape((/0,1,0, 1,1,1, 0,0,0/), (/3,3/))
     !    logical  :: webtopo(3,3) = reshape((/.False.,.True.,.False., .True.,.True.,.True., .False.,.False.,.False./),(/3,3/))
 
-    logical  :: webtopo(3,3) = reshape((/.True.,.True.,.False., .True.,.True.,.True., .True.,.True.,.False./),(/3,3/))
+    logical  :: webtopo(3,3) = reshape((/.False.,.True.,.True., .True.,.True.,.True., .True.,.True.,.False./),(/3,3/))
     !  fortran organizes arrays as column major
     !  real(rk) :: inflow=2E-1, Adorm=2E-3
 
@@ -877,7 +900,7 @@ call self%get_parameter(self%optimal_prey_size_adult_Copepod,'real(rk)::optimal_
                 if (grazing_pressure_ji(i,j) .gt. 0.5) write (*,'(A,2(I2),F12.4)') 'grazingpressure',i,j,grazing_pressure_ji(i,j) 
 
                 gross(i)      = gross(i)   + grazing_pressure_ji(i,j)
-                        if (gross(i) .gt. 1)  write (*,'(A,2(i3),2(F12.4))' ) 'grazing of *i* on *j* is during ** quite large:',i,j,var(1)%BenTime, gross(i)
+                if (gross(i) .gt. 1)  write (*,'(A,2(i3),2(F12.4))' ) 'grazing of *i* on *j* is during ** quite large:',i,j,var(1)%BenTime, gross(i)
                 mGrz(j)    = mGrz(j) + (grss(i,j) * mass(i))
 
                 if (Is_Copepod_biomass_exhausted) write (*,'(A,2(I2),1(F12.4))') 'gr=',i,j,grss(i,j)*1E3
@@ -940,7 +963,7 @@ call self%get_parameter(self%optimal_prey_size_adult_Copepod,'real(rk)::optimal_
           mort_S(i)   = mort_S0(i)  *(no_age+pS(i))!*(1.0d0-eS) 
 
           ! Biomass_Physical damage (turbulence); can be avoided by active swimming
-          mort_T0(i)  = mT * starv(i) 
+          mort_T0(i)  = self%mT * starv(i) 
           eS0      = sig13(i)* exp(-sig23(i)*(self%Size_Adult-log_mean_size(i))**2)
           mort_T(i)   = mort_T0(i) * (1.0d0 - eS0) 
 
@@ -949,10 +972,16 @@ call self%get_parameter(self%optimal_prey_size_adult_Copepod,'real(rk)::optimal_
           !  how far way are juveniles from maturity ? 
           argA2     = (self%Size_Adult-log_mean_size(i))/(sqrt(2.d0)*sig(i))
 
-          errf     = (1-exp(-argA2*2.45d0))/(1+exp(-argA2*2.45d0)) !error function
+          ! errf     = (1-exp(-argA2*2.45d0))/(1+exp(-argA2*2.45d0)) !error function
+          errf=errfunc(argA2)
 
           ! relative fraction of adults 
           fA(i)       = 0.5d0*(1.0d0 - errf) 
+
+          argA5     = (self%Size_Observable-log_mean_size(i))/(sqrt(2.d0)*sig(i))
+          errf1=errfunc(argA5)
+          fObs(i)       = 0.5d0*(1.0d0 - errf1) 
+          biomass_observable(i)=fObs(i)*mass(i)
 
           ! size derivative of adult fraction
           !   dfA_dl= sqrt(2.d0*3.1415)/sig(i) * eargA1
@@ -1044,7 +1073,7 @@ call self%get_parameter(self%optimal_prey_size_adult_Copepod,'real(rk)::optimal_
              prod_dl=-999
              resp_dl=-999
              init_dl=-999
-	dummy_reused_variable5=-999
+             dummy_reused_variable5=-999
           endif
 
           !#S__RHS
@@ -1075,7 +1104,7 @@ call self%get_parameter(self%optimal_prey_size_adult_Copepod,'real(rk)::optimal_
                 _SET_DIAGNOSTIC_(self%id_graz_dl_Be, graz_dl(i))                !step_integrated marginal size shift due to selective grazing
                 _SET_DIAGNOSTIC_(self%id_sen_dl_Be, sen_dl(i))                  !step_integrated marginal size shift due to starvation 
                 ! TODO:????
-                ! _SET_DIAGNOSTIC_(self%id_turb_dl_Be, cnidaria)                  !step_integrated marginal size shift due to physical damage 
+                _SET_DIAGNOSTIC_(self%id_turb_dl_Be, turb_dl(i))                  !step_integrated marginal size shift due to physical damage 
 
                 _SET_DIAGNOSTIC_(self%id_prod_dl_Be, prod_dl(i))                !step_integrated marginal size shift due to production 
                 _SET_DIAGNOSTIC_(self%id_resp_dl_Be, resp_dl(i))                !step_integrated marginal size shift due to respiration 
@@ -1129,7 +1158,7 @@ call self%get_parameter(self%optimal_prey_size_adult_Copepod,'real(rk)::optimal_
                 _SET_DIAGNOSTIC_(self%id_graz_dl_Pp, graz_dl(i))                !step_integrated marginal size shift due to selective grazing
                 _SET_DIAGNOSTIC_(self%id_sen_dl_Pp, sen_dl(i))                  !step_integrated marginal size shift due to starvation 
                 ! TODO:????
-                ! _SET_DIAGNOSTIC_(self%id_turb_dl_PP, cnidaria)                  !step_integrated marginal size shift due to physical damage 
+                _SET_DIAGNOSTIC_(self%id_turb_dl_PP, turb_dl(i))                  !step_integrated marginal size shift due to physical damage 
 
                 _SET_DIAGNOSTIC_(self%id_prod_dl_Pp, prod_dl(i))                !step_integrated marginal size shift due to production 
                 _SET_DIAGNOSTIC_(self%id_resp_dl_Pp, resp_dl(i))                !step_integrated marginal size shift due to respiration 
@@ -1173,6 +1202,17 @@ call self%get_parameter(self%optimal_prey_size_adult_Copepod,'real(rk)::optimal_
           _SET_DIAGNOSTIC_(self%id_grazingpressure7, grazing_pressure_ji(3,1) ) 
           _SET_DIAGNOSTIC_(self%id_grazingpressure8, grazing_pressure_ji(3,2) ) 
           _SET_DIAGNOSTIC_(self%id_grazingpressure9, grazing_pressure_ji(3,3) ) 
+
+          _SET_DIAGNOSTIC_(self%id_sig1, sig(1) )  
+          _SET_DIAGNOSTIC_(self%id_sig2, sig(2) ) 
+          _SET_DIAGNOSTIC_(self%id_sig3, sig(3) ) 
+
+          _SET_DIAGNOSTIC_(self%id_ObsMass1, biomass_observable(1) )  
+          _SET_DIAGNOSTIC_(self%id_ObsMass2, biomass_observable(2) ) 
+          _SET_DIAGNOSTIC_(self%id_ObsMass3, biomass_observable(3) ) 
+
+
+
 
           !write (*,'(1(F10.6))')   ftd/ntd 
           !#S__DIA
@@ -1240,7 +1280,7 @@ call self%get_parameter(self%optimal_prey_size_adult_Copepod,'real(rk)::optimal_
   pure real(rk) function e_Temperature(T,T_c)
     implicit none
     real(rk), intent(in)      :: T,T_c
-    
+
     e_Temperature  = 1.0d0/(1.0d0+ exp((T-T_c)/2+1.0d0) )
     !   e_Temperature  = exp(-T**2/(2*T_c**2))
     !   e_Temperature  = 0.1d0 + 0.9d0/(1.0d0+ exp(1*(T-T_c)) )
@@ -1263,17 +1303,17 @@ call self%get_parameter(self%optimal_prey_size_adult_Copepod,'real(rk)::optimal_
     dConco = Dil* ( Conci - Conc_mix ) 
   end subroutine mixing
 
-  subroutine errfunc(self,arg,errf)
+  pure real(rk) function errfunc(arg)
     implicit none
     ! !INPUT PARAMETERS:
-    class (type_hzg_ctenophore_jt),intent(in) :: self
+
     real(rk), intent(in)      :: arg
-    real(rk), intent(inout)   :: errf
-    
 
-    errf  = (1-exp(-arg*2.45d0))/(1+exp(-arg*2.45d0))
 
-  end subroutine errfunc
+
+    errfunc  = (1-exp(-arg*2.45d0))/(1+exp(-arg*2.45d0))
+
+  end function errfunc
 
   pure real(rk) function additional_food(btime,mAurelia60,mCyanea60)
     implicit none
