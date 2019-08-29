@@ -128,7 +128,7 @@
    real(rk) :: nfixation_minimum_daily_par=40.0
    real(rk) :: bg_growth_minimum_daily_rad=120.0
    logical  :: use_bottom_pool=.true.
-   logical  :: instant_mineralization
+   logical  :: instant_mineralization=.false.
 
 
    integer  :: i
