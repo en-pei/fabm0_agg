@@ -563,7 +563,7 @@ contains
     ! integer  :: webtopo(3,3) = reshape((/0,1,0, 1,1,1, 0,0,0/), (/3,3/))
     !    logical  :: webtopo(3,3) = reshape((/.False.,.True.,.False., .True.,.True.,.True., .False.,.False.,.False./),(/3,3/))
 
-    logical  :: webtopo(3,3) = reshape((/.False.,.True.,.True., .True.,.True.,.True., .True.,.True.,.False./),(/3,3/))
+    logical  :: webtopo(3,3) = reshape((/.False.,.True.,.False., .True.,.True.,.True., .True.,.True.,.False./),(/3,3/))
     !  fortran organizes arrays as column major
     !  real(rk) :: inflow=2E-1, Adorm=2E-3
 
