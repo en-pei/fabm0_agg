@@ -536,12 +536,12 @@ contains
     !real(rk)              :: d2mudl2_d, dmu2=0.0_rk, mfac
     !  type (type_environment),   intent(inout)  :: environment 
     real(rk),dimension(3) :: mort_S, mort_S0, mort_T0, mort_top
-    real(rk),dimension(3) :: mort_T, mort_sum, mass_sum
-    real(rk) :: errf, eargA1,eargA2,argA1,argA2,argA3, eS0, argA5,errf1
-    real(rk) :: lesdr, optimal_prey_sizem, detect, dummy_reused_variable2, dummy_reused_variable3, dummy_reused_variable4, dummy_reused_variable5, ft
+    real(rk),dimension(3) :: mort_T, mort_sum
+    real(rk) :: errf, eargA1,eargA2,argA1,argA2,argA3, eS0, argA5,errf1,mass_sum
+    real(rk) :: lesdr, optimal_prey_sizem, detect, dummy_reused_variable2, dummy_reused_variable3, dummy_reused_variable4, dummy_reused_variable5, ft,ft2
     real(rk),dimension(3) :: somgrwth, recruit,lco, starv, dal_dl, min_dl, bound_dl
     real(rk),dimension(3) :: prod_dl, sum_dl, resp_dl,paras_dl, turb_dl
-    real(rk),dimension(3) :: graz_dl, som_dl, init_dl, sen_dl,ft2,ft3
+    real(rk),dimension(3) :: graz_dl, som_dl, init_dl, sen_dl,ft3
     real(rk),dimension(3):: yield_factor
 
     real(rk), dimension(3) :: Imax, Imact, di_dl, di0_dl, dg_dly, dprod_dl
@@ -768,7 +768,7 @@ contains
           ! set accumulating stores to zero
           !    graz(i)   = 0.0d0
        end do
-
+       i=99
        ! Temperature experiment; separate effect on parasite dynamics
        !  if( self%OptionOn .and. (Is_Copepod_biomass_negative .or. self%Temperature_Change_Rate .gt. 0.0d0)) then 
        !     Temperaturep  = var(ib)%Temperature + self%Temperature_Change_Rate*exp((mean_Temperature_HR-var(ib)%Temperature)/(2*mean_Temperature_HR))
@@ -776,8 +776,10 @@ contains
        Temperaturep  = var(ib)%Temperature
        !  endif
 
-       ft2(i)     = f_Temperature(self%Q10,Temperaturep , self%Tc)
-       ft      = self%fTDmort/(self%fTDmort+ft2(i))
+write (*,'(A,2(i3))' ) 'value of i in line779',i
+
+       ft2     = f_Temperature(self%Q10,Temperaturep , self%Tc)
+       ft      = self%fTDmort/(self%fTDmort+ft2)
 
        !***!
 
@@ -787,7 +789,7 @@ contains
        mben=timedefine(var(1)%BenTime)
        !mben=0.0
 
-       mass_sum(i)= ((1*mben + 000.0 + 1*var(ib)%Biomass_Detritus) + mass(1)+ mass(2)+ mass(3) + var(ib)%Biomass_Phytoplankton )*exp(-ft2(i))!*exp(ft-1)
+       mass_sum= ((1*mben + 000.0 + 1*var(ib)%Biomass_Detritus) + mass(1)+ mass(2)+ mass(3) + var(ib)%Biomass_Phytoplankton )*exp(-ft2)!*exp(ft-1)
 
        do j = 1, 3
           dg_dly(j) = 0.0d0
@@ -800,7 +802,7 @@ contains
        ! common variable: most simple detritus pool turnover dynamics 
        ! first the detritus change, as detrivory influences parasites
        ! ---------- calculate RHS  -------------------
-       rhsv%Biomass_Detritus   = self%rDet * (mass_sum(i) - var(ib)%Biomass_Detritus)  ! 
+       rhsv%Biomass_Detritus   = self%rDet * (mass_sum - var(ib)%Biomass_Detritus)  ! 
        !  ft3(i)        = f_Temperature(self%Q10,Temperaturep, 0.0d0)  ! Temperature dep of quadratic parasite mortality 
 
        ! Parasite dynamics for each population
@@ -821,7 +823,7 @@ contains
           test0(i)=(ft3(i) * Temperature_dep(3) + no_div_zero_eps)
           rpara(i)  = (self%rParasite * paras(i)) * ((Temperature_dep(3) *m_host(i)/self%m_pcap * ft3(i)) - paras(i)/(ft3(i) * Temperature_dep(3) + no_div_zero_eps))
        end do
-
+       i=99
        rhsv%Parasites_Beroe = rpara(1)
        rhsv%Parasites_PleurobrachiaPileus = rpara(2)
        rhsv%BenTime = 1.0d0/365
