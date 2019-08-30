@@ -776,7 +776,6 @@ contains
        Temperaturep  = var(ib)%Temperature
        !  endif
 
-write (*,'(A,2(i3))' ) 'value of i in line779',i
 
        ft2     = f_Temperature(self%Q10,Temperaturep , self%Tc)
        ft      = self%fTDmort/(self%fTDmort+ft2)
