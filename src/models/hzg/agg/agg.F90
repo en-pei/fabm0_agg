@@ -332,7 +332,7 @@
    _SET_DIAGNOSTIC_(self%id_breakup,breakup)
    _SET_DIAGNOSTIC_(self%id_aggvol,Vol_agg)
    _SET_DIAGNOSTIC_(self%id_ws,self%sinking_velocity(aggorg,agglpm,G))
-   _SET_DIAGNOSTIC_(self%id_esd,self%meansize(aggmass,G) !(aggorg*1.d-3+agglpm,G)) !changed
+   _SET_DIAGNOSTIC_(self%id_esd,self%meansize(aggmass,G)) !(aggorg*1.d-3+agglpm,G)) !changed
    _SET_DIAGNOSTIC_(self%id_aggmass,aggmass)
 
    _LOOP_END_
