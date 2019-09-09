@@ -15,7 +15,7 @@ instances:
 #      alk: 2300.0
 
   ECO:    # When coupled to HYCOM, do not change this to another name
-    model: nersc_ecosmo
+    model: nersc_ecosmo_operational
     parameters:
       muPl       : 1.75     # max growth rate for Pl          (1/d),                        default=1.30
       muPs       : 1.45     # max growth rate for Ps          (1/d),                        default=1.10

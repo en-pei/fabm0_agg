@@ -18,7 +18,7 @@ contains
    subroutine create(self,name,model)
 
       use fabm_nersc_ecosmo
-!      use ecosmo_bg
+      use fabm_nersc_ecosmo_operational
       ! Add new BB models here
 
       class (type_factory),intent(in) :: self
@@ -27,7 +27,7 @@ contains
 
       select case (name)
          case ('ecosmo');       allocate(type_nersc_ecosmo::model)
-!         case ('ecosmo_bg');       allocate(type_nersc_ecosmo_bg::model)
+         case ('ecosmo_operational');       allocate(type_nersc_ecosmo_operational::model)
          ! Add new BB models here
       end select
 
