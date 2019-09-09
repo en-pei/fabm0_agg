@@ -1099,8 +1099,7 @@ end subroutine initialize
         end if
 
         ! sediment opal(Si)
-        _SET_BOTTOM_ODE_(self%id_sed2, Rds*opa - Rsd*sed2 - self%BioC(42)*sed2 &
-                         - ( self%BioC(37)*1000.*(sed2**3/(sed2**3 + 1E+12)) )*sed2)
+        _SET_BOTTOM_ODE_(self%id_sed2, Rds*opa - Rsd*sed2 - self%BioC(42)*sed2 - ( self%BioC(37)*1000.*(sed2**3/(sed2**3 + 1E+12)) )*sed2)
         _SET_BOTTOM_EXCHANGE_(self%id_opa, Rsd*sed2 - Rds*opa)
         _SET_BOTTOM_EXCHANGE_(self%id_sil, self%BioC(42)*sed2)
 
