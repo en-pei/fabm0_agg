@@ -559,6 +559,7 @@ contains
     integer  :: ib, i, j, max_number_of_predators
     logical  :: Is_Copepod_biomass_negative, Is_Copepod_biomass_exhausted, IsMaxIng 
     logical :: TopPredationSwitch=.TRUE.!.FALSE.
+    logical ::Debugout=.FALSE.
     !					Be     Pp     Copepods
     ! integer  :: webtopo(3,3) = reshape((/0,1,0, 1,1,1, 0,0,0/), (/3,3/))
     !    logical  :: webtopo(3,3) = reshape((/.False.,.True.,.False., .True.,.True.,.True., .False.,.False.,.False./),(/3,3/))
@@ -583,13 +584,13 @@ contains
     mean_Temperature_HR    =  10.2d0  ! mean HR water Temperature (only used for scenario runs)
     no_age   =  0.5d0   ! relative importance of stage independent sensitivity
     !write (*,'(A,4(I3))') 'w=',webtopo(3,1),webtopo(2,2),webtopo(1,3),webtopo(3,3)
-    !    if(webtopo(1,3)+webtopo(2,3)+webtopo(3,3) .gt. 0) then
+    !if(webtopo(1,3)+webtopo(2,3)+webtopo(3,3) .gt. 0) then
     if(webtopo(1,3).or.webtopo(2,3).or.webtopo(3,3)) then
        max_number_of_predators = 3
-       write (*,*) '3 predators'
+     if (Debugout)  write (*,*) '3 predators'
     else
        max_number_of_predators = 2
-       write (*,*) '2 predators'
+    if (Debugout)  write (*,*) '2 predators'
     endif
 
     ! annual TS abundance data for scyphomedusae from VanWalraven et al 2014 
@@ -662,8 +663,8 @@ contains
 
        if ( abs(mass(3)-50.) .lt. -0.0001d0 .or. abs(mass(3)-5.) .lt. -0.0001d0) then
           Is_Copepod_biomass_exhausted= .true.
-          write (*,'(A,3(F12.4))') 'm=',mass(1)*1E3,mass(2)*1E3,mass(3)
-          write (*,'(A,3(F12.4))') 'l=',log_mean_size(1),log_mean_size(2),log_mean_size(3)
+         if (Debugout) write (*,'(A,3(F12.4))') 'm=',mass(1)*1E3,mass(2)*1E3,mass(3)
+         if (Debugout) write (*,'(A,3(F12.4))') 'l=',log_mean_size(1),log_mean_size(2),log_mean_size(3)
 
        else
           Is_Copepod_biomass_exhausted = .false.
@@ -898,13 +899,13 @@ contains
                 grss(i,j)  = Imact(j) * (1.0d0-eargA1) * preyc(j)/(prey_mass_after_selection(i)+no_div_zero_eps) ! * exp(-0*mort_P(i)/Imax(i))
                 grazing_pressure_ji(i,j)=grss(i,j)*mass(j)
 
-                if (grazing_pressure_ji(i,j) .gt. 0.5) write (*,'(A,2(I2),F12.4)') 'grazingpressure',i,j,grazing_pressure_ji(i,j) 
+                if (Debugout .and. grazing_pressure_ji(i,j) .gt. 0.5) write (*,'(A,2(I2),F12.4)') 'grazingpressure',i,j,grazing_pressure_ji(i,j) 
 
                 gross(i)      = gross(i)   + grazing_pressure_ji(i,j)
-                if (gross(i) .gt. 1)  write (*,'(A,2(i3),2(F12.4))' ) 'grazing of *i* on *j* is during ** quite large:',i,j,var(1)%BenTime, gross(i)
+                if (Debugout .and. gross(i) .gt. 1)  write (*,'(A,2(i3),2(F12.4))' ) 'grazing of *i* on *j* is during ** quite large:',i,j,var(1)%BenTime, gross(i)
                 mGrz(j)    = mGrz(j) + (grss(i,j) * mass(i))
 
-                if (Is_Copepod_biomass_exhausted) write (*,'(A,2(I2),1(F12.4))') 'gr=',i,j,grss(i,j)*1E3
+                if (Debugout .and. Is_Copepod_biomass_exhausted) write (*,'(A,2(I2),1(F12.4))') 'gr=',i,j,grss(i,j)*1E3
 
                 ! update size gradients in grazing rate
                 ! size match to selective predation kernel 
