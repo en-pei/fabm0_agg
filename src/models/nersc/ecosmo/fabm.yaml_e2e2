@@ -117,10 +117,18 @@ instances:
       prefF2F1    : 0.40    # Grazing preference fish1 on Zs (-)    default=0.25
       prefF2Det   : 0.05    # Grazing preference fish1 on Det(-)    default=0.05
       prefF2MB1   : 0.40    # Grazing preference fish1 on MB1  (-)   default=0.25
+      sinkDiaD   : 5.0      # Detritus originating from diatom sinking rate (m/d),          default=5.0
+      sinkFlaD   : 2.0      # Detritus originating from flagellates sinking rate (m/d),     default=5.0
+      sinkMicD   : 3.0      # Detritus originating from microzoo sinking rate (m/d),        default=5.0
+      sinkMesD   : 7.0      # Detritus originating from mesozoo sinking rate (m/d),         default=5.0
+      sinkBgD    : 0.0      # Detritus originating from cyanob. sinking rate (m/d),         default=5.0
+      sinkFish1D : 8.0      # Detritus originating from fish1 sinking rate (m/d),         default=5.0
+      sinkFish2D : 10.0      # Detritus originating from fish2 sinking rate (m/d),         default=5.0
       use_chl    : true
       use_cyanos : false
       couple_co2 : false
-      use_fish  : true
+      use_fish  : true 
+      community_export: false
       bg_growth_minimum_daily_rad : 120.0 #10000.0 # bg growth minimum daily rad, default = 120.0
       nfixation_minimum_daily_par : 35.0 # 10000.0  # nfixation minimum daily par, default = 35.0
      #
@@ -139,6 +147,7 @@ instances:
       sil        : 400.0     # silicate (mmolSi/m**3)
       opa        : 2.0     # opal (mmolSi/m**3)
       dia        : 0.1    # large phytoplankton (mmolN/m**3)
+      #dsnk       : 5.78703e-6 # make sure that this value is equal to (det * sinkDet * 0.000011574)
       fla        : 0.1    # small phytoplankton (mmol n/m**3)
       mesozoo    : 0.01    # mesozooplankton (mmolN/m**3)
       microzoo   : 0.01    # microzooplankton (mmolN/m**3)
