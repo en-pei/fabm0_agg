@@ -84,9 +84,9 @@
 
    real(rk), parameter :: secs_pr_day = 86400.d0 ! s
    real(rk), parameter :: one_pr_day = 1.0d0/86400.d0 ! 1/s
-   real(rk)            :: aggorg_init=0.3        ! µg/l
-   real(rk)            :: aggchl_init=0.1        ! µg/l
-   real(rk)            :: agglpm_init=0.1        ! mg/l
+   real(rk)            :: aggorg_init=0.3*0.001  ! g m-3      ! µg/l
+   real(rk)            :: aggchl_init=0.1        ! µg/l !check
+   real(rk)            :: agglpm_init=0.1        ! g m-3		!mg/l
 !   real(rk)            :: aggmass_init=0.1      ! mg/l !added
    character(len=64)   :: phyn_variable=''
    character(len=64)   :: phyc_variable=''
@@ -131,9 +131,9 @@
    call self%get_parameter(doc_variable, 'doc_variable', '', 'variable name of DOC', default='')
    self%use_doc = doc_variable.ne.''
 
-   self%NC_agg = 16.0_rk/106.0_rk  ! Redfield
-   self%NP_agg = 16.0_rk           ! Redfield
-   self%org2N  = 16.0_rk/3550.0_rk ! g->molN
+   self%NC_agg = 1000*16.0_rk/106.0_rk  ! Redfield
+   self%NP_agg = 1000*16.0_rk           ! Redfield
+   self%org2N  = 1000*16.0_rk/3550.0_rk ! g->mmolN 
 
    call self%get_parameter(self%doc_min, 'doc_min', 'mmolC/m3', 'minimum doc concentration', default=1.0_rk)
    call self%get_parameter(self%doc_mean,'doc_mean', 'mmolC/m3', 'mean doc concentration', default=100.0_rk)
@@ -145,13 +145,13 @@
    call self%get_parameter(self%tep_remin, 'tep_remin', '1/d', 'remineralization rate of TEP', default=0.0_rk, scale_factor=one_pr_day)
 
    ! Register state variables
-   call self%register_state_variable(self%id_aggorg,'aggorg','mg/m**3', &
+   call self%register_state_variable(self%id_aggorg,'aggorg','g/m**3', & !changed from mg/m**3 to g/m**3
                           'concentration of biomass in aggregates',    &
                           aggorg_init,minimum=_ZERO_, &
                           no_river_dilution=.true.)
 
-   call self%register_state_variable(self%id_agglpm,'agglpm', &
-                          'mg/l','concentration of LPM in aggregates', &
+   call self%register_state_variable(self%id_agglpm,'agglpm', &    	  !mg/L
+                          'g/m**3','concentration of LPM in aggregates', &
                           agglpm_init,minimum=_ZERO_, &
                           no_river_dilution=.true.)
 
@@ -162,7 +162,7 @@
 
 #ifndef AGG_WO_CHL
    if (self%use_chl) &
-      call self%register_state_variable(self%id_aggchl,'aggchl', &
+      call self%register_state_variable(self%id_aggchl,'aggchl', &	!check
                           'mg/m**3','chlorophyll in aggregates', &
                           agglpm_init,minimum=_ZERO_, &
                           no_river_dilution=.true.)
@@ -230,14 +230,14 @@
    real(rk)                   :: doc, tep
    real(rk)                   :: G,eps,num_turb
    real(rk)                   :: coagulation, decomposition, breakup
-   real(rk)                   :: A1_lpm,A2_lpm, Loss_lpm
+   real(rk)                   :: A1_lpm,A2_lpm, loss_lpm, loss_detn
    real(rk)                   :: A1_phyn,A2_phyn
    real(rk)                   :: A1_detn,A2_detn
-   real(rk)                   :: sms,aggorg,agglpm
+   real(rk)                   :: aggorg,agglpm, coagulation_detn, coagulation_phyn, coagulation_lpm, sms
 #ifndef AGG_WO_CHL
    real(rk)                   :: aggchl,phychl
 #endif
-   real(rk)                   :: Vol_agg,aggmass !added
+   real(rk)                   :: Vol_agg, aggmass
    real(rk)                   :: num_water=1.1d-3/1025_rk
 
    _LOOP_BEGIN_
@@ -251,8 +251,8 @@
 #endif
 
    ! total volume
-   Vol_agg=1.d-3 * (agglpm/self%dens_lpm + 1.d-3*aggorg/self%dens_org)/(_ONE_-self%agg_porosity) ! [m**3/m**3]
-   aggmass=1.d-3 * aggorg + agglpm !added here
+   Vol_agg=1.d-3 * (agglpm/self%dens_lpm + aggorg/self%dens_org)/(_ONE_-self%agg_porosity) ! [m**3/m**3]
+   aggmass= aggorg + agglpm !added here
 
    ! Retrieve dependencies
    _GET_DEPENDENCY_(self%id_eps, eps) ! dissipation [m**2/s**3]
@@ -260,7 +260,7 @@
    G = sqrt(eps/(num_turb + num_water)) ! turbulent shear
 
 
-   breakup = self%breakup_factor * G**1.5d0 * self%meansize(aggmass,G)**2! self%meansize(agglpm+1.d-3*aggorg,G)**2
+   breakup = self%breakup_factor * G**1.5d0 * self%meansize(aggmass,G,doc, lpm, agglpm,aggorg)**2! self%meansize(agglpm+aggorg,G)**2
    !breakup = self%breakup_factor * G**1.5d0 * self%max_size**2 ! [1/s]
    !breakup_factor is in Xu.etal2008: efficiency*sqrt(viscosity/yield_strength)*2 with
    !yield_strength=10.e-10 and efficiency=?
@@ -279,21 +279,23 @@
    if (self%use_phyn) then
 #endif
       _GET_STATE_(self%id_phyn,phyn) !
-      A1_phyn=coagulation/self%dens_org * self%org2N *1.d-6 * phyn**2
-      A2_phyn=coagulation * Vol_agg * phyn
+!      A1_phyn=coagulation/self%dens_org * self%org2N *1.d-6 * phyn**2
+!      A2_phyn=coagulation * Vol_agg * phyn 
+!      sms=A1_phyn + A2_phyn ![mmol/m**3/s]
 
-      sms=A1_phyn + A2_phyn ![mmol/m**3/s]
-      _SET_ODE_(self%id_phyn,-sms) !*0.001
-      _SET_ODE_(self%id_aggorg,sms/self%org2N) !smaller aggregation rate for phyn !here
-      if (self%use_phyc) then
+      coagulation_phyn	=	coagulation * (phyn *1.d-3/(self%org2N *self%dens_org)+Vol_agg) * phyn  !mmol m**-3 s-1
+
+      _SET_ODE_(self%id_phyn,-coagulation_phyn) !-sms
+      _SET_ODE_(self%id_aggorg,coagulation_phyn/self%org2N) !sms/self%org2N  !smaller aggregation rate for phyn !here
+      if (self%use_phyc) then			!check
          _SET_ODE_(self%id_phyc,-sms/self%NC_agg)
          ! possibly _GET_STATE_(self%id_phyc,phyc)
          ! possibly better: _SET_ODE_(self%id_phyc,-coagulation*Vol_agg*phyc)
          !_SET_ODE_(self%id_aggorg,_CMASS_/self%NC_agg*sms)
       endif
 
-#ifndef AGG_WO_CHL      
-      if (self%use_chl) then
+#ifndef AGG_WO_CHL      			
+      if (self%use_chl) then			!check
          _GET_STATE_(self%id_chl,phychl)
          _SET_ODE_(self%id_chl,phychl/phyn*(-sms))
          _SET_ODE_(self%id_aggchl,phychl/phyn*sms-self%deg_chl*aggchl)
@@ -302,16 +304,19 @@
 #ifndef LESS_IFS
    end if
 
-   if (self%use_detn) then
+   if (self%use_detn) then			!here!!!!
 #endif
       _GET_STATE_(self%id_detn,detn) !
-      A1_detn=coagulation/self%dens_org *self%org2N * 1.d-6 * detn**2
-      A2_detn=coagulation * Vol_agg * detn
+!      A1_detn=coagulation/self%dens_org *self%org2N * 1.d-6 * detn**2
+!      A2_detn=coagulation * Vol_agg * detn
+!     sms= A1_detn + A2_detn - (decomposition + breakup)*aggorg*self%org2N ![mmolN/m3/s]
 
-      sms= A1_detn + A2_detn - (decomposition + breakup)*aggorg*self%org2N ![mmolN/m3/s]
-      _SET_ODE_(self%id_detn,-sms)
-      _SET_ODE_(self%id_aggorg,sms/self%org2N)
-      if (self%use_detc) then
+      coagulation_detn	=	coagulation * (detn *1.d-3/(self%org2N *self%dens_org)+Vol_agg) * detn	!mmolN m**-3 s-1
+      loss_detn	=	(decomposition + breakup) * aggorg * self%org2N					!mmolN m**-3 s-1
+
+      _SET_ODE_(self%id_detn, - coagulation_detn + loss_detn)		!-sms
+      _SET_ODE_(self%id_aggorg, (coagulation_detn - loss_detn)/self%org2N)	!sms/self%org2N
+      if (self%use_detc) then							!check
          _SET_ODE_(self%id_detc,_ONE_/self%NC_agg*(-sms))
       endif
 #ifndef LESS_IFS
@@ -322,17 +327,18 @@
       _GET_STATE_(self%id_lpm,lpm) !
       A1_lpm=coagulation/self%dens_lpm * 1.d-3 * lpm**2
       A2_lpm=coagulation * Vol_agg * lpm
-      Loss_lpm =  (decomposition + breakup)*agglpm ![g/m**3/s]
+      loss_lpm =  (decomposition + breakup)*agglpm ![g/m**3/s]
 
-      _SET_ODE_(self%id_lpm,Loss_lpm - A1_lpm - A2_lpm)
-      _SET_ODE_(self%id_agglpm,A1_lpm + A2_lpm - Loss_lpm)
+      coagulation_lpm = coagulation * (lpm *1.d-3/self%dens_lpm + Vol_agg) * lpm			!g m**-3 s-1 
+      _SET_ODE_(self%id_lpm,loss_lpm - coagulation_lpm) !- A1_lpm - A2_lpm
+      _SET_ODE_(self%id_agglpm, coagulation_lpm- loss_lpm) !A1_lpm + A2_lpm 
    endif
 
    _SET_DIAGNOSTIC_(self%id_G,G)
    _SET_DIAGNOSTIC_(self%id_breakup,breakup)
    _SET_DIAGNOSTIC_(self%id_aggvol,Vol_agg)
    _SET_DIAGNOSTIC_(self%id_ws,self%sinking_velocity(aggorg,agglpm,G))
-   _SET_DIAGNOSTIC_(self%id_esd,self%meansize(aggmass,G)) !(aggorg*1.d-3+agglpm,G)) !changed
+   _SET_DIAGNOSTIC_(self%id_esd,self%meansize(aggmass,G,doc, lpm, agglpm,aggorg)) 
    _SET_DIAGNOSTIC_(self%id_aggmass,aggmass)
 
    _LOOP_END_
@@ -389,30 +395,30 @@
    real(rk), intent(in)       :: agglpm
    real(rk), intent(in)       :: G
    real(rk)                   :: rho_part,rho_water,visc
-   real(rk)                   :: Vol_agg
-   real(rk)                   :: aggmass	!added
+   real(rk)                   :: Vol_agg, aggmass ,doc,lpm
 
    rho_water = 1025.d0 ! [kg/m**3]
    visc = 1.1d-3 ! dynamic viscosity for about 17 degC water [kg/(m*s)]
-   Vol_agg=1.d-3*(agglpm/self%dens_lpm + 1.d-3*aggorg/self%dens_org)/(_ONE_-self%agg_porosity)
-   aggmass = 1.d-3*aggorg+agglpm
-   rho_part = (1.d-3*aggmass + (Vol_agg - 1.d-6*aggorg/self%dens_org - 1.d-3*agglpm/self%dens_lpm) * rho_water)/Vol_agg  !aggmass in g m-3
+   Vol_agg=1.d-3*(agglpm/self%dens_lpm + aggorg/self%dens_org)/(_ONE_-self%agg_porosity)
+   aggmass = aggorg + agglpm	!1.d-3*aggorg+agglpm
+   rho_part =   (1.d-3*aggmass + (Vol_agg - 1.d-3*aggorg/self%dens_org - 1.d-3*agglpm/self%dens_lpm) * rho_water)/Vol_agg  !aggmass in g m-3 !aggorg in g m-3
+		!(1.d-3*aggmass + (Vol_agg - 1.d-6*aggorg/self%dens_org - 1.d-3*agglpm/self%dens_lpm) * rho_water)/Vol_agg  !aggmass in g m-3
 		!(aggmass + (Vol_agg - aggorg/self%dens_org - agglpm/self%dens_lpm) * rho_water)/ Vol_agg
 		!(_ONE_-self%agg_porosity)*1.d-3*aggmass/Vol_agg + self%agg_porosity*rho_water
 
    !Stokes law:
    sinking_velocity = -2.d0*(rho_part - rho_water)*9.81d0/(9.d0*visc) * \
-         (self%meansize(aggmass,G)/2.d0)**2
+         (self%meansize(aggmass,G,doc,lpm,agglpm,aggorg)/2.d0)**2
 
    end function sinking_velocity
 
 
-   real(rk) function meansize(self,aggmass,G)
+   real(rk) function meansize(self,aggmass,G,doc,lpm,agglpm,aggorg)
    implicit none
    class(type_hzg_agg)        :: self
    real(rk), intent(in)       :: aggmass
    real(rk), intent(in)       :: G
-   real(rk)                   :: modesize,sigma
+   real(rk)                   :: modesize,sigma, doc, lpm, agglpm,aggorg,sms
    real(rk), parameter        :: minsize= 0.0001 !changed to size of pp, was 50.d-6 ! [m] minimum size of arregates
    real(rk), parameter        :: k_size = 50.d0  ! [g/m**3] half-saturation constant for size distribution !need to be checked
 
@@ -433,6 +439,12 @@
    else if (self%size_method == 4) then
      ! Winterwerp et al (1998)
      modesize = 4.e-6 + 4.e-3*1.e-3*aggmass/sqrt(G)
+   else if (self%size_method == 5) then
+     ! equilibrium of aggregation in this code when only lpm
+     modesize = sqrt(0.001* self%coagulation_rate*max(self%doc_min,doc)/(doc+self%doc_mean)/(self%dens_lpm*(_ONE_-self%agg_porosity)*self%breakup_factor*sqrt(G))*(1+(_ONE_-self%agg_porosity)*lpm/agglpm*lpm)) 
+   else if (self%size_method == 6) then
+     ! equilibrium of aggregation in this code when only aggregates forming aggregates
+     modesize = sqrt((0.001*aggorg/self%dens_org + 0.001*agglpm/self%dens_lpm)*self%coagulation_rate*max(self%doc_min,doc)/(doc+self%doc_mean)*1/(_ONE_-self%agg_porosity)*self%breakup_factor*sqrt(G)) 
    end if
    meansize = min(modesize,self%max_size) !test the min equation
 #if 0
