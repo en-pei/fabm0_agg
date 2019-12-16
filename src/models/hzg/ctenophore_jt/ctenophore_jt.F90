@@ -49,6 +49,7 @@ module hzg_ctenophore_jt
      type (type_diagnostic_variable_id) ::id_mort_P_Be, id_mort_S_Be, id_mort_R_Be, id_mort_G_Be, id_mort_J_Be, id_mort_T_Be, id_somgrowth_Be, id_recruit_Be, id_paras_dl_Be, id_som_dl_Be, id_turb_dl_Be, id_init_dl_Be, id_graz_dl_Be, id_sen_dl_Be, id_prod_dl_Be, id_resp_dl_Be, id_dl_prey_Be, id_dl_pred_Be, id_al_Im_Be, id_mixBmass_Be, id_mixlsize_Be, id_Tdep_Be,id_mort_top_Be
      type (type_diagnostic_variable_id) ::id_mort_P_Pp, id_mort_S_Pp, id_mort_R_Pp, id_mort_G_Pp, id_mort_J_Pp, id_mort_T_Pp, id_somgrowth_Pp, id_recruit_Pp, id_paras_dl_Pp, id_som_dl_Pp, id_turb_dl_Pp, id_init_dl_Pp, id_graz_dl_Pp, id_sen_dl_Pp, id_prod_dl_Pp, id_resp_dl_Pp, id_dl_prey_Pp, id_dl_pred_Pp, id_al_Im_Pp, id_mixBmass_Pp, id_mixlsize_Pp, id_Tdep_Pp,id_mort_top_Pp,id_cnidaria
      type (type_diagnostic_variable_id) :: id_dummy1,id_dummy2,id_dummy3,id_dummy4,id_dummy5,id_dummy6,id_dummy7,id_dummy8,id_dummy9
+ type (type_diagnostic_variable_id) :: id_dummy11,id_dummy12,id_dummy13,id_dummy14,id_dummy15,id_dummy16,id_dummy17,id_dummy18,id_dummy19
      type (type_diagnostic_variable_id) :: id_sig1,id_sig2,id_sig3,id_ObsMass1,id_ObsMass2,id_ObsMass3
      type(type_diagnostic_variable_id):: id_grazingpressure1,id_grazingpressure2,id_grazingpressure3,id_grazingpressure4,id_grazingpressure5,id_grazingpressure6,id_grazingpressure7,id_grazingpressure8,id_grazingpressure9
      real(rk) ::  Biomass_PleurobrachiaPileus_initial, Size_PleurobrachiaPileus_initial, Biomass_Beroe_initial, Size_Beroe_initial, Biomass_Detritus_initial, Parasites_PleurobrachiaPileus_initial, Parasites_Beroe_initial, BenTime_initial
@@ -207,8 +208,8 @@ contains
     Biomass_Beroe_initial = 0E-4_rk            ! µg-C/L
     Size_Beroe_initial = 1.25_rk            ! log(ESD/mm)
     Biomass_Detritus_initial = 180._rk            ! µg-C/L
-    Parasites_PleurobrachiaPileus_initial = 1._rk              ! µg-C/L
-    Parasites_Beroe_initial = 1._rk              ! µg-C/L
+    Parasites_PleurobrachiaPileus_initial = 25.0_rk              ! µg-C/L
+    Parasites_Beroe_initial = 2.5_rk              ! µg-C/L
     BenTime_initial = 0._rk              ! d
     Size_Adult           = 2.0_rk             ! log(ESD/mm)
     size_offspring           = -1.2_rk            ! log(ESD/mm)
@@ -444,12 +445,33 @@ contains
          output=output_instantaneous)
     call self%register_diagnostic_variable(self%id_dummy6,    'dummy6','1/d', 'Dummy6', &
          output=output_instantaneous)
-    call self%register_diagnostic_variable(self%id_dummy7,    'dummy7','1/d', 'Dummy6', &
+    call self%register_diagnostic_variable(self%id_dummy7,    'dummy7','1/d', 'Dummy7', &
          output=output_instantaneous)
-    call self%register_diagnostic_variable(self%id_dummy8,    'dummy8','1/d', 'Dummy6', &
+    call self%register_diagnostic_variable(self%id_dummy8,    'dummy8','1/d', 'Dummy8', &
          output=output_instantaneous)
-    call self%register_diagnostic_variable(self%id_dummy9,    'dummy9','1/d', 'Dummy6', &
+    call self%register_diagnostic_variable(self%id_dummy9,    'dummy9','1/d', 'Dummy9', &
          output=output_instantaneous)
+
+
+    call self%register_diagnostic_variable(self%id_dummy11,    'dummy11','1/d', 'Dummy11', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_dummy12,    'dummy12','1/d', 'Dummy12', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_dummy13,    'dummy13','1/d', 'Dummy13', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_dummy14,    'dummy14','1/d', 'Dummy14', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_dummy15,    'dummy15','1/d', 'Dummy15', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_dummy16,    'dummy16','1/d', 'Dummy16', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_dummy17,    'dummy17','1/d', 'Dummy17', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_dummy18,    'dummy18','1/d', 'Dummy18', &
+         output=output_instantaneous)
+    call self%register_diagnostic_variable(self%id_dummy19,    'dummy19','1/d', 'Dummy19', &
+         output=output_instantaneous)
+
 
     call self%register_diagnostic_variable(self%id_grazingpressure1,    'grazingpressure1','1/d', 'grazingpressure1', &
          output=output_instantaneous)
@@ -488,15 +510,14 @@ contains
 
 
 
-
-
-
-
     !!------- Register environmental dependencies  ------- 
     !!-------------------------redo this with a nicer way of reading in data
+
+
     call self%register_dependency(self%id_Copepods,standard_variables%downwelling_photosynthetic_radiative_flux)
     call self%register_dependency(self%id_Temperature,standard_variables%Temperature)
     call self%register_dependency(self%id_Biomass_Phytoplankton,standard_variables%practical_salinity)
+
 
     ! extra line included from parser var init_incl 
 #define UNIT *1.1574074074E-5_rk
@@ -558,11 +579,11 @@ contains
     real(rk), dimension(3) :: prod,fA,fObs,biomass_observable
     integer  :: ib, i, j, max_number_of_predators
     logical  :: Is_Copepod_biomass_negative, Is_Copepod_biomass_exhausted, IsMaxIng 
-    logical :: TopPredationSwitch=.TRUE.!.FALSE.
+    logical :: TopPredationSwitch=.FALSE.!.TRUE.!.FALSE.
     logical ::Debugout=.FALSE.
     !					Be     Pp     Copepods
     ! integer  :: webtopo(3,3) = reshape((/0,1,0, 1,1,1, 0,0,0/), (/3,3/))
-    !    logical  :: webtopo(3,3) = reshape((/.False.,.True.,.False., .True.,.True.,.True., .False.,.False.,.False./),(/3,3/))
+    !logical  :: webtopo(3,3) = reshape((/.False.,.True.,.False., .True.,.True.,.True., .False.,.False.,.False./),(/3,3/))
 
     logical  :: webtopo(3,3) = reshape((/.False.,.True.,.False., .True.,.True.,.True., .True.,.True.,.False./),(/3,3/))
     !  fortran organizes arrays as column major
@@ -577,7 +598,7 @@ contains
     !EOP
     !-----------------------------------------------------------------------
     !BOC
-    no_div_zero_eps      =  1E-5    ! small number_of_boxeser that avoids division by zero
+    no_div_zero_eps      =  1E-5    ! small number epsilon that avoids division by zero
     Is_Copepod_biomass_negative    =  .false. ! scenario flag, may be changed due to forcing signal
     !***!
     IsMaxIng =  .false. ! correction of Imax-scaling at small size
@@ -652,6 +673,12 @@ contains
        mass(2)   = var(ib)%Biomass_PleurobrachiaPileus
        mass(3)   = var(ib)%Copepods  ! global correction for too low prey/Copepods biomass
 
+!------------------------------only for constant copepods
+!mass(3)=35.0d0!---------constant copepods
+!------------------------------
+
+
+	
        !check that always some minimal number of copepods are around to aviod numerical issues/model extinction
        ! pass binary info through sign of Copepodsepod input 
        if ( mass(3) .lt. 0.0d0) then
@@ -1211,9 +1238,11 @@ contains
 
           _SET_DIAGNOSTIC_(self%id_ObsMass1, biomass_observable(1) )  
           _SET_DIAGNOSTIC_(self%id_ObsMass2, biomass_observable(2) ) 
-          _SET_DIAGNOSTIC_(self%id_ObsMass3, biomass_observable(3) ) 
+          _SET_DIAGNOSTIC_(self%id_ObsMass3, biomass_observable(3) )
 
+_SET_DIAGNOSTIC_(self%id_dummy11,  rhsv%Biomass_PleurobrachiaPileus)  
 
+_SET_DIAGNOSTIC_(self%id_dummy12,  rhsv%Parasites_PleurobrachiaPileus)  
 
 
           !write (*,'(1(F10.6))')   ftd/ntd 
