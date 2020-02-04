@@ -788,8 +788,8 @@ end subroutine initialize
               + (1.0_rk-self%BioC(21)) * ZlonD * dsnk/det) * mesozoo &
               + self%BioC(16) * microzoo * mic_loss * self%sinkMicD &
               + self%BioC(15) * mesozoo * mes_loss * self%sinkMesD &
-              + self%BioC(10) * fla * fla_loss * self%sinkDiaD &
-              + self%BioC(9)  * dia * dia_loss * self%sinkFlaD )
+              + self%BioC(10) * fla * fla_loss * self%sinkFlaD &
+              + self%BioC(9)  * dia * dia_loss * self%sinkDiaD )
        if (self%use_cyanos) then
               dxxdet = dxxdet + (self%BioC(32) * bg * bg_loss * self%sinkBgD)
        end if 
