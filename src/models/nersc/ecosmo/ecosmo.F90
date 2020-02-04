@@ -426,7 +426,7 @@
    call self%register_dependency(self%id_tbs,standard_variables%bottom_stress)
    call self%register_dependency(self%id_sfpar,standard_variables%surface_downwelling_photosynthetic_radiative_flux)
    ! use temporal mean of light for the last 24 hours
-   call self%register_dependency(self%id_parmean,temporal_mean(self%id_par,period=86400._rk,resolution=3600._rk))
+   call self%register_dependency(self%id_parmean,temporal_mean(self%id_par,period=86400._rk,resolution=3600._rk,missing_value=0.0_rk))
    call self%register_dependency(self%id_meansfpar,temporal_mean(self%id_sfpar,period=86400._rk,resolution=3600._rk))
 
    if (self%couple_co2) then
