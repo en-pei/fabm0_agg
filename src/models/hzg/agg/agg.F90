@@ -285,8 +285,8 @@
 
       coagulation_phyn	=	coagulation * (phyn *1.d-3/(self%org2N *self%dens_org)+Vol_agg) * phyn  !mmol m**-3 s-1
 
-      _SET_ODE_(self%id_phyn,-coagulation_phyn) !-sms
-      _SET_ODE_(self%id_aggorg,coagulation_phyn/self%org2N) !sms/self%org2N  !smaller aggregation rate for phyn !here
+      _SET_ODE_(self%id_phyn,-coagulation_phyn*1.d-3) !-sms
+      _SET_ODE_(self%id_aggorg,coagulation_phyn/self%org2N*1.d-3) !sms/self%org2N  !smaller aggregation rate for phyn !here
       if (self%use_phyc) then			!check
          _SET_ODE_(self%id_phyc,-sms/self%NC_agg)
          ! possibly _GET_STATE_(self%id_phyc,phyc)
@@ -325,13 +325,14 @@
 
    if (self%use_lpm) then
       _GET_STATE_(self%id_lpm,lpm) !
-      A1_lpm=coagulation/self%dens_lpm * 1.d-3 * lpm**2
-      A2_lpm=coagulation * Vol_agg * lpm
+!      A1_lpm=coagulation/self%dens_lpm * 1.d-3 * lpm**2
+!      A2_lpm=coagulation * Vol_agg * lpm
       loss_lpm =  (decomposition + breakup)*agglpm ![g/m**3/s]
 
-      coagulation_lpm = coagulation * (lpm *1.d-3/self%dens_lpm + Vol_agg) * lpm			!g m**-3 s-1 
-      _SET_ODE_(self%id_lpm,loss_lpm - coagulation_lpm) !- A1_lpm - A2_lpm
-      _SET_ODE_(self%id_agglpm, coagulation_lpm- loss_lpm) !A1_lpm + A2_lpm 
+!      coagulation_lpm = coagulation * (lpm**2*1.d-3/self%dens_lpm + Vol_agg* lpm) 			!g m**-3 s-1 
+      coagulation_lpm = coagulation * (Vol_agg* lpm) 			!g m**-3 s-1    !only coagulates with existing aggregates
+      _SET_ODE_(self%id_lpm, loss_lpm - coagulation_lpm) !- A1_lpm - A2_lpm
+      _SET_ODE_(self%id_agglpm, -loss_lpm + coagulation_lpm) !A1_lpm + A2_lpm 
    endif
 
    _SET_DIAGNOSTIC_(self%id_G,G)
@@ -401,7 +402,10 @@
    visc = 1.1d-3 ! dynamic viscosity for about 17 degC water [kg/(m*s)]
    Vol_agg=1.d-3*(agglpm/self%dens_lpm + aggorg/self%dens_org)/(_ONE_-self%agg_porosity)
    aggmass = aggorg + agglpm	!1.d-3*aggorg+agglpm
-   rho_part =   (1.d-3*aggmass + (Vol_agg - 1.d-3*aggorg/self%dens_org - 1.d-3*agglpm/self%dens_lpm) * rho_water)/Vol_agg  !aggmass in g m-3 !aggorg in g m-3
+   rho_part =   1.d-3*aggmass/(_ONE_-self%agg_porosity)/Vol_agg
+		!1.d-3*aggmass/Vol_agg+self%agg_porosity* rho_water !with pore water?
+		
+		!(1.d-3*aggmass + ((Vol_agg - 1.d-3*aggorg/self%dens_org - 1.d-3*agglpm/self%dens_lpm) * rho_water))/Vol_agg  !aggmass in g m-3 !aggorg in g m-3
 		!(1.d-3*aggmass + (Vol_agg - 1.d-6*aggorg/self%dens_org - 1.d-3*agglpm/self%dens_lpm) * rho_water)/Vol_agg  !aggmass in g m-3
 		!(aggmass + (Vol_agg - aggorg/self%dens_org - agglpm/self%dens_lpm) * rho_water)/ Vol_agg
 		!(_ONE_-self%agg_porosity)*1.d-3*aggmass/Vol_agg + self%agg_porosity*rho_water
@@ -431,20 +435,28 @@
      ! equilibrium D50 value depending on aggmass [g/l] and G, aggmass[g/m-3]
      ! resulting from steady-state experiment
      modesize=0.0001_rk + 0.0004_rk * 1.d-3*aggmass/sqrt(G)
-   else if (self%size_method == 3) then
+   else if (self%size_method == 3) then !modified
      ! from 1d experiments in Xu.etal2008
      ! equilibrium D50 value depending on aggmass [g/l] and G
      ! resulting from the tank experiment
-     modesize=0.0001_rk + 0.0003_rk*1.d-3*aggmass/G
+     modesize=0.00005_rk + 0.0001_rk*1.d-3*aggmass/G  !0.0001_rk + 0.0003_rk*1.d-3*aggmass/G 
    else if (self%size_method == 4) then
      ! Winterwerp et al (1998)
      modesize = 4.e-6 + 4.e-3*1.e-3*aggmass/sqrt(G)
    else if (self%size_method == 5) then
      ! equilibrium of aggregation in this code when only lpm
-     modesize = sqrt(0.001* self%coagulation_rate*max(self%doc_min,doc)/(doc+self%doc_mean)/(self%dens_lpm*(_ONE_-self%agg_porosity)*self%breakup_factor*sqrt(G))*(1+(_ONE_-self%agg_porosity)*lpm/agglpm*lpm)) 
+     modesize = sqrt(0.001* self%coagulation_rate*max(self%doc_min,doc)/(doc+self%doc_mean)/(self%dens_lpm*(_ONE_-self%agg_porosity)*self%breakup_factor*sqrt(G))*(1+(_ONE_-self%agg_porosity)*0.001*lpm/0.001*agglpm*0.001*lpm)) 
    else if (self%size_method == 6) then
      ! equilibrium of aggregation in this code when only aggregates forming aggregates
-     modesize = sqrt((0.001*aggorg/self%dens_org + 0.001*agglpm/self%dens_lpm)*self%coagulation_rate*max(self%doc_min,doc)/(doc+self%doc_mean)*1/(_ONE_-self%agg_porosity)*self%breakup_factor*sqrt(G)) 
+     modesize = sqrt((1.e-3*aggorg/self%dens_org + 1.e-3*agglpm/self%dens_lpm)*self%coagulation_rate*max(self%doc_min,doc)/(doc+self%doc_mean)*1/((_ONE_-self%agg_porosity)*self%breakup_factor*sqrt(G))) !1.3* 
+!    modesize = 1.e-4*sqrt((1.e-3*aggorg/self%dens_org + 1.e-3*agglpm/self%dens_lpm)*self%coagulation_rate*max(self%doc_min,doc)/(doc+self%doc_mean)*1/(_ONE_-self%agg_porosity)*self%breakup_factor*sqrt(G)) 
+   else if (self%size_method == 7) then !dependent on lpm
+     ! equilibrium of aggregation in this code when only aggregates forming aggregates
+     modesize = 1.e-4*sqrt((0.001*lpm/self%dens_lpm)*self%coagulation_rate*max(self%doc_min,doc)/(doc+self%doc_mean)*1/(_ONE_-self%agg_porosity)*self%breakup_factor*sqrt(G)) 
+   else if (self%size_method == 8) then !Xu 2008 Winterwerp estimation
+     modesize=4.e-6 + 0.004_rk * 1.d-3*aggmass/sqrt(G)
+   else if (self%size_method == 8) then
+     modesize = sqrt(self%coagulation_rate*max(self%doc_min,doc)/(doc+self%doc_mean)*self%breakup_factor*sqrt(G))*1/((_ONE_-self%agg_porosity+2-1)*(2-1)*(1.e-3*agglpm/self%dens_lpm))
    end if
    meansize = min(modesize,self%max_size) !test the min equation
 #if 0
