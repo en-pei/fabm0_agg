@@ -16,6 +16,7 @@
    use fabm_types
    use fabm_expressions
 
+   
    implicit none
 
 !  default: all is private.
@@ -637,7 +638,7 @@ end subroutine initialize
    end if
 
    ! grazing
-   Fs = self%prefZsPs*fla + self%prefZsPl*dia + self%prefZsD*det + self%prefZsBG*bg
+   Fs = self%prefZsPs*fla + self%prefZsPl*dia + self%prefZsD*det !+ self%prefZsBG*bg error correction 25.02.2020
    Fl = self%prefZlPs*fla + self%prefZlPl*dia + self%prefZlZs*microzoo + &
          self%prefZlD*det + self%prefZlBG*bg
    if (self%use_cyanos) then
