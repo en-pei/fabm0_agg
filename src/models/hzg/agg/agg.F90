@@ -422,7 +422,7 @@
    class(type_hzg_agg)        :: self
    real(rk), intent(in)       :: aggmass
    real(rk), intent(in)       :: G
-   real(rk)                   :: modesize,sigma, doc, lpm, agglpm,aggorg,sms
+   real(rk)                   :: modesize,sigma, doc, lpm, agglpm,aggorg,sms,k
    real(rk), parameter        :: minsize= 0.0001 !changed to size of pp, was 50.d-6 ! [m] minimum size of arregates
    real(rk), parameter        :: k_size = 50.d0  ! [g/m**3] half-saturation constant for size distribution !need to be checked
 
@@ -439,24 +439,24 @@
      ! from 1d experiments in Xu.etal2008
      ! equilibrium D50 value depending on aggmass [g/l] and G
      ! resulting from the tank experiment
-     modesize=0.00005_rk + 0.0001_rk*1.d-3*aggmass/G  !0.0001_rk + 0.0003_rk*1.d-3*aggmass/G 
-   else if (self%size_method == 4) then
+     modesize=0.0001_rk + 0.0003_rk*1.d-3*aggmass/G !0.00005_rk + 0.0001_rk*1.d-3*aggmass/G
+   else if (self%size_method == 4) then 
      ! Winterwerp et al (1998)
-     modesize = 4.e-6 + 4.e-3*1.e-3*aggmass/sqrt(G)
+     modesize = 70.e-6+4.e-6 + 4.e-3*1.e-3*aggmass/sqrt(G)
    else if (self%size_method == 5) then
      ! equilibrium of aggregation in this code when only lpm
      modesize = sqrt(0.001* self%coagulation_rate*max(self%doc_min,doc)/(doc+self%doc_mean)/(self%dens_lpm*(_ONE_-self%agg_porosity)*self%breakup_factor*sqrt(G))*(1+(_ONE_-self%agg_porosity)*0.001*lpm/0.001*agglpm*0.001*lpm)) 
    else if (self%size_method == 6) then
      ! equilibrium of aggregation in this code when only aggregates forming aggregates
      modesize = sqrt((1.e-3*aggorg/self%dens_org + 1.e-3*agglpm/self%dens_lpm)*self%coagulation_rate*max(self%doc_min,doc)/(doc+self%doc_mean)*1/((_ONE_-self%agg_porosity)*self%breakup_factor*sqrt(G))) !1.3* 
-!    modesize = 1.e-4*sqrt((1.e-3*aggorg/self%dens_org + 1.e-3*agglpm/self%dens_lpm)*self%coagulation_rate*max(self%doc_min,doc)/(doc+self%doc_mean)*1/(_ONE_-self%agg_porosity)*self%breakup_factor*sqrt(G)) 
-   else if (self%size_method == 7) then !dependent on lpm
-     ! equilibrium of aggregation in this code when only aggregates forming aggregates
-     modesize = 1.e-4*sqrt((0.001*lpm/self%dens_lpm)*self%coagulation_rate*max(self%doc_min,doc)/(doc+self%doc_mean)*1/(_ONE_-self%agg_porosity)*self%breakup_factor*sqrt(G)) 
-   else if (self%size_method == 8) then !Xu 2008 Winterwerp estimation
-     modesize=4.e-6 + 0.004_rk * 1.d-3*aggmass/sqrt(G)
+   else if (self%size_method == 7) then !1e-4*method6
+    modesize = 1.e-4*sqrt((1.e-3*aggorg/self%dens_org + 1.e-3*agglpm/self%dens_lpm)*self%coagulation_rate*max(self%doc_min,doc)/(doc+self%doc_mean)*1/(_ONE_-self%agg_porosity)*self%breakup_factor*sqrt(G)) 
    else if (self%size_method == 8) then
-     modesize = sqrt(self%coagulation_rate*max(self%doc_min,doc)/(doc+self%doc_mean)*self%breakup_factor*sqrt(G))*1/((_ONE_-self%agg_porosity+2-1)*(2-1)*(1.e-3*agglpm/self%dens_lpm))
+     k=2
+     modesize = sqrt(self%coagulation_rate*max(self%doc_min,doc)/((doc+self%doc_mean)*self%breakup_factor*sqrt(G))*(1/(_ONE_-self%agg_porosity)+k-1)*(k-1)*(1.e-3*agglpm/self%dens_lpm))
+   else if (self%size_method == 9) then !agglpm+lpm=k*agglpm
+     k=1+lpm/agglpm 
+     modesize = sqrt(self%coagulation_rate*max(self%doc_min,doc)/((doc+self%doc_mean)*self%breakup_factor*sqrt(G))*(1/(_ONE_-self%agg_porosity)+k-1)*(k-1)*(1.e-3*agglpm/self%dens_lpm))
    end if
    meansize = min(modesize,self%max_size) !test the min equation
 #if 0
