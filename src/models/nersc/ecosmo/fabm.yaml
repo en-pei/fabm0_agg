@@ -3,19 +3,20 @@ instances:
   light:
     model: gotm/light
 
-#  CO2:
-#    model: pml/carbonate
-#    parameters:
-#      alk_param: false      # compute alkalinity as linear function of salinity, default = true
-#      #alk_offset: 520.1    # offset for alkalinity as linear function of salinity (mEq m-3), default = 520.1
-#      #alk_slope: 51.24     # scale factor for alkalinity as linear function of salinity (mEq m-3), default = 51.24
-#      pCO2a: 367.0         # mole fraction of atmospheric CO2 (ppm), default = 0.0
-#    initialization:
-#      dic: 2200.0          # total dissolved inorganic carbon (mmol m-3)
-#      alk: 2300.0
+  CO2:
+    model: pml/carbonate
+    parameters:
+      alk_param: false      # compute alkalinity as linear function of salinity, default = true
+      #alk_offset: 520.1    # offset for alkalinity as linear function of salinity (mEq m-3), default = 520.1
+      #alk_slope: 51.24     # scale factor for alkalinity as linear function of salinity (mEq m-3), default = 51.24
+      pCO2a: 0. #367.0         # mole fraction of atmospheric CO2 (ppm), default = 0.0
+
+    initialization:
+      dic: 2200.0          # total dissolved inorganic carbon (mmol m-3)
+      alk: 2300.0
 
   ECO:    # When coupled to HYCOM, do not change this to another name
-    model: nersc_ecosmo
+    model: nersc_ecosmo_operational
     parameters:
       muPl       : 1.75     # max growth rate for Pl          (1/d),                        default=1.30
       muPs       : 1.45     # max growth rate for Ps          (1/d),                        default=1.10
@@ -50,7 +51,7 @@ instances:
       GrBG       : 0.30     # BG max grazing rate             (1/d),                        default=0.30
       mBG        : 0.08     # BG mortality rate               (1/d),                        default=0.08
       upliftBG   : 0.10     # BG uplifting rate               (m/d),                        default=0.10
-      crBotStr   : 0.007    # c2        ritic. bot. stress for resusp. (N/m**2),                     default=0.007
+      crBotStr   : 0.021    # c2        ritic. bot. stress for resusp. (N/m**2),            default=0.007
       resuspRt   : 25.00    # resuspension rate               (1/d),                        default=25.00
       sedimRt    : 5.0      # sedimentation rate              (m/d),                        default=3.50
       burialRt   : 0.00001  # burial rate                     (1/d),                        default=0.00001
@@ -86,15 +87,15 @@ instances:
       surface_deposition_nh4      : 0. #0.35 # surface deposition nh4, default = 0.32
       surface_deposition_pho      : 0. #0.045  # surface deposition pho, default = 0.045
       surface_deposition_sil      : 0. #0.5  # surface_deposition sil, default = 0.50
-#      bg_growth_minimum_daily_rad : 120.0 #10000.0 # bg growth minimum daily rad, default = 120.0
-#      nfixation_minimum_daily_par : 35.0 # 10000.0  # nfixation minimum daily par, default = 35.0
-      use_chl: true
-      use_cyanos: false
-      couple_co2: false
+      bg_growth_minimum_daily_rad : 120.0 #10000.0 # bg growth minimum daily rad, default = 120.0
+      nfixation_minimum_daily_par : 35.0 # 10000.0  # nfixation minimum daily par, default = 35.0
+      use_chl: true 
+      use_cyanos: false 
+      couple_co2: true
 
-#    coupling:
-#      dic_target: carbonate_dic
-#      alk_target: carbonate_alk
+    coupling:
+      dic_target: CO2_dic
+      alk_target: CO2_alk
 
     initialization:
       no3        : 400.0     # nitrate (mgC/m**3)
@@ -104,7 +105,7 @@ instances:
       det        : 0.1     # detritus (mgC/m**3)
       dom        : 3.0     # labile dissolved om (mgC/m**3)
       sil        : 400.0     # silicate (mgC/m**3)
-      opa        : 2.0     # opal (mgC/m**3)
+      opa        : 0.1     # opal (mgC/m**3)
       dia        : 0.1    # large phytoplankton (mgC/m**3)
       fla        : 0.1    # small phytoplankton (mgC n/m**3)
       mesozoo    : 0.01    # mesozooplankton (mgC/m**3)
