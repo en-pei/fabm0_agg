@@ -5,4 +5,7 @@
 #define _FABM_MASK_TYPE_ logical
 #define _FABM_UNMASKED_VALUE_ .false.
 
+#define _FABM_VERTICAL_BOTTOM_TO_SURFACE_
+#define _FABM_BOTTOM_INDEX_ 0
+
 #include "fabm.h"

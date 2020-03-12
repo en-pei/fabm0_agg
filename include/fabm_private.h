@@ -180,9 +180,17 @@
 #  ifdef _FABM_IS_UNMASKED_
 #    define _IS_UNMASKED_(maskvalue) _FABM_IS_UNMASKED_(maskvalue)
 #  elif defined(_FABM_MASKED_VALUE_)
-#    define _IS_UNMASKED_(maskvalue) maskvalue/=_FABM_MASKED_VALUE_
+#    if _FABM_MASK_TYPE_ == logical
+#      define _IS_UNMASKED_(maskvalue) maskvalue.neqv._FABM_MASKED_VALUE_
+#    else
+#      define _IS_UNMASKED_(maskvalue) maskvalue/=_FABM_MASKED_VALUE_
+#    endif
 #  elif defined(_FABM_UNMASKED_VALUE_)
-#    define _IS_UNMASKED_(maskvalue) maskvalue==_FABM_UNMASKED_VALUE_
+#    if _FABM_MASK_TYPE_ == logical
+#      define _IS_UNMASKED_(maskvalue) maskvalue.eqv._FABM_UNMASKED_VALUE_
+#    else
+#      define _IS_UNMASKED_(maskvalue) maskvalue==_FABM_UNMASKED_VALUE_
+#    endif
 #  else
 #    error If _FABM_MASK_TYPE_ is set, _FABM_MASKED_VALUE_, _FABM_UNMASKED_VALUE_ or _FABM_IS_UNMASKED_ must be set as well.
 #  endif

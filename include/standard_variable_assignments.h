@@ -69,6 +69,10 @@ standard_variables%mole_concentration_of_silicate%name = 'mole_concentration_of_
 standard_variables%mole_concentration_of_silicate%units = 'mmol m-3'
 standard_variables%mole_concentration_of_silicate%cf_names = 'mole_concentration_of_silicate_in_sea_water'
 
+standard_variables%momentum_diffusivity%name = 'momentum_diffusivity'
+standard_variables%momentum_diffusivity%units = 'm2 s-1'
+standard_variables%momentum_diffusivity%cf_names = 'ocean_vertical_momentum_diffusivity'
+
 standard_variables%net_rate_of_absorption_of_shortwave_energy_in_layer%name = 'net_rate_of_absorption_of_shortwave_energy_in_layer'
 standard_variables%net_rate_of_absorption_of_shortwave_energy_in_layer%units = 'W m-2'
 standard_variables%net_rate_of_absorption_of_shortwave_energy_in_layer%cf_names = 'net_rate_of_absorption_of_shortwave_energy_in_ocean_layer'
@@ -92,6 +96,10 @@ standard_variables%secchi_depth%cf_names = 'secchi_depth_of_sea_water'
 standard_variables%temperature%name = 'temperature'
 standard_variables%temperature%units = 'degree_Celsius'
 standard_variables%temperature%cf_names = 'sea_water_temperature'
+
+standard_variables%turbulent_kinetic_energy_dissipation%name = 'turbulent_kinetic_energy_dissipation'
+standard_variables%turbulent_kinetic_energy_dissipation%units = 'W kg-1'
+standard_variables%turbulent_kinetic_energy_dissipation%cf_names = 'specific_turbulent_kinetic_energy_dissipation_in_sea_water'
 
 standard_variables%bottom_depth%name = 'bottom_depth'
 standard_variables%bottom_depth%units = 'm'
