@@ -4,8 +4,13 @@
 ! Size- & distribution based ctenophore model
 ! kai wirtz Apr 2014
 ! Johannes Timm July 2019
+! converted to fabm 1.0 in May 2020
 !
 ! --------------------------------------------
+#include fabm_version.h
+#if _FABM_API_VERSION_ < 1
+#  error You need FABM 1.0 or later
+#endif
 
 module hzg_ctenophore_jt
   !
@@ -191,17 +196,17 @@ contains
     logical   :: OptionOn     ! generic
     logical   :: TECopepodshysOn   ! size dependency in mortality
 
-    namelist /jelly_init/ &
-         Biomass_PleurobrachiaPileus_initial, Size_PleurobrachiaPileus_initial, Biomass_Beroe_initial, Size_Beroe_initial, Biomass_Detritus_initial, &
-         Parasites_PleurobrachiaPileus_initial, Parasites_Beroe_initial, BenTime_initial
+    !namelist /jelly_init/ &
+    !     Biomass_PleurobrachiaPileus_initial, Size_PleurobrachiaPileus_initial, Biomass_Beroe_initial, Size_Beroe_initial, Biomass_Detritus_initial, &
+    !     Parasites_PleurobrachiaPileus_initial, Parasites_Beroe_initial, BenTime_initial
 
-    namelist /jelly_pars/ &
-         Size_Observable,Size_Adult, size_offspring, lstarv, sigma, Imax_pot_star, yield, mR, mS, mP, mT, Q10, Tc, Bcrit, relCVDens, m_predBe, &
-         optimal_prey_size_adult_PleurobrachiaPileus, optimal_prey_size_adult_Beroe, immigr, rDet, rParasite, fTDmort, m_pcap, mDisturb, Temperature_Change_Rate, &
-         Copepod_Temperature_Change_Rate
+!    namelist /jelly_pars/ &
+!         Size_Observable,Size_Adult, size_offspring, lstarv, sigma, Imax_pot_star, yield, mR, mS, mP, mT, Q10, Tc, Bcrit, relCVDens, m_predBe, &
+!         optimal_prey_size_adult_PleurobrachiaPileus, optimal_prey_size_adult_Beroe, immigr, rDet, rParasite, fTDmort, m_pcap, mDisturb, Temperature_Change_Rate, &
+!         Copepod_Temperature_Change_Rate
 
-    namelist /jelly_switch/ &
-         TransectOn, SizeDynOn, LowPassOn, OptionOn, TECopepodshysOn
+ !   namelist /jelly_switch/ &
+ !        TransectOn, SizeDynOn, LowPassOn, OptionOn, TECopepodshysOn
 
     Biomass_PleurobrachiaPileus_initial = 3E-2_rk            ! µg-C/L
     Size_PleurobrachiaPileus_initial = 1.4_rk             ! log(ESD/mm)
@@ -241,12 +246,12 @@ contains
 
     !--------- read namelists --------- 
     write(0,*) ' read namelists ....'
-    open(namlst,file='jelly_init.nml',status='old')
-    read(namlst,nml=jelly_init,err=90,end=99)
-    open(namlst,file='jelly_pars.nml',status='old')
-    read(namlst,nml=jelly_pars,err=91,end=100)
-    open(namlst,file='jelly_switch.nml',status='old')
-    read(namlst,nml=jelly_switch,err=92,end=101)
+    !open(namlst,file='jelly_init.nml',status='old')
+    !read(namlst,nml=jelly_init,err=90,end=99)
+    !open(namlst,file='jelly_pars.nml',status='old')
+    !read(namlst,nml=jelly_pars,err=91,end=100)
+    !open(namlst,file='jelly_switch.nml',status='old')
+    !read(namlst,nml=jelly_switch,err=92,end=101)
     ! Store parameter values in our own derived type
     ! NB: all rates must be provided in values per day,
     ! and are converted here to values per second.
@@ -514,9 +519,15 @@ contains
     !!-------------------------redo this with a nicer way of reading in data
 
 
-    call self%register_dependency(self%id_Copepods,standard_variables%downwelling_photosynthetic_radiative_flux)
-    call self%register_dependency(self%id_Temperature,standard_variables%Temperature)
-    call self%register_dependency(self%id_Biomass_Phytoplankton,standard_variables%practical_salinity)
+    call self%register_dependency(self%id_Copepods,fabm_standard_variables%downwelling_photosynthetic_radiative_flux)
+    call self%register_dependency(self%id_Temperature,fabm_standard_variables%Temperature)
+    call self%register_dependency(self%id_Biomass_Phytoplankton,fabm_standard_variables%practical_salinity)
+
+
+   !call self%register_dependency(self%id_Copepods,'copepod_biom','µg-C/L','Copepod_Biomass')
+   ! call self%register_dependency(self%id_Temperature,fabm_standard_variables%Temperature)
+   ! call self%register_dependency(self%id_Biomass_Phytoplankton,'phy','mol-C/m3','mole_concentration_of_phytoplankton_expressed_as_carbon_in_sea_water')
+
 
 
     ! extra line included from parser var init_incl 
