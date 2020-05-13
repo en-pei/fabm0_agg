@@ -3,14 +3,14 @@ instances:
      long_name: hzg_jt_ctenophore
      model: hzg/ctenophore_jt
      initialization:
-       Biomass_PleurobrachiaPileus:  Biomass_PleurobrachiaPileus_initial
-       Size_PleurobrachiaPileus: Size_PleurobrachiaPileus_initial
-       Biomass_Beroe:        Biomass_Beroe_initial
-       Size_Beroe:   Size_Beroe_initial
-       Biomass_Detritus: Biomass_Detritus_initial
-       Parasites_PleurobrachiaPileus: Parasites_PleurobrachiaPileus_initial
-       Parasites_Beroe:   Parasites_Beroe_initial,
-       BenTime:         BenTime_initial
+       Biomass_PleurobrachiaPileus: 3E-2
+       Size_PleurobrachiaPileus: 1.0
+       Biomass_Beroe: 0.5E-4
+       Size_Beroe: 1.4
+       Biomass_Detritus: 1000.0
+       Parasites_PleurobrachiaPileus: 200.0
+       Parasites_Beroe: 200.0
+       BenTime: 0.0
      parameters:
       Biomass_PleurobrachiaPileus_initial: 3E-2 
       Size_PleurobrachiaPileus_initial: 1.
@@ -50,17 +50,17 @@ instances:
       LowPassOn: true
       OptionOn:  false 
       TECopepodshysOn: false
-     coupling: 
-      phy: forcing/phy
-      copepod_biom: forcing/phy
-      Temperature: forcing/Temperature
-
-
-
-
+#     coupling: 
+#      phy: forcing/phy
+#      copepod_biom: forcing/copepod_biom
+#      Medusae: forcing/Medusae
+#      Temperature: Temperature
+ 
+  
 
 
  helper:
+     use: false
      long_name: forcing_helper
      model: hzg/forcing
      initialization:
@@ -68,4 +68,5 @@ instances:
       copepod_biom: 0.
       Temperature: 0.
       Medusae: 0.
-  
+
+
