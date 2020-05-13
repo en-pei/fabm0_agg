@@ -7,10 +7,10 @@
 ! converted to fabm 1.0 in May 2020
 !
 ! --------------------------------------------
-#include fabm_version.h
-#if _FABM_API_VERSION_ < 1
-#  error You need FABM 1.0 or later
-#endif
+!#include fabm_version.h
+!#if _FABM_API_VERSION_ < 1
+!#  error You need FABM 1.0 or later
+!#endif
 
 module hzg_ctenophore_jt
   !
@@ -519,9 +519,9 @@ contains
     !!-------------------------redo this with a nicer way of reading in data
 
 
-    call self%register_dependency(self%id_Copepods,fabm_standard_variables%downwelling_photosynthetic_radiative_flux)
-    call self%register_dependency(self%id_Temperature,fabm_standard_variables%Temperature)
-    call self%register_dependency(self%id_Biomass_Phytoplankton,fabm_standard_variables%practical_salinity)
+    call self%register_dependency(self%id_Copepods,standard_variables%downwelling_photosynthetic_radiative_flux)
+    call self%register_dependency(self%id_Temperature,standard_variables%Temperature)
+    call self%register_dependency(self%id_Biomass_Phytoplankton,standard_variables%practical_salinity)
 
 
    !call self%register_dependency(self%id_Copepods,'copepod_biom','µg-C/L','Copepod_Biomass')
@@ -538,13 +538,13 @@ contains
 
     return
 
-    !!-------  if files are not found ...  
-90  call self%fatal_error('jelly_init','Error reading namelist jelly_init.')
-91  call self%fatal_error('jelly_init','Error reading namelist jelly_pars.')
-92  call self%fatal_error('jelly_init','Error reading namelist jelly_switch.')
-99  call self%fatal_error('jelly_init','Namelist jelly_init was not found in file.')
-100 call self%fatal_error('jelly_init','Namelist jelly_pars was not found in file.')
-101 call self%fatal_error('jelly_init','Namelist jelly_switch was not found in file.')
+ !   !!-------  if files are not found ...  
+!90  call self%fatal_error('jelly_init','Error reading namelist jelly_init.')
+!91  call self%fatal_error('jelly_init','Error reading namelist jelly_pars.')
+!92  call self%fatal_error('jelly_init','Error reading namelist jelly_switch.')
+!99  call self%fatal_error('jelly_init','Namelist jelly_init was not found in file.')
+!100 call self%fatal_error('jelly_init','Namelist jelly_pars was not found in file.')
+!101 call self%fatal_error('jelly_init','Namelist jelly_switch was not found in file.')
 
   end subroutine initialize
 
