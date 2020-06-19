@@ -9,3 +9,6 @@ Temperature:
 ctenophore/phy:
  file: env_NCopPhy_74103.dat
  column: 3
+#ctenophore/copepod_size:
+# file:
+# column: 0

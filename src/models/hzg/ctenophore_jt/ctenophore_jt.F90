@@ -47,7 +47,7 @@ module hzg_ctenophore_jt
   ! standard fabm model types
   type,extends(type_base_model),public :: type_hzg_ctenophore_jt
      type (type_state_variable_id)        :: id_Biomass_PleurobrachiaPileus,id_Size_PleurobrachiaPileus,id_Biomass_Beroe,id_Size_Beroe,id_Biomass_Detritus,id_Parasites_PleurobrachiaPileus,id_Parasites_Beroe,id_BenTime
-     type (type_dependency_id)            :: id_Copepods
+     type (type_dependency_id)            :: id_Copepods, id_Size_Copepods
      type (type_dependency_id)            :: id_Temperature
      type (type_dependency_id)            :: id_Biomass_Phytoplankton
      type (type_diagnostic_variable_id)   :: id_prod_Be, id_Mort_Be, id_fA_Be, id_Imax_Be, id_optimal_prey_size_Be,id_optimal_prey_size_Pp, id_optimal_prey_size_Cop, id_prod_Pp, id_Mort_Pp, id_fA_Pp, id_Imax_Pp
@@ -57,7 +57,7 @@ module hzg_ctenophore_jt
  type (type_diagnostic_variable_id) :: id_dummy11,id_dummy12,id_dummy13,id_dummy14,id_dummy15,id_dummy16,id_dummy17,id_dummy18,id_dummy19
      type (type_diagnostic_variable_id) :: id_sig1,id_sig2,id_sig3,id_ObsMass1,id_ObsMass2,id_ObsMass3
      type(type_diagnostic_variable_id):: id_grazingpressure1,id_grazingpressure2,id_grazingpressure3,id_grazingpressure4,id_grazingpressure5,id_grazingpressure6,id_grazingpressure7,id_grazingpressure8,id_grazingpressure9
-     real(rk) ::  Biomass_PleurobrachiaPileus_initial, Size_PleurobrachiaPileus_initial, Biomass_Beroe_initial, Size_Beroe_initial, Biomass_Detritus_initial, Parasites_PleurobrachiaPileus_initial, Parasites_Beroe_initial, BenTime_initial
+     real(rk) ::  Biomass_PleurobrachiaPileus_initial, Size_PleurobrachiaPileus_initial, Biomass_Beroe_initial, Size_Beroe_initial, Biomass_Detritus_initial, Parasites_PleurobrachiaPileus_initial, Parasites_Beroe_initial, BenTime_initial, Size_Copepods_initial
      real(rk) ::  Size_Adult, size_offspring, lstarv, sigma, Imax_pot_star, yield, mR, mS, mP, mT, Q10, Tc, Bcrit, relCVDens, m_predBe, optimal_prey_size_adult_PleurobrachiaPileus, optimal_prey_size_adult_Beroe, optimal_prey_size_adult_Copepod, immigr, rDet, rParasite, fTDmort, m_pcap, mDisturb, Temperature_Change_Rate, Copepod_Temperature_Change_Rate
      logical  ::  TransectOn, SizeDynOn, LowPassOn, OptionOn, TECopepodshysOn
      real(rk):: Size_observable
@@ -132,6 +132,7 @@ contains
     real(rk)  :: Size_PleurobrachiaPileus_initial ! P.Pileus mean log size
     real(rk)  :: Biomass_Beroe_initial ! Beroe biomass
     real(rk)  :: Size_Beroe_initial ! Beroe mean log size
+    real(rk)  :: Size_Copepods_initial  ! Copepods mean log size
     real(rk)  :: Biomass_Detritus_initial ! detritus
     real(rk)  :: Parasites_PleurobrachiaPileus_initial ! parasite of P.Pileus
     real(rk)  :: Parasites_Beroe_initial ! parasite of Beroe
@@ -212,6 +213,7 @@ contains
     Size_PleurobrachiaPileus_initial = 1.4_rk             ! log(ESD/mm)
     Biomass_Beroe_initial = 0E-4_rk            ! µg-C/L
     Size_Beroe_initial = 1.25_rk            ! log(ESD/mm)
+    Size_Copepods_initial = -0.8_rk            ! log(ESD/mm) (previously -0.6)
     Biomass_Detritus_initial = 180._rk            ! µg-C/L
     Parasites_PleurobrachiaPileus_initial = 25.0_rk              ! µg-C/L
     Parasites_Beroe_initial = 2.5_rk              ! µg-C/L
@@ -272,6 +274,7 @@ contains
     call self%get_parameter(self%Parasites_PleurobrachiaPileus_initial ,'Parasites_PleurobrachiaPileus_initial',  default=Parasites_PleurobrachiaPileus_initial)
     call self%get_parameter(self%Parasites_Beroe_initial ,'Parasites_Beroe_initial',  default=Parasites_Beroe_initial)
     call self%get_parameter(self%BenTime_initial ,'BenTime_initial',  default=BenTime_initial)
+    call self%get_parameter(self%Size_Copepods_initial ,'Size_Copepods_initial',  default=Size_Copepods_initial)
 
     !!------- model parameters from nml-list jelly_pars -------
     call self%get_parameter(self%Size_Adult           ,'Size_Adult',            default=Size_Adult)
@@ -320,6 +323,9 @@ contains
          BenTime_initial, minimum=_ZERO_, no_river_dilution=.true. )
 
     !!------- Register diagnostic variables  ------- 
+
+ 
+
     call self%register_diagnostic_variable(self%id_prod_Be, 'prod_Be','1/d', 'secondary production rate Beroe prod_Be', &
          output=output_instantaneous)
     call self%register_diagnostic_variable(self%id_Mort_Be, 'Mort_Be','1/d', 'mortality rate of Beroe Mort_Be', &
@@ -519,14 +525,15 @@ contains
     !!-------------------------redo this with a nicer way of reading in data
 
 
-    call self%register_dependency(self%id_Copepods,standard_variables%downwelling_photosynthetic_radiative_flux)
-    call self%register_dependency(self%id_Temperature,standard_variables%Temperature)
-    call self%register_dependency(self%id_Biomass_Phytoplankton,standard_variables%practical_salinity)
+    !call self%register_dependency(self%id_Copepods,standard_variables%downwelling_photosynthetic_radiative_flux)
+    !call self%register_dependency(self%id_Temperature,standard_variables%Temperature)
+    !call self%register_dependency(self%id_Biomass_Phytoplankton,standard_variables%practical_salinity)
 
 
-   !call self%register_dependency(self%id_Copepods,'copepod_biom','µg-C/L','Copepod_Biomass')
-   ! call self%register_dependency(self%id_Temperature,fabm_standard_variables%Temperature)
-   ! call self%register_dependency(self%id_Biomass_Phytoplankton,'phy','mol-C/m3','mole_concentration_of_phytoplankton_expressed_as_carbon_in_sea_water')
+   call self%register_dependency(self%id_Copepods,'copepod_biom','µg-C/L','Copepod_Biomass')
+   !call self%register_dependency(self%id_Size_Copepods,'copepod_size','log(ESD/mm)','Copepod_Size')
+   call self%register_dependency(self%id_Temperature,standard_variables%Temperature)
+   call self%register_dependency(self%id_Biomass_Phytoplankton,'phy','mol-C/m3','mole_concentration_of_phytoplankton_expressed_as_carbon_in_sea_water')
 
 
 
@@ -582,7 +589,7 @@ contains
     real(rk), dimension(3) :: mort_R, mort_R0, mort_P
     real(rk), dimension(3) :: optimal_prey_size_adult,experimental_optimal_prey_size_adult, preyc, paras, fLc, m_host,rpara, pS, test0
     real(rk), dimension(3,3):: grss,grazing_pressure_ji 
-    real(rk), dimension(51):: mAurelia60, mCyanea60
+
     real(rk) :: dl, bcrit1, preyE
     real(rk) :: fR, lm_adult, al, lavg, aff, activ, no_div_zero_eps,mean_Temperature_HR,mben,Temperaturep
     real(rk) :: dp_dB, no_age, cnidaria
@@ -625,10 +632,7 @@ contains
     if (Debugout)  write (*,*) '2 predators'
     endif
 
-    ! annual TS abundance data for scyphomedusae from VanWalraven et al 2014 
-    mAurelia60 =(/ 2.133,0.213,0.000,7.253,0.000,0.213,0.213,0.427,0.000,0.000,0.000,0.000,0.000,0.000,0.000,0.640,0.000,0.000,72.960,0.427,30.080,47.787,10.667,0.853,20.053,77.013,9.387,24.960,6.400,10.667,9.387,31.147,26.667,16.427,4.267,29.227,4.693,7.253,2.133,0.640,0.427,4.053,7.893,12.587,0.213,0.000,0.000,27.733,3.840,0.213,22.613 /)
-    mCyanea60  =(/ 0.033,0.000,0.000,0.780,0.423,0.195,0.033,0.553,0.033,0.000,0.000,0.748,1.301,0.065,2.211,0.325,0.585,0.228,0.033,0.033,0.325,5.236,0.358,0.423,0.520,9.138,2.699,0.585,1.528,1.691,5.463,2.472,0.065,3.089,1.203,0.195,10.862,0.748,0.358,0.423,0.260,0.455,1.789,6.667,1.203,0.390,2.146,11.740,1.171,0.098,0.618 /)
-
+   
 
     !-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -653,6 +657,7 @@ contains
        ! Retrieve current environmental conditions.
        !#S_GED
        _GET_(self%id_Copepods, var(ib)%Copepods)  ! biomass from Greve data-set
+       !_GET_(self%id_Size_Copepods, var(ib)%Size_Copepods)  ! biomass from Greve data-set
        _GET_(self%id_Temperature, var(ib)%Temperature)  ! Temperature HR
        _GET_(self%id_Biomass_Phytoplankton, var(ib)%Biomass_Phytoplankton)  ! Biomass_Phytoplanktontoplankton biomass HR
        !#E_GED
@@ -667,7 +672,7 @@ contains
 
 
 
-    cnidaria = additional_food(var(1)%BenTime,mAurelia60,mCyanea60)
+    cnidaria = additional_food(var(1)%BenTime)
 
 
     ! loop over boxes   1: HR  2: Offshore
@@ -678,7 +683,10 @@ contains
        ! set coefficient vectors over prey populations:  1: Beroe 2: Ppileus  3: Copepodss
        log_mean_size(1) = var(ib)%Size_Beroe  ! mean body size of population
        log_mean_size(2) = var(ib)%Size_PleurobrachiaPileus  ! 
-       log_mean_size(3) = -0.6d0        ! small Copepodsepods dominate. ! TODO: include as forcing 
+       !log_mean_size(3) = -0.6d0        ! small Copepodsepods dominate. ! TODO: include as forcing 
+       log_mean_size(3) = self%Size_Copepods_initial        ! small Copepodsepods dominate. ! TODO: include as forcing 
+       !log_mean_size(3) = var(ib)%Size_Copepods
+
        log_size_variance_mesozoo(3) = 0.8d0         ! log-size variance of mesozooplakton
        mass(1)   = var(ib)%Biomass_Beroe  ! biomass concentration
        mass(2)   = var(ib)%Biomass_PleurobrachiaPileus
@@ -925,7 +933,7 @@ contains
           mort_R(i) = activ * mort_R0(i)
           !   affin   = affin  * dummy_reused_variable3/(1.0d0 + dummy_reused_variable3)log_mean_size(i)
           affin(i)     = affin(i) * activ * exp(-detect*detect) 
-          !  loop over prey populations:  1: Beroe 2: Ppileus 3: Copepodss
+          !  loop over prey populations:  1: Beroe 2: Ppileus 3: Copepods
           do j = 1, 3 ! calc total available prey biomass first
              ! if (webtopo(j,i) .gt. 0) then
              if (webtopo(j,i)) then
@@ -1251,9 +1259,16 @@ contains
           _SET_DIAGNOSTIC_(self%id_ObsMass2, biomass_observable(2) ) 
           _SET_DIAGNOSTIC_(self%id_ObsMass3, biomass_observable(3) )
 
-_SET_DIAGNOSTIC_(self%id_dummy11,  rhsv%Biomass_PleurobrachiaPileus)  
+         _SET_DIAGNOSTIC_(self%id_dummy11,  rhsv%Biomass_PleurobrachiaPileus)  
+         _SET_DIAGNOSTIC_(self%id_dummy12,  rhsv%Parasites_PleurobrachiaPileus)  
+         _SET_DIAGNOSTIC_(self%id_dummy13, mben)  
+         _SET_DIAGNOSTIC_(self%id_dummy14, mass_sum)
+         _SET_DIAGNOSTIC_(self%id_dummy15,log_mean_size(3))
+ !_SET_DIAGNOSTIC_(self%id_dummy16,)
+ !_SET_DIAGNOSTIC_(self%id_dummy17, )
+ !_SET_DIAGNOSTIC_(self%id_dummy18,)
+ !_SET_DIAGNOSTIC_(self%id_dummy19, )
 
-_SET_DIAGNOSTIC_(self%id_dummy12,  rhsv%Parasites_PleurobrachiaPileus)  
 
 
           !write (*,'(1(F10.6))')   ftd/ntd 
@@ -1331,38 +1346,26 @@ _SET_DIAGNOSTIC_(self%id_dummy12,  rhsv%Parasites_PleurobrachiaPileus)
   end function e_Temperature
 
   ! ------------------------------------------------------------------------------
-  subroutine mixing(self,Dil,Conci,Volo,Conco, dConci, dConco)
-    implicit none
-    ! !INPUT PARAMETERS:
-    class (type_hzg_ctenophore_jt),intent(in) :: self
-    real(rk), intent(in)      :: Dil,Conci,Volo,Conco
-    real(rk), intent(inout)   :: dConci, dConco
-    real(rk)   ::  Conc_mix
-    ! mixing coefficients 
-    Conc_mix = (Conco*Volo+Conci)/(Volo + 1.0d0)
-
-    dConci = Dil* ( Conco - Conc_mix ) *  Volo
-    dConco = Dil* ( Conci - Conc_mix ) 
-  end subroutine mixing
-
+ 
   pure real(rk) function errfunc(arg)
     implicit none
     ! !INPUT PARAMETERS:
-
     real(rk), intent(in)      :: arg
-
-
-
     errfunc  = (1-exp(-arg*2.45d0))/(1+exp(-arg*2.45d0))
-
   end function errfunc
 
-  pure real(rk) function additional_food(btime,mAurelia60,mCyanea60)
+
+!this function provides additional predatoion pressure based on observation data. As these data is derived from annual averages, we cannot read it in from file, since special interpolation is needed.
+  pure real(rk) function additional_food(btime)
     implicit none
     real(rk),intent(in) :: btime
-    real(rk),dimension(51),intent(in) :: mAurelia60,mCyanea60
+    real(rk),dimension(51) :: mAurelia60,mCyanea60
     real(rk) :: reltim,cnidaria
     integer::yi
+
+ ! annual TS abundance data for scyphomedusae from VanWalraven et al 2014 
+    mAurelia60 =(/ 2.133,0.213,0.000,7.253,0.000,0.213,0.213,0.427,0.000,0.000,0.000,0.000,0.000,0.000,0.000,0.640,0.000,0.000,72.960,0.427,30.080,47.787,10.667,0.853,20.053,77.013,9.387,24.960,6.400,10.667,9.387,31.147,26.667,16.427,4.267,29.227,4.693,7.253,2.133,0.640,0.427,4.053,7.893,12.587,0.213,0.000,0.000,27.733,3.840,0.213,22.613 /)
+    mCyanea60  =(/ 0.033,0.000,0.000,0.780,0.423,0.195,0.033,0.553,0.033,0.000,0.000,0.748,1.301,0.065,2.211,0.325,0.585,0.228,0.033,0.033,0.325,5.236,0.358,0.423,0.520,9.138,2.699,0.585,1.528,1.691,5.463,2.472,0.065,3.089,1.203,0.195,10.862,0.748,0.358,0.423,0.260,0.455,1.789,6.667,1.203,0.390,2.146,11.740,1.171,0.098,0.618 /)
 
     !if (btime .lt. 7.4d0) then   cnidaria = 1.0d0
     !else   cnidaria = 5.0d0 endif
