@@ -1,7 +1,8 @@
 mole_fraction_of_carbon_dioxide_in_air:
   constant_value: 400
 ctenophore/copepod_biom:
- file: env_NCopPhy_74103.dat
+# file: env_NCopPhy_74103.dat
+ file: copepodsforcing.dat
  column: 1
 Temperature: 
  file: env_NCopPhy_74103.dat
@@ -9,6 +10,6 @@ Temperature:
 ctenophore/phy:
  file: env_NCopPhy_74103.dat
  column: 3
-#ctenophore/copepod_size:
-# file:
-# column: 0
+ctenophore/copepod_size:
+ file: copepodsforcing.dat
+ column: 2

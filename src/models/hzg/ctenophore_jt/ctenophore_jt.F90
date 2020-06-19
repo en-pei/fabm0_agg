@@ -39,7 +39,7 @@ module hzg_ctenophore_jt
   ! --- HZG model types
   type type_jelly_var
      real(rk) :: Biomass_PleurobrachiaPileus,Size_PleurobrachiaPileus,Biomass_Beroe,Size_Beroe,Biomass_Detritus,Parasites_PleurobrachiaPileus,Parasites_Beroe,BenTime
-     real(rk) :: Copepods,Temperature,Biomass_Phytoplankton
+     real(rk) :: Copepods,Temperature,Biomass_Phytoplankton,Size_Copepods
   end type type_jelly_var
   type type_jelly_rhs
      real(rk) :: Biomass_PleurobrachiaPileus,Size_PleurobrachiaPileus,Biomass_Beroe,Size_Beroe,Biomass_Detritus,Parasites_PleurobrachiaPileus,Parasites_Beroe,BenTime
@@ -531,7 +531,7 @@ contains
 
 
    call self%register_dependency(self%id_Copepods,'copepod_biom','µg-C/L','Copepod_Biomass')
-   !call self%register_dependency(self%id_Size_Copepods,'copepod_size','log(ESD/mm)','Copepod_Size')
+   call self%register_dependency(self%id_Size_Copepods,'copepod_size','log(ESD/mm)','Copepod_Size')
    call self%register_dependency(self%id_Temperature,standard_variables%Temperature)
    call self%register_dependency(self%id_Biomass_Phytoplankton,'phy','mol-C/m3','mole_concentration_of_phytoplankton_expressed_as_carbon_in_sea_water')
 
@@ -657,7 +657,7 @@ contains
        ! Retrieve current environmental conditions.
        !#S_GED
        _GET_(self%id_Copepods, var(ib)%Copepods)  ! biomass from Greve data-set
-       !_GET_(self%id_Size_Copepods, var(ib)%Size_Copepods)  ! biomass from Greve data-set
+       _GET_(self%id_Size_Copepods, var(ib)%Size_Copepods)  ! biomass from Greve data-set
        _GET_(self%id_Temperature, var(ib)%Temperature)  ! Temperature HR
        _GET_(self%id_Biomass_Phytoplankton, var(ib)%Biomass_Phytoplankton)  ! Biomass_Phytoplanktontoplankton biomass HR
        !#E_GED
@@ -684,8 +684,8 @@ contains
        log_mean_size(1) = var(ib)%Size_Beroe  ! mean body size of population
        log_mean_size(2) = var(ib)%Size_PleurobrachiaPileus  ! 
        !log_mean_size(3) = -0.6d0        ! small Copepodsepods dominate. ! TODO: include as forcing 
-       log_mean_size(3) = self%Size_Copepods_initial        ! small Copepodsepods dominate. ! TODO: include as forcing 
-       !log_mean_size(3) = var(ib)%Size_Copepods
+       !log_mean_size(3) = self%Size_Copepods_initial        ! small Copepodsepods dominate. ! TODO: include as forcing 
+       log_mean_size(3) = var(ib)%Size_Copepods
 
        log_size_variance_mesozoo(3) = 0.8d0         ! log-size variance of mesozooplakton
        mass(1)   = var(ib)%Biomass_Beroe  ! biomass concentration
