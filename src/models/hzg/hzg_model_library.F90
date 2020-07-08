@@ -26,6 +26,7 @@ contains
       use fabm_hzg_icealgea
       use hzg_icelight
       use hzg_uvlight
+      use fabm_hzg_pops
 
       ! KSE specific models
       !use hzg_omexdia_p_mpb
@@ -57,6 +58,7 @@ contains
          case ('icealgea');     allocate(type_hzg_icealgea::model)
          case ('icelight');     allocate(type_hzg_icelight::model)
          case ('uvlight');      allocate(type_hzg_uvlight::model)
+         case ('pops');         allocate(type_hzg_pops::model)
          !case ('omexdia_p_mpb'); allocate(type_hzg_omexdia_p_mpb::model)
          !case ('omexdia_cnp'); allocate(type_hzg_omexdia_cnp::model)
          !case ('omexdia_mpb'); allocate(type_hzg_omexdia_mpb::model)

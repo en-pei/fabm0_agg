@@ -16,3 +16,8 @@ use_chl: [.true./.false.] switch chlorophyll prognostic dynamics on/off.
 
 couple_co2: [.true./.false.] use coupling of dic rates to external carbonate model. This is tested with the pml/carbonate model. default is .false.
             If .true. use "dic_target" and "alk_target" under "coupling" in the ECOSMO configuration.
+
+use_fish: [.true./.false.] .true. runs ecosmo with two fish functional groups (fish1: dominantly planktivore, fish2:dominantly pisci and benthivore)           and macrobenthos.
+            default is .false.
+            in case of .true. use fabm.yaml_e2e2 for yaml file"
+

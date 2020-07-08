@@ -1,0 +1,80 @@
+instances:
+ ctenophore:
+     long_name: hzg_jt_ctenophore
+     model: hzg/ctenophore_jt
+     initialization:
+       Biomass_PleurobrachiaPileus: 3E-2
+       Size_PleurobrachiaPileus: 1.0
+       Biomass_Beroe: 0.5E-4
+       Size_Beroe: 1.5
+       Biomass_Detritus: 1000.0
+       Parasites_PleurobrachiaPileus: 200.0
+       Parasites_Beroe: 200.0
+       BenTime: 0.0
+     parameters:
+      Biomass_PleurobrachiaPileus_initial: 3E-2 
+      Size_PleurobrachiaPileus_initial: 1.
+      Biomass_Beroe_initial: 0.5E-4
+      Size_Beroe_initial: 1.5
+      Biomass_Detritus_initial: 1000.
+      Parasites_PleurobrachiaPileus_initial: 200.
+      Parasites_Beroe_initial: 200.
+      BenTime_initial: 0
+#      Size_Copepods_initial: -0.6
+      Size_Copepods_initial: -0.8
+      Size_Adult_PleurobrachiaPileus: 2.0 
+#     Size_Adult_Beroe: 2.0
+      Size_Adult_Beroe: 4.0 
+      size_offspring: -1.2
+      lstarv: 2. 
+      sigma: 1. 
+      Imax_pot_star: 173.
+      yield: 0.44 
+      mR: 0.03 
+      mS: 8.E-2 
+#      mP: 2.E-3
+      mP: 1.E-3  
+      mT: 0.
+#      mT: 0.01
+      Q10: 2.2 
+      Tc: 4.5
+      Bcrit: 25. 
+      relCVDens: 150.0 
+      m_predBe: 0.01
+      optimal_prey_size_adult_PleurobrachiaPileus: -0.5
+      optimal_prey_size_adult_Beroe: 2. 
+      immigr: 5e-06 
+      rDet: 0.04 
+      rParasite: 0.002 
+      fTDmort: 0.35 
+      m_pcap: 85.
+#      m_pcap: 100.
+#      m_pcap: 25. 
+      mDisturb: 4.
+      Temperature_Change_Rate: 0.
+      Copepod_Temperature_Change_Rate: 0.
+      TransectOn: false
+      SizeDynOn: true 
+      LowPassOn: true
+      OptionOn:  false 
+      TECopepodshysOn: false
+#     coupling: 
+#      phy: forcing/phy
+#      copepod_biom: forcing/copepod_biom
+#      Medusae: forcing/Medusae
+#      Temperature: Temperature
+ 
+  
+
+
+ helper:
+     use: false
+     long_name: forcing_helper
+     model: hzg/forcing
+     initialization:
+      phy: 0.
+      copepod_biom: 0.
+      Temperature: 0.
+      Medusae: 0.
+
+
