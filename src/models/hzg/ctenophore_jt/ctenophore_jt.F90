@@ -58,7 +58,7 @@ module hzg_ctenophore_jt
      type (type_diagnostic_variable_id) :: id_sig1,id_sig2,id_sig3,id_ObsMass1,id_ObsMass2,id_ObsMass3
      type(type_diagnostic_variable_id):: id_grazingpressure1,id_grazingpressure2,id_grazingpressure3,id_grazingpressure4,id_grazingpressure5,id_grazingpressure6,id_grazingpressure7,id_grazingpressure8,id_grazingpressure9
      real(rk) ::  Biomass_PleurobrachiaPileus_initial, Size_PleurobrachiaPileus_initial, Biomass_Beroe_initial, Size_Beroe_initial, Biomass_Detritus_initial, Parasites_PleurobrachiaPileus_initial, Parasites_Beroe_initial, BenTime_initial, Size_Copepods_initial
-     real(rk) ::  Size_Adult, size_offspring, lstarv, sigma, Imax_pot_star, yield, mR, mS, mP, mT, Q10, Tc, Bcrit, relCVDens, m_predBe, optimal_prey_size_adult_PleurobrachiaPileus, optimal_prey_size_adult_Beroe, optimal_prey_size_adult_Copepod, immigr, rDet, rParasite, fTDmort, m_pcap, mDisturb, Temperature_Change_Rate, Copepod_Temperature_Change_Rate
+     real(rk) ::  Size_Adult,Size_Adult_PleurobrachiaPileus,Size_Adult_Beroe, size_offspring, lstarv, sigma, Imax_pot_star, yield, mR, mS, mP, mT, Q10, Tc, Bcrit, relCVDens, m_predBe, optimal_prey_size_adult_PleurobrachiaPileus, optimal_prey_size_adult_Beroe, optimal_prey_size_adult_Copepod, immigr, rDet, rParasite, fTDmort, m_pcap, mDisturb, Temperature_Change_Rate, Copepod_Temperature_Change_Rate
      logical  ::  TransectOn, SizeDynOn, LowPassOn, OptionOn, TECopepodshysOn
      real(rk):: Size_observable
    contains
@@ -164,7 +164,8 @@ contains
     !> describepar{Copepod_Temperature_Change_Rate     , \Delta_{Copepods}     , correlation Copepodsepod vs. Temperature change    , 0. µg-C/L/^oC}
     !!------- Parameters from nml-list jelly_pars ------- 
     real(rk) :: Size_Observable
-    real(rk)  :: Size_Adult           ! adult ctenophore size        
+    real(rk)  :: Size_Adult_PleurobrachiaPileus           ! adult ctenophore size    
+    real(rk)  :: Size_Adult_Beroe           ! adult ctenophore size        
     real(rk)  :: size_offspring           ! offspring size
     real(rk)  :: lstarv       ! minimum starvation size
     real(rk)  :: sigma        ! log-size specific std deviation 
@@ -218,7 +219,8 @@ contains
     Parasites_PleurobrachiaPileus_initial = 25.0_rk              ! µg-C/L
     Parasites_Beroe_initial = 2.5_rk              ! µg-C/L
     BenTime_initial = 0._rk              ! d
-    Size_Adult           = 2.0_rk             ! log(ESD/mm)
+    Size_Adult_PleurobrachiaPileus           = 2.0_rk             ! log(ESD/mm)
+    Size_Adult_Beroe           = 2.0_rk             ! log(ESD/mm)
     size_offspring           = -1.2_rk            ! log(ESD/mm)
     lstarv       = 2._rk              ! log(ESD/mm)
     sigma        = 1._rk              ! log(ESD/mm)^2
@@ -277,7 +279,8 @@ contains
     call self%get_parameter(self%Size_Copepods_initial ,'Size_Copepods_initial',  default=Size_Copepods_initial)
 
     !!------- model parameters from nml-list jelly_pars -------
-    call self%get_parameter(self%Size_Adult           ,'Size_Adult',            default=Size_Adult)
+    call self%get_parameter(self%Size_Adult_PleurobrachiaPileus           ,'Size_Adult_PleurobrachiaPileus',            default=Size_Adult_PleurobrachiaPileus)
+    call self%get_parameter(self%Size_Adult_Beroe           ,'Size_Adult_Beroe',            default=Size_Adult_Beroe)
     call self%get_parameter(self%size_offspring           ,'size_offspring',            default=size_offspring)
     call self%get_parameter(self%lstarv       ,'lstarv',        default=lstarv)
     call self%get_parameter(self%sigma        ,'sigma',         default=sigma)
@@ -588,10 +591,11 @@ contains
     real(rk), dimension(3) :: mGrz, sig, log_size_variance_mesozoo, log_mean_size, mass, relDens
     real(rk), dimension(3) :: mort_R, mort_R0, mort_P
     real(rk), dimension(3) :: optimal_prey_size_adult,experimental_optimal_prey_size_adult, preyc, paras, fLc, m_host,rpara, pS, test0
+    real(rk),dimension(3) :: Size_Adult,Size_Maturity,lavg
     real(rk), dimension(3,3):: grss,grazing_pressure_ji 
 
     real(rk) :: dl, bcrit1, preyE
-    real(rk) :: fR, lm_adult, al, lavg, aff, activ, no_div_zero_eps,mean_Temperature_HR,mben,Temperaturep
+    real(rk) :: fR, lm_adult, al, aff, activ, no_div_zero_eps,mean_Temperature_HR,mben,Temperaturep
     real(rk) :: dp_dB, no_age, cnidaria
     real(rk),dimension(3)::gross,prey_mass_after_selection, prey_mass_after_selection_relative_biovolume,dp_dl,affin
     real(rk), dimension(3) :: prod,fA,fObs,biomass_observable
@@ -739,13 +743,16 @@ contains
        relDens(3)= 1.0d0          ! Copepodss: non-jelly
        ! opt-prey-size change during ontogeny
 
-
+       Size_Adult(1)=self%Size_Adult_PleurobrachiaPileus
+       Size_Adult(2)=self%Size_Adult_Beroe
+       Size_Adult(3)=-2.0d0 !should never be used
+       Size_Maturity=Size_Adult !todo: adult size is not equal to maturity in ctenophores
        experimental_optimal_prey_size_adult(1)=self%optimal_prey_size_adult_Beroe
        experimental_optimal_prey_size_adult(2)=self%optimal_prey_size_adult_PleurobrachiaPileus
        experimental_optimal_prey_size_adult(3)=self%optimal_prey_size_adult_Copepod !=-3.5d0
 
-       Change_of_optimal_prey_size(1)= prey_development(experimental_optimal_prey_size_adult(1),self%size_offspring,self%Size_Adult)
-       Change_of_optimal_prey_size(2)= prey_development(experimental_optimal_prey_size_adult(2),self%size_offspring,self%Size_Adult)
+       Change_of_optimal_prey_size(1)= prey_development(experimental_optimal_prey_size_adult(1),self%size_offspring,self%Size_Adult_PleurobrachiaPileus)
+       Change_of_optimal_prey_size(2)= prey_development(experimental_optimal_prey_size_adult(2),self%size_offspring,self%Size_Adult_Beroe)
        Change_of_optimal_prey_size(3)= prey_development(experimental_optimal_prey_size_adult(3),self%size_offspring,log_mean_size(3))
 
        Temperature_dep(3) = f_Temperature(self%Q10+1.0d0, Temperaturep, 0.0d0)
@@ -753,7 +760,9 @@ contains
        ! re-gauge coefficient to apply  Imax-scaling of Wirtz JPR,2012 
        !    log(1E3/80) converts from log(micro-m) to log(mm) but accounts for much lower C-density
        ! optimum size/stage with minimal life-stage dependent mortality 
-       lavg    = 0.5d0*(self%Size_Adult + self%size_offspring) ! 0.4
+do i = 1, max_number_of_predators
+       lavg(i)    = 0.5d0*(Size_Adult(i) + self%size_offspring) ! 0.4
+end do
        !  loop over ctenophore populations:  1: Beroe 2: Ppileus 
        !
        ! Temperature experiment; separate effect on parasite dynamics through altered Copepodsepod/detrital mass
@@ -766,8 +775,8 @@ contains
        do i = 1, max_number_of_predators
           lco(i)       = log(1E3/relDens(i))
           optimal_prey_size(i)   = self%size_offspring + (log_mean_size(i)-self%size_offspring)*Change_of_optimal_prey_size(i) ! optimal prey size
-          optimal_prey_size_adult(i)  = self%size_offspring + (self%Size_Adult-self%size_offspring)*Change_of_optimal_prey_size(i) ! optimal prey size
-          !Temperature_dep(3)fLc* * *exp(0.5*(log_mean_size(i)-lavg-optimal_prey_size(i)))
+          optimal_prey_size_adult(i)  = self%size_offspring + (Size_Adult(i)-self%size_offspring)*Change_of_optimal_prey_size(i) ! optimal prey size
+          !Temperature_dep(3)fLc* * *exp(0.5*(log_mean_size(i)-lavg(i)-optimal_prey_size(i)))
           ! potential maximum ingestion rate depending on size, T, and feeding mode
           ! re-gauge log size to µm-scale used in Wirtz JPR,2012     log(1E3/80)=2.5
           !    converts from log(µm) to log(mm) but accounts for much lower C-density  
@@ -775,12 +784,12 @@ contains
           !!    if (IsMaxIng) then
           !! correction to prevent unrealistic Imax-size dependency for juveniles (see Fig.4 Wirtz JPR 2013)
           !!***!
-          !!      argA0      = log_mean_size(i)/lavg
+          !!      argA0      = log_mean_size(i)/lavg(i)
           !!      argA0      = log_mean_size(i)
           !!      
           !!     
           !      lesdr = (log_mean_size(i)*exp(log_mean_size(i)) +1.0)/(exp(log_mean_size(i))+exp(-log_mean_size(i)))
-          !!      lesdr   = (log_mean_size(i)*exp(log_mean_size(i)) + lavg)/(exp(log_mean_size(i))+exp(-log_mean_size(i)))
+          !!      lesdr   = (log_mean_size(i)*exp(log_mean_size(i)) + lavg(i))/(exp(log_mean_size(i))+exp(-log_mean_size(i)))
           !      optimal_prey_sizem   = self%size_offspring + (lesdr-self%size_offspring)*Change_of_optimal_prey_size(i) ! optimal prey size
           !    else
           lesdr   = log_mean_size(i)
@@ -791,7 +800,7 @@ contains
           if (i .lt. 3) then  !only for i=1,2 aka Beroe Pleurobrachia!!
              !! TODO: refine empirical relationship using Falkenhaug1996 or Finenko2003 data 
              !***!
-             log_size_variance_mesozoo(i) = self%sigma * exp(-0.5*(lavg-log_mean_size(i))**2) *(1.0d0-(i-1)*0.2)
+             log_size_variance_mesozoo(i) = self%sigma * exp(-0.5*(lavg(i)-log_mean_size(i))**2) *(1.0d0-(i-1)*0.2)
              sig(i)    = sqrt(log_size_variance_mesozoo(i))  
              !Temperature_dep(i) = f_Temperature(self%Q10+0.*optimal_prey_size(i), Temperaturep, self%Tc)
              Temperature_dep(i) = f_Temperature(self%Q10, Temperaturep, self%Tc)
@@ -902,8 +911,8 @@ contains
           end do
 
           ! mortality due to parasites maximal at newly hetched larvae (Hirota1974 ,Greve)
-          !   pS(i)      = 1.0d0/(1.0d0+exp((self%Size_Adult-log_mean_size(i))/lavg))
-          pS(i)      = 1.0d0/(1.0d0+exp(2*(self%Size_Adult-log_mean_size(i))))
+          !   pS(i)      = 1.0d0/(1.0d0+exp((self%Size_Adult-log_mean_size(i))/lavg(i)))
+          pS(i)      = 1.0d0/(1.0d0+exp(2*(Size_Adult(i)-log_mean_size(i))))
           ! life-stage dependent mortality due to parasites
           ! fraction of large "meso"zooplakton as suitable parasite host 
           !   mort_P  = self%mP * Temperature_dep(3)**2 *(1.0d0+pS) * (fLc(i)*var(ib)%Biomass_Detritus*1E-3)**2 
@@ -915,13 +924,13 @@ contains
           mort_P(i)  = self%mP * Temperature_dep(3) *(no_age+pS(i)) *bcrit1 ! * 4.0d0/(4.0d0+self%mP * bcrit1)
           ! if (mort_P(i) .gt. 3.0d0 ) write (*,'(A,1(I2),3(F14.3))') 'mp=',i,paras(i),m_host(i),mort_P(i)
 
-          detect=density_disturbance(self%Size_Adult,log_mean_size(3),log_size_variance_mesozoo(3),mass(1),mass(2),mass(3),self%mDisturb)
+          detect=density_disturbance(Size_Adult(1),log_mean_size(3),log_size_variance_mesozoo(3),mass(1),mass(2),mass(3),self%mDisturb)
           ! affinity contains depes on food type (gel), consumer density, Temperature, size(swimming)
 
           affin(i)    = 1.0d0/self%Bcrit *Temperature_dep(i)* exp(0.5d0*log_mean_size(i))
           !   dummy_reused_variable2      = 0.5*affin(i) * prey_mass_after_selection_relative_biovolume(i) / (self%mR*Temperature_dep(i)*exp(-0.5*log_mean_size(i)))
           ! Temperature dependent loss, with surface-to-volume scaling
-          !   mort_R  = self%mR * Temperature_dep(i) * exp(-0.5*log_mean_size(i)+lavg-0*optimal_prey_size(i))!)
+          !   mort_R  = self%mR * Temperature_dep(i) * exp(-0.5*log_mean_size(i)+lavg(i)-0*optimal_prey_size(i))!)
           dummy_reused_variable2 = f_Temperature(self%Q10+0.+ 0.*optimal_prey_size_adult(i), Temperaturep, self%Tc)
           !   mort_R0(i) = self%mR * Temperature_dep(i) * exp(-0.5*log_mean_size(i)+0*optimal_prey_size_adult(i))!)
           mort_R0(i) = self%mR * dummy_reused_variable2 * exp(-0.5*log_mean_size(i)-0.*optimal_prey_size_adult(i))!)
@@ -1012,13 +1021,13 @@ contains
 
           ! Biomass_Physical damage (turbulence); can be avoided by active swimming
           mort_T0(i)  = self%mT * starv(i) 
-          eS0      = sig13(i)* exp(-sig23(i)*(self%Size_Adult-log_mean_size(i))**2)
+          eS0      = sig13(i)* exp(-sig23(i)*(Size_Adult(i)-log_mean_size(i))**2)
           mort_T(i)   = mort_T0(i) * (1.0d0 - eS0) 
 
           ! --------  energy/carbon partitioning to egg production/somatic growth  ------------
           !
           !  how far way are juveniles from maturity ? 
-          argA2     = (self%Size_Adult-log_mean_size(i))/(sqrt(2.d0)*sig(i))
+          argA2     = (Size_Maturity(i)-log_mean_size(i))/(sqrt(2.d0)*sig(i))
 
           ! errf     = (1-exp(-argA2*2.45d0))/(1+exp(-argA2*2.45d0)) !error function
           errf=errfunc(argA2)
@@ -1076,12 +1085,12 @@ contains
              !  marginal size shift due to senescence
 
              ! size derivative 
-             dummy_reused_variable4       = 2 * pS(i)**2 * exp(2*(self%Size_Adult-log_mean_size(i)))/(no_div_zero_eps+no_age+pS(i))
+             dummy_reused_variable4       = 2 * pS(i)**2 * exp(2*(Size_Adult(i)-log_mean_size(i)))/(no_div_zero_eps+no_age+pS(i))
              sen_dl(i)   = -log_size_variance_mesozoo(i) *  mort_S0(i) * dummy_reused_variable4
 
              !  marginal size shift due to respiration and turbulence (same scaling exponent)
 
-             turb_dl(i)  = log_size_variance_mesozoo(i) * mort_T0(i) * eS0 *2*sig23(i)* (self%Size_Adult-log_mean_size(i))
+             turb_dl(i)  = log_size_variance_mesozoo(i) * mort_T0(i) * eS0 *2*sig23(i)* (Size_Adult(i)-log_mean_size(i))
 
              resp_dl(i)  = log_size_variance_mesozoo(i) * mort_R(i) * 0.5*(1+0*Change_of_optimal_prey_size(i))
 
@@ -1390,10 +1399,11 @@ contains
 
   pure real(rk) function density_disturbance(Size_Adult,log_mean_size3,log_size_variance_mesozoo3,mass1,mass2,mass3,mDisturb)
     implicit none
-    real(rk),intent(in) :: Size_Adult, log_mean_size3,log_size_variance_mesozoo3,mass1,mass2,mass3,mDisturb
+    !real(rk),dimension(3),intent(in): Size_Adult
+    real(rk),intent(in) :: Size_Adult,log_mean_size3,log_size_variance_mesozoo3,mass1,mass2,mass3,mDisturb
     real(rk) ::detect,dummy_reused_variable0
     ! consumer density reduces food visibility
-
+    !lets use PP size for now
     dummy_reused_variable0      = 1.*exp(-(Size_Adult-log_mean_size3)**2/(2*log_size_variance_mesozoo3)) * mass3
 
     detect  = (mass1+mass2+dummy_reused_variable0)/mDisturb !*exp(log_mean_size(i)-optimal_prey_size(i))
