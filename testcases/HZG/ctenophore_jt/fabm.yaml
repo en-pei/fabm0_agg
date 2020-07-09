@@ -22,7 +22,8 @@ instances:
       BenTime_initial: 0
 #      Size_Copepods_initial: -0.6
       Size_Copepods_initial: -0.8
-      Size_Adult_PleurobrachiaPileus: 2.0 
+#      Size_Adult_PleurobrachiaPileus: 2.0 
+      Size_Adult_PleurobrachiaPileus: 2.5 
 #     Size_Adult_Beroe: 2.0
       Size_Adult_Beroe: 4.0 
       size_offspring: -1.2

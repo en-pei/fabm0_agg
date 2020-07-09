@@ -743,8 +743,8 @@ contains
        relDens(3)= 1.0d0          ! Copepodss: non-jelly
        ! opt-prey-size change during ontogeny
 
-       Size_Adult(1)=self%Size_Adult_PleurobrachiaPileus
-       Size_Adult(2)=self%Size_Adult_Beroe
+       Size_Adult(1)=self%Size_Adult_Beroe
+       Size_Adult(2)=self%Size_Adult_PleurobrachiaPileus
        Size_Adult(3)=-2.0d0 !should never be used
        Size_Maturity=Size_Adult !todo: adult size is not equal to maturity in ctenophores
        experimental_optimal_prey_size_adult(1)=self%optimal_prey_size_adult_Beroe
