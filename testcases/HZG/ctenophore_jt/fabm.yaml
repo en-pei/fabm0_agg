@@ -28,14 +28,19 @@ instances:
       Size_Adult_Beroe: 4.0 
       size_offspring: -1.2
       lstarv: 2. 
-      sigma: 1. 
+#      sigma: 1.
+      sigma: 0.8 
       Imax_pot_star: 173.
       yield: 0.44 
-      mR: 0.03 
-      mS: 8.E-2 
+      mR: 0.01
+#     mR: 0.03 
+#      mS: 8.E-2
+#      mS: 0.042
+      mS: 0.055 
 #      mP: 2.E-3
-      mP: 1.E-3  
-      mT: 0.
+#      mP: 1.E-3
+      mP: 0.0028  
+      mT: 0.001
 #      mT: 0.01
       Q10: 2.2 
       Tc: 4.5
@@ -48,7 +53,8 @@ instances:
       rDet: 0.04 
       rParasite: 0.002 
       fTDmort: 0.35 
-      m_pcap: 85.
+      m_pcap: 75.
+#      m_pcap: 85.
 #      m_pcap: 100.
 #      m_pcap: 25. 
       mDisturb: 4.

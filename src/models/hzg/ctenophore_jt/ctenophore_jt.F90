@@ -525,7 +525,7 @@ contains
 
 
     !!------- Register environmental dependencies  ------- 
-    !!-------------------------redo this with a nicer way of reading in data
+    !!-------------------------read in data using the imput.yaml
 
 
     !call self%register_dependency(self%id_Copepods,standard_variables%downwelling_photosynthetic_radiative_flux)
@@ -1278,6 +1278,10 @@ end do
  !_SET_DIAGNOSTIC_(self%id_dummy18,)
  !_SET_DIAGNOSTIC_(self%id_dummy19, )
 
+!         _SET_DIAGNOSTIC_(self%id_Copepods, var(ib)%Copepods)  ! biomass from Greve data-set
+!         _SET_DIAGNOSTIC_(self%id_Size_Copepods, var(ib)%Size_Copepods)  ! biomass from Greve data-set
+!         _SET_DIAGNOSTIC_(self%id_Temperature, var(ib)%Temperature)  ! Temperature HR!
+!         _SET_DIAGNOSTIC_(self%id_Biomass_Phytoplankton, var(ib)%Biomass_Phytoplankton)  ! Biomass_Phytoplanktontoplankton biomass HR
 
 
           !write (*,'(1(F10.6))')   ftd/ntd 
