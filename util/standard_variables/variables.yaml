@@ -52,6 +52,8 @@ interior:
     units: m
   - name: net_rate_of_absorption_of_shortwave_energy_in_layer
     units: W m-2
+  - name: turbulent_kinetic_energy
+    units: m2 s-2
   - name: turbulent_kinetic_energy_dissipation
     units: W kg-1
     synonyms: [turbulence_dissipation]
@@ -89,12 +91,26 @@ horizontal:
     units: 1e-6
   - name: wind_speed
     units: m s-1
+  - name: ice_thickness
+    units: m
+  - name: snow_thickness
+    units: m
+  - name: ice_concentration
+    units: 1/1
   - name: surface_specific_humidity
     units: 1
   - name: surface_air_pressure
     units: Pa
   - name: surface_temperature
     units: degree_Celsius
+  - name: ice_area_fraction
+    units: 1
+  - name: surface_albedo
+    units: 1
+    aggregate_variable: true
+  - name: surface_drag_coefficient_in_air
+    units: 1
+    aggregate_variable: true
 global:
   - name: number_of_days_since_start_of_the_year
     units: d
