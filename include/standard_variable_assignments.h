@@ -97,9 +97,6 @@ standard_variables%temperature%name = 'temperature'
 standard_variables%temperature%units = 'degree_Celsius'
 standard_variables%temperature%cf_names = 'sea_water_temperature'
 
-standard_variables%turbulent_kinetic_energy%name = 'turbulent_kinetic_energy'
-standard_variables%turbulent_kinetic_energy%units = 'm2 s-2'
-
 standard_variables%turbulent_kinetic_energy_dissipation%name = 'turbulent_kinetic_energy_dissipation'
 standard_variables%turbulent_kinetic_energy_dissipation%units = 'W kg-1'
 standard_variables%turbulent_kinetic_energy_dissipation%cf_names = 'specific_turbulent_kinetic_energy_dissipation_in_sea_water'

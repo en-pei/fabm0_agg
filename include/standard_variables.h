@@ -26,7 +26,6 @@ type (type_bulk_standard_variable) :: practical_salinity
 type (type_bulk_standard_variable) :: pressure
 type (type_bulk_standard_variable) :: secchi_depth
 type (type_bulk_standard_variable) :: temperature
-type (type_bulk_standard_variable) :: turbulent_kinetic_energy
 type (type_bulk_standard_variable) :: turbulent_kinetic_energy_dissipation
 
 ! Horizontal variables
