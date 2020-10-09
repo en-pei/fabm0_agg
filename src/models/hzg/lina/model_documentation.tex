@@ -250,33 +250,51 @@ Attenuation coefficient
 \begin{table*}[h]
   \centering
   \caption{Inner state variables and model parameters}
-  \begin{tabular}{cll}
+  \begin{tabular}{clll}
   \hline
-    \textbf{Symbol} & \textbf{Name} & \textbf{Unit}\\ \hline
+    \textbf{Symbol} & \textbf{Name} & \textbf{Unit}& is Parameter \\ \hline
     & \emph{Plankton compartment} & \\
+    $e_N$ & external Nitrogen input\\
+    $e_P$ & external Phosphorus input \\
     $Q^X_N$ & Nitrogen to carbon ratio in phytoplankton & mol-N mol-C$^{-1}$ \\
     $Q^X_P$ & Phosphorus to carbon ratio in phytoplankton & mol-P mol-C$^{-1}$ \\
-    $Q^*_N$ & Maximum nitrogen to carbon ratio & mol-N mol-C$^{-1}$ \\
-    $Q^*_P$ & Maximum phosphorus to carbon ratio & mol-P mol-C$^{-1}$ \\
+    $Q^*_N$ & Maximum nitrogen to carbon ratio & mol-N mol-C$^{-1}$ &Y\\
+    $Q^*_P$ & Maximum phosphorus to carbon ratio & mol-P mol-C$^{-1}$ &Y\\
+    $Q^0_N$ & Baseline nitrogen to carbon ratio & mol-N mol-C$^{-1}$ &Y\\
+    $Q^0_P$ & Baseline phosphorus to carbon ratio & mol-P mol-C$^{-1}$ &Y\\
+    $h$ & &&Y\\
+    $d_X$&Phytoplankton Size& m &\\
+    $d_A$&Aggregate Size& m &\\
+    $\rho_L$& Density of Lithogeneous & kg m-3 & Y\\
+    $\rho_A$& Density of Aggregates & kg m-3&\\
+    $\rho_X$& Density of Phytoplankton & kg m-3 &\\
+    $\rho_w$&Density of Water & kg m-3&Y\\
     $\mu_X$ & Phytoplankton growth rate & d$^{-1}$ \\
     $m_X$ & Phytoplankton mortality rate & d$^{-1}$ \\
     $w_X$ & Phytoplankton sinking rate & d$^{-1}$ \\
     $C_X$ & Phytoplankton coagulation rate & d$^{-1}$ \\
     $\gamma_N$ & Nitrogen uptake rate & mol-N mol-C$^{-1}$ d$^{-1}$ \\
     $\gamma_P$ & Phosphorus uptake rate & mol-P mol-C$^{-1}$ d$^{-1}$ \\
+    $\gamma_N*$ & Maximum Nitrogen uptake rate & mol-N mol-C$^{-1}$ d$^{-1}$ \\
+    $\gamma_P*$ & Maximum Phosphorus uptake rate & mol-P mol-C$^{-1}$ d$^{-1}$ \\
     $c_I$ & Light dependence in growth rate & -- \\
     $c$ & Physiology colimitation in growth rate & -- \\
     $n$ & Metabolic independence & -- \\
-    $\alpha$ & Photosynthesis slope &  \\
-    $\mu_{\textrm{max}}$ & Maximum growth rate & d$^{-1}$ \\
+    $\alpha$ & Photosynthesis slope & &Y \\
+    $\mu_{\textrm{max}}$ & Maximum growth rate & d$^{-1}$ &Y\\
     $E$ & Exopolymer material (EPS) production & mol-C m$^{-3}$ \\
-    $E_{\textrm{min}}$ & Minimum EPS production & mol-C m$^{-3}$ \\
-    $E_{\textrm{max}}$ & Maximum EPS production & mol-C m$^{-3}$ \\
+    $E_{\textrm{min}}$ & Minimum EPS production & mol-C m$^{-3}$&Y \\
+    $E_{\textrm{max}}$ & Maximum EPS production & mol-C m$^{-3}$ &Y\\
     $\dot{c}$ & Physiology stress for nutrient limitation & d$^{-1}$ \\
     $B$ & Parameter for EPS production & -- \\
     $B^*$ & Other parameter for EPS production & d \\
-    $n^*$ & Intrinsec metabolic independence & -- \\ \hline
+    $\zeta$ & Maximum/Basline respiration rate &&Y\\
+    $n^*$ & Intrinsec metabolic independence & --&Y \\ \hline
     & \emph{Aggregate compartment} & \\
+    $\psi$ &&\\
+    $C_L$ &&\\
+    $k_B$&&\\
+    $V_A$ & Volume of Aggregate & m-3 \\
     $Q^A_N$ & Nitrogen to carbon ratio in aggregate & mol-N mol-C$^{-1}$ \\
     $Q^A_P$ & Phosphorus to carbon ratio in aggregate & mol-P mol-C$^{-1}$ \\
     \hline
