@@ -31,13 +31,21 @@ module hzg_lina
      real(rk):: active_Light
 
      !State Variables of Lina
-     real(rk):: lina_X
+     real(rk)::lina_X
      real(rk)::lina_A
      real(rk)::lina_E
      real(rk)::lina_L
      real(rk)::lina_D
      real(rk)::lina_N
      real(rk)::lina_P
+
+     real(rk)::lina_QAP
+     real(rk)::lina_QAN
+     real(rk)::lina_QDP
+     real(rk)::lina_QDN
+     real(rk)::lina_QXP
+     real(rk)::lina_QXN 
+
      !External Input
      real(rk)::Temperature
 
@@ -50,15 +58,40 @@ module hzg_lina
      real(rk):: active_Light
    
      !State Variables need to have a RHS solution
-     real(rk):: lina_X
+     real(rk)::lina_X
      real(rk)::lina_A
      real(rk)::lina_E
      real(rk)::lina_L
      real(rk)::lina_D
      real(rk)::lina_N
      real(rk)::lina_P
+     real(rk)::lina_QAP
+     real(rk)::lina_QAN
+     real(rk)::lina_QDP
+     real(rk)::lina_QDN
+     real(rk)::lina_QXP
+     real(rk)::lina_QXN
 
   end type type_lina_rhs
+
+  type type_lina_param
+     !Type for holding tunable (non changing) parameters
+     real(rk)::lina_Q_starN
+     real(rk)::lina_Q_starP
+     real(rk)::lina_Q0N
+     real(rk)::lina_Q0P
+     real(rk)::lina_rhol
+     real(rk)::lina_rhow
+     real(rk)::lina_alpha
+     real(rk)::lina_mu_max
+     real(rk)::lina_E_min
+     real(rk)::lina_E_max
+     real(rk)::lina_zeta
+     real(rk)::lina_MI_star
+     real(rk)::lina_eN
+     real(rk)::lina_eP
+
+  end type type_lina_param
 
  type,extends(type_base_model),public:: type_hzg_lina
 
@@ -78,10 +111,17 @@ module hzg_lina
   type(type_state_variable_id)::id_lina_N
   type(type_state_variable_id)::id_lina_P
 
+  type (type_state_variable_id) ::id_lina_QXN
+  type (type_state_variable_id) ::id_lina_QXP
+  type (type_state_variable_id) ::id_lina_QDN
+  type (type_state_variable_id) ::id_lina_QDP
+  type (type_state_variable_id) ::id_lina_QAN
+  type (type_state_variable_id) ::id_lina_QAP
+
+
 
   ! Internal states of the LINA plankton compartment
-  type (type_diagnostic_variable_id) ::id_lina_QXN
-  type (type_diagnostic_variable_id) ::id_lina_QXP
+
   type (type_diagnostic_variable_id) ::id_lina_Q_starN
   type (type_diagnostic_variable_id) ::id_lina_Q_starP
   type (type_diagnostic_variable_id) ::id_lina_muX
@@ -92,7 +132,7 @@ module hzg_lina
   type (type_diagnostic_variable_id) ::id_lina_gammaP
   type (type_diagnostic_variable_id) ::id_lina_cI
   type (type_diagnostic_variable_id) ::id_lina_c
-  type (type_diagnostic_variable_id) ::id_lina_n
+  type (type_diagnostic_variable_id) ::id_lina_MI
   type (type_diagnostic_variable_id) ::id_lina_alpha
   type (type_diagnostic_variable_id) ::id_lina_mu_max
   type (type_diagnostic_variable_id) ::id_lina_E
@@ -100,11 +140,9 @@ module hzg_lina
   type (type_diagnostic_variable_id) ::id_lina_E_max
   type (type_diagnostic_variable_id) ::id_lina_C_dot
   type (type_diagnostic_variable_id) ::id_lina_B
-  type (type_diagnostic_variable_id) ::id_linaB_star
-  type (type_diagnostic_variable_id) ::id_lina_n_star
+  type (type_diagnostic_variable_id) ::id_lina_B_star
+  type (type_diagnostic_variable_id) ::id_lina_MI_star
   ! Internal state of the LINA aggregate compartment
-  type (type_diagnostic_variable_id) ::id_lina_QAN
-  type (type_diagnostic_variable_id) ::id_lina_QAP
 
 
   logical::dummy_logical
@@ -143,7 +181,7 @@ contains
    real(rk) ::lina_gammaP
    real(rk) ::lina_cI
    real(rk) ::lina_c
-   real(rk) ::lina_n
+   real(rk) ::lina_MI
    real(rk) ::lina_alpha
    real(rk) ::lina_mu_max
    real(rk) ::lina_E
@@ -152,7 +190,7 @@ contains
    real(rk) ::lina_C_dot
    real(rk) ::lina_B
    real(rk) ::lina_B_star
-   real(rk) ::lina_n_star
+   real(rk) ::lina_MI_star
    ! Internal state of the LINA aggregate compartment
    real(rk) ::lina_QAN
    real(rk) ::lina_QAP
@@ -165,81 +203,58 @@ contains
    call self%get_parameter(self%dummy_parameter,'Dummy_tunable_Parameter', default=-999.99_rk)
    call self%get_parameter(self%dummy_logical,'Dummy_logical_Parameter', default=.true.)
 
-
+   
+   !Register LINA parameters
+   call self%get_parameter(self%lina_eN,'external Nitrogen input', default=-999.99_rk)
+   call self%get_parameter(self%lina_eP,'external Phosphorus input', default=-999.99_rk)
    !Register LINA interals as diagnostic variables, allowing debugging
-   call self%register_diagnostic_variable(self%id_lina_QXN, 'QXN','mol-N mol-C-1', 'Phytoplankton Nitrogen to Carbon ratio', &
-         output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_lina_QXP, 'QXP','mol-P mol-C-1', 'Phytoplankton Phosphorous to Carbon ratio', &
-         output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_lina_Q_starN, 'QstarN','mol-N mol-C-1', 'Maximum Nitrogen to Carbon ratio', &
-         output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_lina_QXP, 'QstarP','mol-P mol-C-1', 'Maximum Phosphorous to Carbon ratio', &
-         output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_lina_muX, 'muX','1/d', 'Phytoplankton Growth Rate', &
-         output=output_instantaneous)  
-   call self%register_diagnostic_variable(self%id_lina_mX, 'mX','1/d', 'Phytoplankton Mortalility Rate', &
-         output=output_instantaneous)  
-   call self%register_diagnostic_variable(self%id_lina_wX, 'wX','1/d', 'Phytoplankton Sinking Rate', &
-         output=output_instantaneous)   
-   call self%register_diagnostic_variable(self%id_lina_CX, 'CX','1/d', 'Phytoplankton Coagulation Rate', &
-         output=output_instantaneous)   
-   call self%register_diagnostic_variable(self%id_lina_gammaN, 'gammaN','mol-N mol-C-1 d-1', 'Nitrogen Uptake Rate', &
-         output=output_instantaneous)  
-   call self%register_diagnostic_variable(self%id_lina_gammaP, 'gammaP','mol-P mol-C-1 d-1', 'Phosphorus Uptake Rate', &
-         output=output_instantaneous)  
-   call self%register_diagnostic_variable(self%id_lina_cI, 'cI','1/1', 'Light dependence in growth rate', &
-         output=output_instantaneous) 
-   call self%register_diagnostic_variable(self%id_lina_c, 'c','1/1', 'Physiology colimitation in growth rate', &
-         output=output_instantaneous) 
-   call self%register_diagnostic_variable(self%id_lina_n, 'n','1/1', 'Metabolic independence', &
-         output=output_instantaneous)   
-   call self%register_diagnostic_variable(self%id_lina_alpha, 'alpha','1/1', 'Photosysnthesis slope', &
-         output=output_instantaneous)   
-   call self%register_diagnostic_variable(self%id_lina_mu_max, 'mu_max','1/d', 'Maximum Growth Rate', &
-         output=output_instantaneous)   
-   call self%register_diagnostic_variable(self%id_lina_E, 'E','mol-C m-3', 'EPS production', &
-         output=output_instantaneous)   
-   call self%register_diagnostic_variable(self%id_lina_E_min, 'E_min','mol-C m-3', 'minimum EPS production', &
-         output=output_instantaneous)   
-   call self%register_diagnostic_variable(self%id_lina_E_max, 'E_max','mol-C m-3', 'maximum EPS production', &
-         output=output_instantaneous)   
-   call self%register_diagnostic_variable(self%id_lina_C_dot, 'C_dot','1/d', 'Physiology stress for nutrient limitaion', &
-         output=output_instantaneous)   
-   call self%register_diagnostic_variable(self%id_lina_B, 'B','1/1', 'EPS production parameter', &
-         output=output_instantaneous)   
-   call self%register_diagnostic_variable(self%id_lina_B_star, 'B_star','d', 'Other EPS production parameter', &
-         output=output_instantaneous) 
-   call self%register_diagnostic_variable(self%id_lina_n_star, 'n_star','1/1', 'Intrinsic Metabolic independence', &
-         output=output_instantaneous) 
+    call self%register_diagnostic_variable(self%id_lina_Q_starN, 'QstarN','mol-N mol-C-1', 'Maximum Nitrogen to Carbon ratio',  output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_lina_QXP, 'QstarP','mol-P mol-C-1', 'Maximum Phosphorous to Carbon ratio', output=output_instantaneous)
+   call self%register_diagnostic_variable(self%id_lina_muX, 'muX','1/d', 'Phytoplankton Growth Rate', output=output_instantaneous)  
+   call self%register_diagnostic_variable(self%id_lina_mX, 'mX','1/d', 'Phytoplankton Mortalility Rate', output=output_instantaneous)  
+   call self%register_diagnostic_variable(self%id_lina_wX, 'wX','1/d', 'Phytoplankton Sinking Rate', output=output_instantaneous)   
+   call self%register_diagnostic_variable(self%id_lina_CX, 'CX','1/d', 'Phytoplankton Coagulation Rate',  output=output_instantaneous)   
+   call self%register_diagnostic_variable(self%id_lina_gammaN, 'gammaN','mol-N mol-C-1 d-1', 'Nitrogen Uptake Rate', output=output_instantaneous)  
+   call self%register_diagnostic_variable(self%id_lina_gammaP, 'gammaP','mol-P mol-C-1 d-1', 'Phosphorus Uptake Rate', output=output_instantaneous)  
+   call self%register_diagnostic_variable(self%id_lina_cI, 'cI','1/1', 'Light dependence in growth rate', output=output_instantaneous) 
+   call self%register_diagnostic_variable(self%id_lina_c, 'c','1/1', 'Physiology colimitation in growth rate', output=output_instantaneous) 
+   call self%register_diagnostic_variable(self%id_lina_MI, 'n','1/1', 'Metabolic independence', output=output_instantaneous)   
+   call self%register_diagnostic_variable(self%id_lina_alpha, 'alpha','1/1', 'Photosysnthesis slope', output=output_instantaneous)   
+   call self%register_diagnostic_variable(self%id_lina_mu_max, 'mu_max','1/d', 'Maximum Growth Rate', output=output_instantaneous)   
+   call self%register_diagnostic_variable(self%id_lina_E_min, 'E_min','mol-C m-3', 'minimum EPS production', output=output_instantaneous)   
+   call self%register_diagnostic_variable(self%id_lina_E_max, 'E_max','mol-C m-3', 'maximum EPS production', output=output_instantaneous)   
+   call self%register_diagnostic_variable(self%id_lina_C_dot, 'C_dot','1/d', 'Physiology stress for nutrient limitaion', output=output_instantaneous)   
+   call self%register_diagnostic_variable(self%id_lina_B, 'B','1/1', 'EPS production parameter', output=output_instantaneous)   
+   call self%register_diagnostic_variable(self%id_lina_B_star, 'B_star','d', 'Other EPS production parameter', output=output_instantaneous) 
+   call self%register_diagnostic_variable(self%id_lina_MI_star, 'n_star','1/1', 'Intrinsic Metabolic independence', output=output_instantaneous) 
 
    ! Internal state of the LINA aggregate compartment
 
-   call self%register_diagnostic_variable(self%id_lina_QAN, 'QAN','mol-N mol-C-1', 'Aggregate Nitrogen to Carbon ratio', &
-         output=output_instantaneous)
-   call self%register_diagnostic_variable(self%id_lina_QAP, 'QAP','mol-P mol-C-1', 'Aggregate Phosphorous to Carbon ratio', &
-         output=output_instantaneous)
-
+  
 
    !Register LINA State variables
 
- 
-   call self%register_state_variable(self%id_lina_X,  'Biomass_Phytoplankton','mol-C m-3','Phytoplankton concentration', &
-         , minimum=_ZERO_, no_river_dilution=.true. )
-   call self%register_state_variable(self%id_lina_A,  'Biomass_Aggregates','mol-C m-3','Aggregate concentration', &
-         , minimum=_ZERO_, no_river_dilution=.true. )
-   call self%register_state_variable(self%id_lina_E,  'Free EPS','mol-C m-3','EPS concentration', &
-         , minimum=_ZERO_, no_river_dilution=.true. )
-   call self%register_state_variable(self%id_lina_L,  'Primary lithogenic particles','mol-C m-3','lithogenic concentration', &
-         , minimum=_ZERO_, no_river_dilution=.true. )
-   call self%register_state_variable(self%id_lina_D,  'Detritus','mol-C m-3','Detritus concentration', &
-         , minimum=_ZERO_, no_river_dilution=.true. )
-   call self%register_state_variable(self%id_lina_N,  'Nitrogen','mol-N m-3','Nitrogen concentration', &
-         , minimum=_ZERO_, no_river_dilution=.true. )
-   call self%register_state_variable(self%id_lina_P,  'Phosphorus','mol-P m-3','Phosphorus concentration', &
-         , minimum=_ZERO_, no_river_dilution=.true. )
+   !Inital Values are set via the FABM.yaml, we allow changes by the physical host (no river dilution). 
 
+   call self%register_state_variable(self%id_lina_X,  'Biomass_Phytoplankton','mol-C m-3','Phytoplankton concentration', minimum=_ZERO_, no_river_dilution=.false. )
+   call self%register_state_variable(self%id_lina_A,  'Biomass_Aggregates','mol-C m-3','Aggregate concentration', minimum=_ZERO_, no_river_dilution=.false. )
+   call self%register_state_variable(self%id_lina_E,  'Free EPS','mol-C m-3','EPS concentration', minimum=_ZERO_, no_river_dilution=.false. )
+   call self%register_state_variable(self%id_lina_L,  'Primary lithogenic particles','mol-C m-3','lithogenic concentration', minimum=_ZERO_, no_river_dilution=.false. )
+   call self%register_state_variable(self%id_lina_D,  'Detritus','mol-C m-3','Detritus concentration', minimum=_ZERO_, no_river_dilution=.false. )
+   call self%register_state_variable(self%id_lina_N,  'Nitrogen','mol-N m-3','Nitrogen concentration', minimum=_ZERO_, no_river_dilution=.false. )
+   call self%register_state_variable(self%id_lina_P,  'Phosphorus','mol-P m-3','Phosphorus concentration', minimum=_ZERO_, no_river_dilution=.false. )
+   
+ 
+   
+   call self%register_state_variable(self%id_lina_QAN, 'QAN','mol-N mol-C-1', 'Aggregate Nitrogen to Carbon ratio', output=output_instantaneous)
+   call self%register_state_variable(self%id_lina_QAP, 'QAP','mol-P mol-C-1', 'Aggregate Phosphorous to Carbon ratio', output=output_instantaneous)
+   call self%register_state_variable(self%id_lina_QDN, 'QDN','mol-N mol-C-1', 'Detritus Nitrogen to Carbon ratio', output=output_instantaneous)
+   call self%register_state_variable(self%id_lina_QDP, 'QDP','mol-P mol-C-1', 'Detritus Phosphorous to Carbon ratio', output=output_instantaneous)
+   call self%register_state_variable(self%id_lina_QXN, 'QXN','mol-N mol-C-1', 'Phytoplankton Nitrogen to Carbon ratio', output=output_instantaneous)
+   call self%register_state_variable(self%id_lina_QXP, 'QXP','mol-P mol-C-1', 'Phytoplankton Phosphorous to Carbon ratio', output=output_instantaneous)
+  
    !Register external dependencies
-   call self%register_dependency(self%id_Temperature,fabm_standard_variables%Temperature)
+   call self%register_dependency(self%id_Temperature,standard_variables%temperature)
    !call self%register_dependency(self%id_Biomass_Phytoplankton,'phy','mol-C/m3','mole_concentration_of_phytoplankton_expressed_as_carbon_in_sea_water')
 
 
@@ -263,6 +278,7 @@ subroutine do(self,_ARGUMENTS_DO_)
    logical:: Debugout=.TRUE.
     type (type_lina_state_var), dimension(1)       :: var
     type (type_lina_rhs)       :: rhsv
+    type (type_lina_param) ::param
 
 
    real(rk) ::lina_QXN
@@ -277,7 +293,7 @@ subroutine do(self,_ARGUMENTS_DO_)
    real(rk) ::lina_gammaP
    real(rk) ::lina_cI
    real(rk) ::lina_c
-   real(rk) ::lina_n
+   real(rk) ::lina_MI
    real(rk) ::lina_alpha
    real(rk) ::lina_mu_max
    real(rk) ::lina_E
@@ -286,7 +302,7 @@ subroutine do(self,_ARGUMENTS_DO_)
    real(rk) ::lina_C_dot
    real(rk) ::lina_B
    real(rk) ::lina_B_star
-   real(rk) ::lina_n_star
+   real(rk) ::lina_MI_star
    ! Internal state of the LINA aggregate compartment
    real(rk) ::lina_QAN
    real(rk) ::lina_QAP
@@ -324,6 +340,13 @@ subroutine do(self,_ARGUMENTS_DO_)
    _GET_(self%id_lina_P, var%lina_P)
 
 
+   _GET_(self%id_lina_QAN,var%lina_QAN)
+   _GET_(self%id_lina_QAP,var%lina_QAP)
+   _GET_(self%id_lina_QDN,var%lina_QDN)
+   _GET_(self%id_lina_QDP,var%lina_QDP)
+   _GET_(self%id_lina_QXN,var%lina_QXN)
+   _GET_(self%id_lina_QXP,var%lina_QXN)
+
    _GET_(self%id_Temperature, var%Temperature)  !
 !-------------------------------------------------
 
@@ -334,20 +357,20 @@ subroutine do(self,_ARGUMENTS_DO_)
 !intermediate results......
 !
 !
-   qN=(self%lina_QXN-var%lina_Q0N)/(var%lina_Q_starN-var%lina_Q0N)              !eqn 10
-   qP=(self%lina_QXP-var%lina_Q0P)/(var%lina_Q_starP-var%lina_Q0P)  !eqn 10
-   gammaN=var%gamma_starN*((var%lina_N*var%lina_AN)/(var%gamma_starN + (var%lina_N*var%lina_AN)))*(1.0_rk-qN) !eqn 11
-   gammaP=var%gamma_starP*((var%lina_P*var%lina_AP)/(var%gamma_starP + (var%lina_P*var%lina_AP)))*(1.0_rk-qP) !eqn 12
+   qN=(self%lina_QXN-param%lina_Q0N)/(param%lina_Q_starN-param%lina_Q0N)              !eqn 10
+   qP=(self%lina_QXP-param%lina_Q0P)/(param%lina_Q_starP-param%lina_Q0P)  !eqn 10
+   gammaN=param%gamma_starN*((var%lina_N*var%lina_AN)/(var%gamma_starN + (var%lina_N*var%lina_AN)))*(1.0_rk-qN) !eqn 11
+   gammaP=param%gamma_starP*((var%lina_P*var%lina_AP)/(var%gamma_starP + (var%lina_P*var%lina_AP)))*(1.0_rk-qP) !eqn 12
    R=zeta&gammaN !eqn 14
-   cI=1-exp(-alpha*var%PAR/var%mu_max) !eqn 15
+   cI=1-exp(-param%alpha*var%PAR/param%mu_max) !eqn 15
    muX=cI*c*var%mu_max-R !eqn 13
-   n=var%lina_n_star*(1+qN) ! eqn 21
+   MI=param%lina_MI_star*(1+qN) ! eqn 21
    c=lina_colimitation(qN,qP,c,cn) !colimitation implemented as function !eqn 17,18
     cdot= !eqn 20
-   eta=var%lina_E_min+(var%lina_E_max-var%lina_E_max)*(1.0_rk+ 0.5_rk * tanh(var%lina_B_star*cdot-var%lina_B)) !eqn 16
+   eta=param%lina_E_min+(param%lina_E_max-param%lina_E_in)*(1.0_rk+ 0.5_rk * tanh(param%lina_B_star*cdot-param%lina_B)) !eqn 16
  
    rhox =var%lina_rho_starx*var%lina_dx^(-var%lina_arho) * (1.0_rk-(1.0_rk- var%lina_dx^(-var%lina_arho))*cI*c)!eqn 22
-   wx=1.0_rk/(18.0_rk*var%lina_muw)*(var%lina_rhox-var%lina_rhow)*var%lina_g*var%lina_dx^2.0_rk !eqn 23
+   wx=1.0_rk/(18.0_rk*var%lina_muw)*(var%lina_rhox-param%lina_rhow)*var%lina_g*var%lina_dx^2.0_rk !eqn 23
 
 
 
@@ -360,8 +383,8 @@ subroutine do(self,_ARGUMENTS_DO_)
    !rhsv%lina_E= lina_eta * var%lina_X - lina_h * var%lina_A !eqn 3
    !rhsv%lina_L= lina_rL - (self%lina_wl +self%lina_CL)*var%lina_L + self%lina_kB*lina_psi * var%lina_A !eqn 4 
    !rhsv%lina_D= self%lina_mx * var%lina_X - (self%lina_mD + self%lina_wD +self%lina_CD) * var%lina_D + self%lina_kB (1- lina_psi) * var%lina_A !eqn 5
-   rhsv%lina_N= - self%lina_gammaN * var%lina_X + self%lina_mD * var%lina_D * var%lina_QDN + self%lina_ma * var%lina_A * var%lina_QAN +self%lina_eN !eqn 6
-   rhsv%lina_P= - self%lina_gammaP * var%lina_X + self%lina_mD * var%lina_D * var%lina_QDP + self%lina_ma * var%lina_A * var%lina_QAP +self%lina_eP !eqn 7
+   rhsv%lina_N= - self%lina_gammaN * var%lina_X + self%lina_mD * var%lina_D * var%lina_QDN + self%lina_ma * var%lina_A * var%lina_QAN +param%lina_eN !eqn 6
+   rhsv%lina_P= - self%lina_gammaP * var%lina_X + self%lina_mD * var%lina_D * var%lina_QDP + self%lina_ma * var%lina_A * var%lina_QAP +param%lina_eP !eqn 7
 
    rhsv%lina_QXN= lina_gammaN- lina_muX * var%lina_QXN !eqn 8
    rhsv%lina_QXP= lina_gammaP- lina_muX * var%lina_QXP !eqn 9
@@ -370,7 +393,7 @@ subroutine do(self,_ARGUMENTS_DO_)
 
    rhsv%lina_QDP= self%lina_mx *var%lina_X * var%lina_QXP - ( self%lina_mD + self%lina_wD + self%lina_CD) * var%lina_D * var%lina_QDP + self%lina_kB (1- lina_psi) * var%lina_A * var%lina_QAP !eqn 40
 
-   rhsv%lina_psi= var%lina_CL*var%lina_L/var%lina_A-var%lina_kB*var%lina_psi-var%lina_psi/var%lina_A* var%lina_dAdt !eqn 24
+   rhsv%lina_psi= var%lina_CL*var%lina_L/var%lina_A-var%lina_kB*var%lina_psi-var%lina_psi/var%lina_A* rhsv%lina_A !eqn 24
    rhsv%lina_QAN= self%lina_Cx *var%lina_X * var%lina_QXN + self%lina_CD* var%lina_D * var%lina_QDN - (self%lina_wa + self%lina_ma + self%lina_kB) * var%lina_A * var%lina_QAN !eqn 25
     rhsv%lina_QAP= self%lina_Cx *var%lina_X * var%lina_QXP + self%lina_CD* var%lina_D * var%lina_QDP - (self%lina_wa + self%lina_ma + self%lina_kB) * var%lina_A * var%lina_QAP !eqn 26
 
@@ -381,8 +404,8 @@ subroutine do(self,_ARGUMENTS_DO_)
     write(*,*) 'diagnostic variables'
     _SET_DIAGNOSTIC_(self%id_lina_QXN, lina_QXN)
     _SET_DIAGNOSTIC_(self%id_lina_QXP, lina_QXP)
-    !_SET_DIAGNOSTIC_(self%id_lina_Q_starN,    
-    !_SET_DIAGNOSTIC_(self%id_lina_Q_starP, 
+    _SET_DIAGNOSTIC_(self%id_lina_Q_starN,lina_Q_starN)    
+    _SET_DIAGNOSTIC_(self%id_lina_Q_starP,lina_Q_starP) 
     _SET_DIAGNOSTIC_(self%id_lina_muX, lina_muX)                   !Phytoplankton Growth rate
     _SET_DIAGNOSTIC_(self%id_lina_mX, lina_mX)
     _SET_DIAGNOSTIC_(self%id_lina_wX, lina_wX)
@@ -391,16 +414,15 @@ subroutine do(self,_ARGUMENTS_DO_)
     _SET_DIAGNOSTIC_(self%id_lina_gammaP,lina_gammaP)
     _SET_DIAGNOSTIC_(self%id_lina_cI,lina_cI)
     _SET_DIAGNOSTIC_(self%id_lina_c,lina_c)
-    _SET_DIAGNOSTIC_(self%id_lina_n,lina_n)
+    _SET_DIAGNOSTIC_(self%id_lina_MI,lina_MI)
     _SET_DIAGNOSTIC_(self%id_lina_alpha,lina_alpha)
     _SET_DIAGNOSTIC_(self%id_lina_mu_max,lina_mu_max)
-    _SET_DIAGNOSTIC_(self%id_lina_E,lina_E)
     _SET_DIAGNOSTIC_(self%id_lina_E_min,lina_E_min)
     _SET_DIAGNOSTIC_(self%id_lina_E_max,lina_E_max)
     _SET_DIAGNOSTIC_(self%id_lina_C_dot,lina_C_dot)
     _SET_DIAGNOSTIC_(self%id_lina_B,lina_B)
     _SET_DIAGNOSTIC_(self%id_lina_B_star,lina_B_star)
-    _SET_DIAGNOSTIC_(self%id_lina_n_star,lina_n_star)
+    _SET_DIAGNOSTIC_(self%id_lina_MI_star,lina_MI_star)
     
     _SET_DIAGNOSTIC_(self%id_lina_QAN,lina_QAN)
     _SET_DIAGNOSTIC_(self%id_lina_QAP,lina_QAP)
