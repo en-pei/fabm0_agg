@@ -399,19 +399,14 @@ subroutine do(self,_ARGUMENTS_DO_)
    lina_gammaP=self%lina_gamma_starP*((var%lina_P*self%lina_AP)/(self%lina_gamma_starP + (var%lina_P*self%lina_AP)))*(1.0_rk-lina_qP) !eqn 12
    lina_R=self%lina_zeta*lina_gammaN !eqn 14
    lina_cI=1-exp(-self%lina_alpha*var%PAR/self%lina_mu_max) !eqn 15
-   lina_muX=lina_cI*lina_c*self%lina_mu_max-lina_R !eqn 13
    lina_MI=self%lina_MI_star*(1+lina_qN) ! eqn 21
    lina_c=lina_colimitation(lina_qN,lina_qP,lina_MI,self%lina_cn) !colimitation implemented as function !eqn 17,18
-!   lina_c_dot= !eqn 20
-  lina_c_dot=-9999.99_rk
+   lina_muX=lina_cI*lina_c*self%lina_mu_max-lina_R !eqn 13
+  !   lina_c_dot= !eqn 20
+   lina_c_dot=-9999.99_rk
    lina_eta=self%lina_E_min+(self%lina_E_max-self%lina_E_min)*(1.0_rk+ 0.5_rk * tanh(self%lina_B_star*lina_c_dot-self%lina_B)) !eqn 16
- 
    lina_rhox= self%lina_rho_starx * (var%dx ** (-self%lina_arho)) *  (1.0_rk - (1.0_rk - (var%dx ** (-self%lina_arho))) * lina_cI * lina_c ) !eqn 22
-
    lina_wx= 1.0_rk / (18.0_rk * self%lina_muw) * (lina_rhox-self%lina_rhow) * self%lina_g * var%dx ** 2.0_rk !eqn 23
-
-
-
 !-------------------------------------------------
 !Calculate RHS of the State equations these rates of change are defined by FABM to be per second
 
