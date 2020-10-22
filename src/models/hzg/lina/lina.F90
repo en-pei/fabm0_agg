@@ -395,8 +395,8 @@ subroutine do(self,_ARGUMENTS_DO_)
 !
    lina_qN=(var%lina_QXN-self%lina_Q0N)/(self%lina_Q_starN-self%lina_Q0N)              !eqn 10
    lina_qP=(var%lina_QXP-self%lina_Q0P)/(self%lina_Q_starP-self%lina_Q0P)  !eqn 10
-   lina_gammaN=self%lina_gamma_starN*((var%lina_N*self%lina_AN)/(self%lina_gamma_starN + (var%lina_N*self%lina_AN)))*(1.0_rk-lina_qN) !eqn 11
-   lina_gammaP=self%lina_gamma_starP*((var%lina_P*self%lina_AP)/(self%lina_gamma_starP + (var%lina_P*self%lina_AP)))*(1.0_rk-lina_qP) !eqn 12
+   lina_gammaN=self%lina_gamma_starN*((var%lina_N*self%lina_AN)/(self%lina_gamma_starN + (var%lina_N*self%lina_AN)))*(1.0_rk-lina_gn(lina_qN,lina_MI)) !eqn 11
+   lina_gammaP=self%lina_gamma_starP*((var%lina_P*self%lina_AP)/(self%lina_gamma_starP + (var%lina_P*self%lina_AP)))*(1.0_rk-lina_gn(lina_qP,lina_MI)) !eqn 12
    lina_R=self%lina_zeta*lina_gammaN !eqn 14
    lina_cI=1-exp(-self%lina_alpha*var%PAR/self%lina_mu_max) !eqn 15
    lina_MI=self%lina_MI_star*(1+lina_qN) ! eqn 21
@@ -404,7 +404,7 @@ subroutine do(self,_ARGUMENTS_DO_)
    lina_muX=lina_cI*lina_c*self%lina_mu_max-lina_R !eqn 13
   !   lina_c_dot= !eqn 20
    lina_c_dot=-9999.99_rk
-   lina_eta=self%lina_E_min+(self%lina_E_max-self%lina_E_min)*(1.0_rk+ 0.5_rk * tanh(self%lina_B_star*lina_c_dot-self%lina_B)) !eqn 16
+   lina_eta=lina_EPS_production(self%lina_E_min,self%lina_E_max,lina_muX,lina_MI,var%lina_N,var%lina_P,lina_qN,lina_qP,lina_gammaN,lina_gammaP)
    lina_rhox= self%lina_rho_starx * (var%dx ** (-self%lina_arho)) *  (1.0_rk - (1.0_rk - (var%dx ** (-self%lina_arho))) * lina_cI * lina_c ) !eqn 22
    lina_wx= 1.0_rk / (18.0_rk * self%lina_muw) * (lina_rhox-self%lina_rhow) * self%lina_g * var%dx ** 2.0_rk !eqn 23
 !-------------------------------------------------
@@ -509,4 +509,15 @@ subroutine do(self,_ARGUMENTS_DO_)
     gn_g= (gn_r - ( gn_r**(1+gn_n))) / (1-(gn_r**(1+gn_n)))
   end function
 
+function lina_EPS_production(E_min,E_max,muX,MI,N,P,qN,qP,gammaN,gammaP) result(eta)
+    real(rk),intent(in):: E_min,E_max,muX,MI,N,P,qN,qP,gammaN,gammaP
+    real(rk) :: eta
+    
+    if (qN .le. qP) then
+        eta=E_min+(E_max-E_min)*(muX-gammaN/(1.-lina_gn(qN,MI))*(1.-(1.+MI)*qN**MI+MI*qN**(1.+MI))/(1.-qN**(1.+MI))**2)*(1-lina_gn(qN,MI)) !eqn 16
+    else
+        eta=E_min+(E_max-E_min)*(muX-gammaP/(1.-lina_gn(qP,MI))*(1.-(1.+MI)*qP**MI+MI*qP**(1.+MI))/(1.-qP**(1.+MI))**2)*(1-lina_gn(qP,MI)) !eqn 16
+    end if
+
+  end function
 end module hzg_lina
