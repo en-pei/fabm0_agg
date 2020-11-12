@@ -27,7 +27,7 @@ instances:
       B_star:
       aroh:
       cn:
-     initialization:
+    initialization:
        Biomass_Phytoplankton: 300
        Biomass_Aggregates: 200
        Free_EPS: 5
@@ -42,7 +42,7 @@ instances:
        QXN: 0.009434
        QXP: 0.15094
        psi: 
-      coupling:
+    coupling:
        Detritus: npzd/det
        Nitrogen: npzd/N
        Phosphorus: npzd/P
