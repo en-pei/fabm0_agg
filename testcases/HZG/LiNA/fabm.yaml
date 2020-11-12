@@ -1,4 +1,54 @@
 instances:
+  lina:
+    model: hzg/lina
+    parameters:
+      QstarN: 0.18 # 0.18-0.27
+      QstarP: 0.0020 #0.0018-0.021
+      Q0N: 0.02 # 0.0041-0.0018
+      Q0P: 0.001 #0.0003 - 0.0018
+      rhol: 2000 #lithogenous density
+      rhow: 1027 #default water density @saltwater 10C
+      rho_starx: 1200 #density of pytoplankton
+      alpha: 0.024 # 0.01.0.05
+      mu_max: 1 # 0.5-1.1
+      muw: 0.001397 #Pa s @saltwater 10C
+      E_min: 0.07 # 0.0 -0.1
+      E_max: 0.4 #0.1-1.0
+      zeta: 0.7 #0-1 ?
+      MI_star: 3 # 1-10
+      eN: 0 #assume no extra input of N
+      eP: 0 #assume no extra input of P
+      gamma_starN: 0.4 # 0.14-0.7
+      gamma_starP: 0.04 # 0.01-0.07
+      AN: 1.1 # 0.31-2.30
+      AP: 0.75 #0.15-1.15
+      B:
+      g: 9.81 # gravitational acceleration
+      B_star:
+      aroh:
+      cn:
+     initialization:
+       Biomass_Phytoplankton: 300
+       Biomass_Aggregates: 200
+       Free_EPS: 5
+       Primary_lithogenic_particles: 0.005
+       Detritus : 700
+       Nitrogen: 0.050 #22-75µM Schlarbaum2010
+       Phosphorus: 0.070 # 11-127µM Schlarbaum2010
+       QAN: 0.009434 # use classical Redfield 1:106 for now
+       QAP: 0.15094  # classical Redfield 16:106
+       QDN: 0.009434
+       QDP: 0.15094
+       QXN: 0.009434
+       QXP: 0.15094
+       psi: 
+      coupling:
+       Detritus: npzd/det
+       Nitrogen: npzd/N
+       Phosphorus: npzd/P
+       Biomass_Phytoplankton: npzd/Phy
+       Primary_lithogenic_particles: agg/agglpm
+       Biomass_Aggregates: agg/aggorg
   spm:
     model: iow_spm
     parameters:
