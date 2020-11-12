@@ -63,7 +63,15 @@ The aggregate-lithogenic material dynamic is described by the \textbf{Agg} model
     $D$ & Detritus & \\
     $N$ & Nitrogen concentration & \\
     $P$ & Phosphorus concentration & \\
+    
     \hline
+    $Q^A_N$ &Aggregate Nitrogen to Carbon ratio \\
+    $Q^A_P$ \\
+    $Q^D_N$ &Detritus Nitrogen to Carbon ratio\\
+    $Q^D_P$\\
+    $Q^X_N$&Phytoplankton Nitrogen to Carbon ratio\\
+    $Q^X_P$\\
+    $\psi$\\
   \end{tabular}
   \label{tab:stateVariables}
 \end{table}
@@ -85,7 +93,7 @@ The aggregate-lithogenic material dynamic is described by the \textbf{Agg} model
   \frac{dN}{dt} &=& -\gamma_N \ X + m_D\ D \  Q^D_N + m_A\ A\  Q^A_N + e_N\\
   \frac{dP}{dt} &=& -\gamma_P\  X + m_D\ D \  Q^D_P + m_A\ A\  Q^A_P + e_P
 \end{eqnarray}
-
+We allow the physical advection scheme to alter the nutrient content by dilution of external sources, by setting the FABM parameter ($no_river_dilution=.false.$).
 
 \subsection{Phytoplankton physiology}
 \comment{og}{This part is not included in the simple \textbf{NPZD}}
@@ -137,7 +145,7 @@ Nutrient limitation coefficient
 
 Co-limitation function (\comment{og}{please make this a function, it could change in the future})
 \begin{equation}
-  \mathcal{C}_n(q_i, q_j) = q_i \cdot g_n(qj/qi) \cdot (1 + q_i\ q_j\ n + c_n)
+  \mathcal{C}_n(q_i, q_j) = q_i \cdot g_n(qj/qi) \cdot (1 + q_i\ q_j\ MI + c_n)
 \end{equation}
 
 Queuing theory limitation
@@ -152,7 +160,7 @@ Nutritional stress
 
 Independence coefficient
 \begin{equation}
-  n = n^*(1+q_N)
+  MI = MI^*(1+q_N)
 \end{equation}
 
 Nutritional state modified plankton density
@@ -250,36 +258,68 @@ Attenuation coefficient
 \begin{table*}[h]
   \centering
   \caption{Inner state variables and model parameters}
-  \begin{tabular}{cll}
+  \begin{tabular}{clll}
   \hline
-    \textbf{Symbol} & \textbf{Name} & \textbf{Unit}\\ \hline
+    \textbf{Symbol} & \textbf{Name} & \textbf{Unit}& is Parameter \\ \hline
     & \emph{Plankton compartment} & \\
+    $A_N$&&&Y\\
+    $A_P$&&&Y\\
+    $e_N$ & external Nitrogen input&Y\\
+    $e_P$ & external Phosphorus input&Y \\
     $Q^X_N$ & Nitrogen to carbon ratio in phytoplankton & mol-N mol-C$^{-1}$ \\
     $Q^X_P$ & Phosphorus to carbon ratio in phytoplankton & mol-P mol-C$^{-1}$ \\
-    $Q^*_N$ & Maximum nitrogen to carbon ratio & mol-N mol-C$^{-1}$ \\
-    $Q^*_P$ & Maximum phosphorus to carbon ratio & mol-P mol-C$^{-1}$ \\
+    $Q^*_N$ & Maximum nitrogen to carbon ratio & mol-N mol-C$^{-1}$ &Y\\
+    $Q^*_P$ & Maximum phosphorus to carbon ratio & mol-P mol-C$^{-1}$ &Y\\
+    $Q^0_N$ & Baseline nitrogen to carbon ratio & mol-N mol-C$^{-1}$ &Y\\
+    $Q^0_P$ & Baseline phosphorus to carbon ratio & mol-P mol-C$^{-1}$ &Y\\
+    $h$ & &&Y\\
+    $d_X$&Phytoplankton Size& m &\\
+    $d_A$&Aggregate Size& m &\\
+    $\rho_L$& Density of Lithogeneous & kg m-3 & Y\\
+    $\rho_A$& Density of Aggregates & kg m-3&\\
+    $\rho_X$& Density of Phytoplankton & kg m-3 &\\
+     $\rho^*_X$& Base Density of Phytoplankton & kg m-3 &Y\\
+    $\rho_w$&Density of Water & kg m-3&Y\\
+    $a_\rho$&&&Y\\
+    $m_D$&\\
+    $w_D$&\\
+    $C_D$&\\
     $\mu_X$ & Phytoplankton growth rate & d$^{-1}$ \\
     $m_X$ & Phytoplankton mortality rate & d$^{-1}$ \\
     $w_X$ & Phytoplankton sinking rate & d$^{-1}$ \\
     $C_X$ & Phytoplankton coagulation rate & d$^{-1}$ \\
     $\gamma_N$ & Nitrogen uptake rate & mol-N mol-C$^{-1}$ d$^{-1}$ \\
     $\gamma_P$ & Phosphorus uptake rate & mol-P mol-C$^{-1}$ d$^{-1}$ \\
+    $\gamma_N*$ & Maximum Nitrogen uptake rate & mol-N mol-C$^{-1}$ d$^{-1}$&Y \\
+    $\gamma_P*$ & Maximum Phosphorus uptake rate & mol-P mol-C$^{-1}$ d$^{-1}$&Y \\
     $c_I$ & Light dependence in growth rate & -- \\
     $c$ & Physiology colimitation in growth rate & -- \\
-    $n$ & Metabolic independence & -- \\
-    $\alpha$ & Photosynthesis slope &  \\
-    $\mu_{\textrm{max}}$ & Maximum growth rate & d$^{-1}$ \\
+    $MI$ & Metabolic independence & -- \\
+    $\alpha$ & Photosynthesis slope & &Y \\
+    $\mu_{\textrm{max}}$ & Maximum growth rate & d$^{-1}$ &Y\\
+    $\mu_w$&Water resistance?&&Y\\
     $E$ & Exopolymer material (EPS) production & mol-C m$^{-3}$ \\
-    $E_{\textrm{min}}$ & Minimum EPS production & mol-C m$^{-3}$ \\
-    $E_{\textrm{max}}$ & Maximum EPS production & mol-C m$^{-3}$ \\
+    $E_{\textrm{min}}$ & Minimum EPS production & mol-C m$^{-3}$&Y \\
+    $E_{\textrm{max}}$ & Maximum EPS production & mol-C m$^{-3}$ &Y\\
     $\dot{c}$ & Physiology stress for nutrient limitation & d$^{-1}$ \\
-    $B$ & Parameter for EPS production & -- \\
-    $B^*$ & Other parameter for EPS production & d \\
-    $n^*$ & Intrinsec metabolic independence & -- \\ \hline
+    $B$ & Parameter for EPS production & --&Y \\
+    $B^*$ & Other parameter for EPS production & d &Y\\
+    $\zeta$ & Maximum/Basline respiration rate &&Y\\
+    $c_n$&Colimitaiton parameter&&Y\\
+    $MI^*$ & Intrinsec metabolic independence & --&Y \\ \hline
     & \emph{Aggregate compartment} & \\
+    $w_a$&Sinkingspeed of aggregates&ms-1&N\\
+    $m_a$\\
+    $\psi$ &&\\
+    $g$&Gravitation acceleration&$m2s2$&Y\\
+    $C_L$ &&\\
+    $C_{tot}$&\\
+    $k_B$&&\\
+    $V_A$ & Volume of Aggregate & m-3 \\
     $Q^A_N$ & Nitrogen to carbon ratio in aggregate & mol-N mol-C$^{-1}$ \\
     $Q^A_P$ & Phosphorus to carbon ratio in aggregate & mol-P mol-C$^{-1}$ \\
     \hline
+
   \end{tabular}
 \end{table*}
 

@@ -43,6 +43,7 @@ contains
       use hzg_Ndepoden
       use fabm_hzg_dependencies
       use hzg_agg
+      use hzg_lina
       !use hzg_kristineb
 
       ! Add more models modules here
@@ -74,6 +75,7 @@ contains
          case ('dependencies'); allocate(type_hzg_dependencies::model)
          case ('agg'); allocate(type_hzg_agg::model)
          case ('ctenophore_jt'); allocate(type_hzg_ctenophore_jt::model)
+         case ('lina'); allocate(type_hzg_lina::model)
          ! Add your model type here, and make sure
          ! they appear in the use statement above
       end select
