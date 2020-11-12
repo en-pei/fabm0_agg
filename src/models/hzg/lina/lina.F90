@@ -215,7 +215,7 @@ contains
    call self%get_parameter(self%lina_Q0P, 'Q0P','mol-P mol-C-1', 'Baseline Phosphorous to Carbon ratio',default=-999.99_rk)
    call self%get_parameter(self%lina_rhol, 'rhol','kg m-3','Density of Lithogenous',default=-999.99_rk)
    call self%get_parameter(self%lina_rhow, 'rhow','kg m-3','Density of Water',default=1025.00_rk)
-   call self%get_parameter(self%lina_rho_starx, 'roh_starx','Base Density of Phytoplankton',default=-999.99_rk)
+   call self%get_parameter(self%lina_rho_starx, 'rho_starx','Base Density of Phytoplankton',default=-999.99_rk)
    call self%get_parameter(self%lina_alpha, 'alpha','1/1', 'Photosysnthesis slope', default=-999.99_rk)   
    call self%get_parameter(self%lina_mu_max, 'mu_max','1/d', 'Maximum Growth Rate', default=-999.99_rk)  
    call self%get_parameter(self%lina_muw, 'muw','Pa s', 'water viscosity', default=0.001397_rk)   
@@ -232,7 +232,7 @@ contains
    call self%get_parameter(self%lina_B, 'B','d', 'EPS production parameter', default=-999.99_rk) 
    call self%get_parameter(self%lina_g, 'g','m2/s2', 'gravitational acceleration', default=9.81_rk) 
    call self%get_parameter(self%lina_B_star, 'B_star','d', 'Other EPS production parameter', default=-999.99_rk) 
-   call self%get_parameter(self%lina_arho, 'aroh','1/1', 'Density Parameter', default=-999.99_rk) 
+   call self%get_parameter(self%lina_arho, 'arho','1/1', 'Density Parameter', default=-999.99_rk) 
    call self%get_parameter(self%lina_cn, 'cn','1/1', 'Colimitation Parameter', default=-999.99_rk) 
    !Register LINA interals as diagnostic variables, allowing debugging
 
