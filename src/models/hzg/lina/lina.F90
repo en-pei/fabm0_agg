@@ -411,11 +411,11 @@ subroutine do(self,_ARGUMENTS_DO_)
 !Calculate RHS of the State equations these rates of change are defined by FABM to be per second
 
    rhsv%lina_X= (lina_muX - var%mx -lina_wx -var%Cx) * var%lina_X !eqn 1
-   rhsv%lina_A= var%C_tot - (var%wa + var%ma + var%kB) * var%lina_A !eqn 2
+   rhsv%lina_A= var%C_tot - (var%ma + var%kB) * var%lina_A !eqn 2
    !(E and L ,D  are solved by the external AGG model)
    !rhsv%lina_E= lina_eta * var%lina_X - lina_h * var%lina_A !eqn 3
-   !rhsv%lina_L= lina_rL - (self%lina_wl +var%CL)*var%lina_L + self%lina_kB*lina_psi * var%lina_A !eqn 4 
-   !rhsv%lina_D= var%mx * var%lina_X - (var%mD + var%wD +var%CD) * var%lina_D + self%lina_kB (1- lina_psi) * var%lina_A !eqn 5
+   rhsv%lina_L= lina_rL - var%CL*var%lina_L + self%lina_kB*lina_psi * var%lina_A !eqn 4 
+   rhsv%lina_D= var%mx * var%lina_X - (var%mD +var%CD) * var%lina_D + self%lina_kB (1- lina_psi) * var%lina_A !eqn 5
    rhsv%lina_N= - lina_gammaN * var%lina_X + var%mD * var%lina_D * var%lina_QDN + var%ma * var%lina_A * var%lina_QAN +self%lina_eN !eqn 6
    rhsv%lina_P= - lina_gammaP * var%lina_X + var%mD * var%lina_D * var%lina_QDP + var%ma * var%lina_A * var%lina_QAP +self%lina_eP !eqn 7
 
