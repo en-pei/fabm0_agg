@@ -123,7 +123,7 @@ module hzg_lina
   type (type_diagnostic_variable_id) ::id_lina_muX
   type (type_diagnostic_variable_id) ::id_lina_mx
   type (type_diagnostic_variable_id) ::id_lina_wx
-  type (type_diagnostic_variable_id) ::id_lina_CX
+
   type (type_diagnostic_variable_id) ::id_lina_gammaN
   type (type_diagnostic_variable_id) ::id_lina_gammaP
   type (type_diagnostic_variable_id) ::id_lina_cI
@@ -248,7 +248,7 @@ contains
    call self%register_diagnostic_variable(self%id_lina_muX, 'muX','1/d', 'Phytoplankton Growth Rate', output=output_instantaneous)  
    call self%register_diagnostic_variable(self%id_lina_mX, 'mX','1/d', 'Phytoplankton Mortalility Rate', output=output_instantaneous)  
    call self%register_diagnostic_variable(self%id_lina_wX, 'wX','1/d', 'Phytoplankton Sinking Rate', output=output_instantaneous)   
-   call self%register_diagnostic_variable(self%id_lina_CX, 'CX','1/d', 'Phytoplankton Coagulation Rate',  output=output_instantaneous)   
+  
    call self%register_diagnostic_variable(self%id_lina_gammaN, 'gammaN','mol-N mol-C-1 d-1', 'Nitrogen Uptake Rate', output=output_instantaneous)  
    call self%register_diagnostic_variable(self%id_lina_gammaP, 'gammaP','mol-P mol-C-1 d-1', 'Phosphorus Uptake Rate', output=output_instantaneous)  
    call self%register_diagnostic_variable(self%id_lina_cI, 'cI','1/1', 'Light dependence in growth rate', output=output_instantaneous) 
