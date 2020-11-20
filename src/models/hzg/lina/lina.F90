@@ -135,6 +135,7 @@ module hzg_lina
   type (type_diagnostic_variable_id) ::id_lina_E_min
   type (type_diagnostic_variable_id) ::id_lina_E_max
   type (type_diagnostic_variable_id) ::id_lina_C_dot
+  type (type_diagnostic_variable_id) ::id_lina_C_tot
 !  type (type_diagnostic_variable_id) ::id_lina_B
 !  type (type_diagnostic_variable_id) ::id_lina_B_star
   type (type_diagnostic_variable_id) ::id_lina_MI_star
@@ -173,7 +174,7 @@ module hzg_lina
      real(rk)::lina_cn
 
 
-     real(rk)::ma,mx,md
+     real(rk)::ma,mx,md,dx
 
   logical::dummy_logical
   real(rk):: dummy_inital_value,dummy_parameter
@@ -240,7 +241,7 @@ contains
    call self%get_parameter(self%ma,'ma','ms-1','AGG Aggregate mortality')
    call self%get_parameter(self%dx,'dx','1/1','AGG Phytoplankton Size')
    call self%get_parameter(self%md,'md','ms-1','AGG detritus mortality')
-
+   call self%get_parameter(self%mx,'mx','d-1','NPZD phytoplankton mortality rate')
 
    !Register LINA interals as diagnostic variables, allowing debugging
 
@@ -257,7 +258,7 @@ contains
 
  
    call self%register_diagnostic_variable(self%id_lina_C_dot, 'C_dot','1/d', 'Physiology stress for nutrient limitaion', output=output_instantaneous)   
-
+     call self%register_diagnostic_variable(self%id_lina_C_tot, 'C_tot','?', 'Ctot', output=output_instantaneous)   
   
   
 
@@ -286,7 +287,7 @@ contains
   
    !Register external dependencies
 !depending on NPZD
-   call self%register_dependency(self%id_mx,'mx','d-1','NPZD phytoplankton mortality rate')
+!   call self%register_dependency(self%id_mx,'mx','d-1','NPZD phytoplankton mortality rate')
 !depending on AGG
    call self%register_dependency(self%id_Cx,'Cx','d-1','Phytoplankton Coagulation rate')
    call self%register_dependency(self%id_kB,'kB','1/1','AGG kB')
@@ -340,6 +341,7 @@ subroutine do(self,_ARGUMENTS_DO_)
    real(rk)::lina_c
    real(rk)::lina_c_dot
    real(rk)::lina_eta
+   real(rk)::lina_C_tot
 
 !---------------------------------
 
@@ -402,7 +404,7 @@ subroutine do(self,_ARGUMENTS_DO_)
 !
 !
 
-   c_tot=var%Cx*var%lina_X+var%CL*var%lina_L+var%CD*var%lina_D
+   lina_C_tot=var%Cx*var%lina_X+var%CL*var%lina_L+var%CD*var%lina_D
    lina_qN=(var%lina_QXN-self%lina_Q0N)/(self%lina_Q_starN-self%lina_Q0N)              !eqn 10
    lina_qP=(var%lina_QXP-self%lina_Q0P)/(self%lina_Q_starP-self%lina_Q0P)  !eqn 10
    lina_gammaN=self%lina_gamma_starN*((var%lina_N*self%lina_AN)/(self%lina_gamma_starN + (var%lina_N*self%lina_AN)))*(1.0_rk-lina_gn(lina_qN,lina_MI)) !eqn 11
@@ -421,7 +423,7 @@ subroutine do(self,_ARGUMENTS_DO_)
 !Calculate RHS of the State equations these rates of change are defined by FABM to be per second
 
    rhsv%lina_X= (lina_muX - var%mx -lina_wx -var%Cx) * var%lina_X !eqn 1
-   rhsv%lina_A= var%C_tot - (var%ma + var%kB) * var%lina_A !eqn 2
+   rhsv%lina_A= lina_C_tot - (var%ma + var%kB) * var%lina_A !eqn 2
    !(E and L ,D  are solved by the external AGG model)
    !rhsv%lina_E= lina_eta * var%lina_X - lina_h * var%lina_A !eqn 3
 !   rhsv%lina_L= lina_rL - var%CL*var%lina_L + var%kB*lina_psi * var%lina_A !eqn 4 
@@ -456,6 +458,7 @@ subroutine do(self,_ARGUMENTS_DO_)
     _SET_DIAGNOSTIC_(self%id_lina_c,lina_c)
     _SET_DIAGNOSTIC_(self%id_lina_MI,lina_MI)
 !!    _SET_DIAGNOSTIC_(self%id_lina_C_dot,lina_C_dot)
+    _SET_DIAGNOSTIC_(self%id_lina_C_tot,lina_C_tot)
     _SET_DIAGNOSTIC_(self%id_lina_eta,lina_eta)
     _SET_DIAGNOSTIC_(self%id_lina_R,lina_R)
     _SET_DIAGNOSTIC_(self%id_lina_rhox,lina_rhox)
