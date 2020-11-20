@@ -30,7 +30,7 @@
 #endif
       type (type_state_variable_id)      :: id_phyc,id_detc
       type (type_state_variable_id)      :: id_doc
-      type (type_diagnostic_variable_id) :: id_aggvol,id_G,id_Breakup,id_ws,id_aggmass !added
+      type (type_diagnostic_variable_id) :: id_aggvol,id_G,id_Breakup,id_ws,id_aggmass,id_coagulationphy,id_coagulationlpm,id_coagulationdet !added
       type (type_diagnostic_variable_id) :: id_esd
       type (type_dependency_id) :: id_eps,id_num
       type (type_state_variable_id)      :: id_dD,id_Dsize 
@@ -188,6 +188,10 @@
    call self%register_diagnostic_variable(self%id_ws,'ws','m/s','sinking velocity',time_treatment=time_treatment_last)
    call self%register_diagnostic_variable(self%id_esd,'esd','m','mean ESD',time_treatment=time_treatment_last)
    call self%register_diagnostic_variable(self%id_aggmass,'aggmass','g m-3','mass concentration of aggregates',time_treatment=time_treatment_last)
+   call self%register_diagnostic_variable(self%id_coagulationphy,'coagulationphy','1/s','coagulaiton phy',time_treatment=time_treatment_last)
+ call self%register_diagnostic_variable(self%id_coagulationdet,'coagulationdet','1/s','coagulaiton det',time_treatment=time_treatment_last)
+ call self%register_diagnostic_variable(self%id_coagulationlpm,'coagulationlpm','1/s','coagulaiton lpm',time_treatment=time_treatment_last)
+
 
    ! Register conserved quantities
    
@@ -303,6 +307,7 @@
 
       _SET_ODE_(self%id_phyn,-coagulation_phyn*1.d-3) !-sms
       _SET_ODE_(self%id_aggorg,coagulation_phyn/self%org2N*1.d-3) !sms/self%org2N  !smaller aggregation rate for phyn !here
+       _SET_DIAGNOSTIC_(self%id_coagulationphy,coagulation_phyn)
       if (self%use_phyc) then			!check
          _SET_ODE_(self%id_phyc,-sms/self%NC_agg)
          ! possibly _GET_STATE_(self%id_phyc,phyc)
@@ -328,6 +333,7 @@
 !     sms= A1_detn + A2_detn - (decomposition + breakup)*aggorg*self%org2N ![mmolN/m3/s]
 
       coagulation_detn	=	coagulation * (detn *1.d-3/(self%org2N *self%dens_org)+Vol_agg) * detn	!mmolN m**-3 s-1
+          _SET_DIAGNOSTIC_(self%id_coagulationphy,coagulation_detn)
       loss_detn	=	(decomposition + breakup) * aggorg * self%org2N					!mmolN m**-3 s-1
 
       _SET_ODE_(self%id_detn, - coagulation_detn + loss_detn)		!-sms
@@ -347,11 +353,12 @@
 
 !      coagulation_lpm = coagulation * (lpm**2*1.d-3/self%dens_lpm + Vol_agg* lpm) 			!g m**-3 s-1 
       coagulation_lpm = coagulation * (Vol_agg* lpm) 			!g m**-3 s-1    !only coagulates with existing aggregates
+          _SET_DIAGNOSTIC_(self%id_coagulationphy,coagulation_lpm)
       _SET_ODE_(self%id_lpm, loss_lpm - coagulation_lpm) !- A1_lpm - A2_lpm
       _SET_ODE_(self%id_agglpm, -loss_lpm + coagulation_lpm) !A1_lpm + A2_lpm 
    
    endif
-   
+ 
    _SET_DIAGNOSTIC_(self%id_G,G)
    _SET_DIAGNOSTIC_(self%id_breakup,breakup)
    _SET_DIAGNOSTIC_(self%id_aggvol,Vol_agg)
