@@ -83,16 +83,21 @@ The aggregate-lithogenic material dynamic is described by the \textbf{Agg} model
 
 
 \subsection{Ecological state variables}
+The functions for $X$, $N$ and $D$ dynamics are managed externally by \textbf{NPZD} model
+The sinking velocities should be implemented in the $\_GET\_VERTICAL\_MOVEMENT\_$ function, so they were removed from these equations.
 
 \begin{eqnarray}
   \frac{dX}{dt} &=&  (\mu_X - m_X- w_X - C_X)\  X \\
-  \frac{dA}{dt} &=&  C_{Tot} - (w_A + m_A + k_B) \ A\\
+  %\frac{dA}{dt} &=&  C_{Tot} - (w_A + m_A + k_B) \ A\\
+  \frac{dA}{dt} &=&  C_{Tot} - (m_A + k_B) \ A\\
   \frac{dE}{dt} &=& \eta \cdot X - h\cdot A \\
-  \frac{dL}{dt} &=& r_L - (w_L+C_L)\ L + k_B\ \psi\ A \\
-  \frac{dD}{dt} &=& m_X \  X - (m_D + w_D + C_D)\ D + k_B\ (1-\psi)\ A \\
+  \frac{dL}{dt} &=& r_L - C_L\ L + k_B\ \psi\ A \\
+  \frac{dD}{dt} &=& m_X \  X - (m_D + C_D)\ D + k_B\ (1-\psi)\ A \\
   \frac{dN}{dt} &=& -\gamma_N \ X + m_D\ D \  Q^D_N + m_A\ A\  Q^A_N + e_N\\
   \frac{dP}{dt} &=& -\gamma_P\  X + m_D\ D \  Q^D_P + m_A\ A\  Q^A_P + e_P
 \end{eqnarray}
+
+
 We allow the physical advection scheme to alter the nutrient content by dilution of external sources, by setting the FABM parameter ($no_river_dilution=.false.$).
 
 \subsection{Phytoplankton physiology}
@@ -133,9 +138,15 @@ Light limitation coefficient
   c_I(I) = 1-\textrm{e}^{-\alpha I/ \mu_{\text{max}}}
 \end{equation}
 
-EPS production
-\begin{equation}
+EPS production (this is the old formulation, NOT USED ANYMORE)
+\begin{equation*}
   \eta = E_{min} + (E_{\textrm{max}}-E_{\textrm{min}})(1+0.5\ \tanh(B^*\dot{c}-B))
+\end{equation*}
+
+THIS IS THE NEW FORMULATION DERIVATED FROM OPTIMALITY.
+It is already implemented in the LiNA code.
+\begin{equation}
+  \eta = E_{\textrm{min}} + (E_{\textrm{max}}-E_{\textrm{min}})(\mu_X-\gamma_{\lim}/(1-g_n(q_{\lim}))*g'_n(q_{\lim})
 \end{equation}
 
 Nutrient limitation coefficient

@@ -22,11 +22,11 @@ instances:
       gamma_starP: 0.04 # 0.01-0.07
       AN: 1.1 # 0.31-2.30
       AP: 0.75 #0.15-1.15
-      B:
+      B: 1
       g: 9.81 # gravitational acceleration
-      B_star:
-      aroh:
-      cn:
+      B_star: 1
+      arho: 0
+      cn: 0
     initialization:
        Biomass_Phytoplankton: 300
        Biomass_Aggregates: 200
@@ -41,14 +41,25 @@ instances:
        QDP: 0.15094
        QXN: 0.009434
        QXP: 0.15094
-       psi: 
+       psi: 0.5 
     coupling:
        Detritus: npzd/det
-       Nitrogen: npzd/N
-       Phosphorus: npzd/P
-       Biomass_Phytoplankton: npzd/Phy
+       Nitrogen: npzd/nut
+       Phosphorus: npzd/nut
+       Biomass_Phytoplankton: npzd/phy
        Primary_lithogenic_particles: agg/agglpm
        Biomass_Aggregates: agg/aggorg
+#       mx: 0.01 #npzd/rpdl
+       Cx: agg/Cx
+       kB: agg/kb
+       wa: agg/agg_ws
+       ma: agg/agg_Breakup
+       dx: agg/agg_esd
+       md: agg/agg_Breakup
+       wd: agg/agg_ws
+       CD: agg/CD
+       CL: agg/CL
+       C_tot: agg/C_tot
   spm:
     model: iow_spm
     parameters:

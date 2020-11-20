@@ -274,7 +274,7 @@ contains
    call self%register_state_variable(self%id_lina_QDP, 'QDP','mol-P mol-C-1', 'Detritus Phosphorous to Carbon ratio', minimum=_ZERO_, no_river_dilution=.false. )
    call self%register_state_variable(self%id_lina_QXN, 'QXN','mol-N mol-C-1', 'Phytoplankton Nitrogen to Carbon ratio', minimum=_ZERO_, no_river_dilution=.false. )
    call self%register_state_variable(self%id_lina_QXP, 'QXP','mol-P mol-C-1', 'Phytoplankton Phosphorous to Carbon ratio', minimum=_ZERO_, no_river_dilution=.false. )
-   call self%register_state_variable(self%id_lina_psi, 'psi','mol-P mol-C-1', 'psi', minimum=_ZERO_, no_river_dilution=.false. )
+   call self%register_state_variable(self%id_lina_psi, 'psi','kg/kg', 'Lithogenoeus fraction in aggreagtes', minimum=_ZERO_, no_river_dilution=.false. )
   
    !Register external dependencies
 !depending on NPZD
@@ -287,9 +287,9 @@ contains
    call self%register_dependency(self%id_dx,'dx','1/1','AGG Phytoplankton Size')
    call self%register_dependency(self%id_md,'md','ms-1','AGG detritus mortality')
    call self%register_dependency(self%id_wD,'wd','ms-1','AGG Detritus sinking speed')
-   call self%register_dependency(self%id_CD,'CD','1/1','AGG Detritus Coagulation ')
-   call self%register_dependency(self%id_CL,'CL','1/1','AGG Lithogenous Coagulation ')
-   call self%register_dependency(self%id_C_tot,'C_tot','1/1','AGG total Coagulation ')
+   call self%register_dependency(self%id_CD,'CD','1/s','AGG Detritus Coagulation ')
+   call self%register_dependency(self%id_CL,'CL','1/s','AGG Lithogenous Coagulation ')
+   call self%register_dependency(self%id_C_tot,'C_tot','1/s','AGG total Coagulation ')
    
 !depending on phyics
    call self%register_dependency(self%id_Temperature,standard_variables%temperature)
@@ -411,11 +411,11 @@ subroutine do(self,_ARGUMENTS_DO_)
 !Calculate RHS of the State equations these rates of change are defined by FABM to be per second
 
    rhsv%lina_X= (lina_muX - var%mx -lina_wx -var%Cx) * var%lina_X !eqn 1
-   rhsv%lina_A= var%C_tot - (var%wa + var%ma + var%kB) * var%lina_A !eqn 2
+   rhsv%lina_A= var%C_tot - (var%ma + var%kB) * var%lina_A !eqn 2
    !(E and L ,D  are solved by the external AGG model)
    !rhsv%lina_E= lina_eta * var%lina_X - lina_h * var%lina_A !eqn 3
-   !rhsv%lina_L= lina_rL - (self%lina_wl +var%CL)*var%lina_L + self%lina_kB*lina_psi * var%lina_A !eqn 4 
-   !rhsv%lina_D= var%mx * var%lina_X - (var%mD + var%wD +var%CD) * var%lina_D + self%lina_kB (1- lina_psi) * var%lina_A !eqn 5
+   rhsv%lina_L= lina_rL - var%CL*var%lina_L + self%lina_kB*lina_psi * var%lina_A !eqn 4 
+   rhsv%lina_D= var%mx * var%lina_X - (var%mD +var%CD) * var%lina_D + self%lina_kB (1- lina_psi) * var%lina_A !eqn 5
    rhsv%lina_N= - lina_gammaN * var%lina_X + var%mD * var%lina_D * var%lina_QDN + var%ma * var%lina_A * var%lina_QAN +self%lina_eN !eqn 6
    rhsv%lina_P= - lina_gammaP * var%lina_X + var%mD * var%lina_D * var%lina_QDP + var%ma * var%lina_A * var%lina_QAP +self%lina_eP !eqn 7
 
@@ -520,4 +520,6 @@ function lina_EPS_production(E_min,E_max,muX,MI,N,P,qN,qP,gammaN,gammaP) result(
     end if
 
   end function
+
+
 end module hzg_lina
