@@ -237,9 +237,9 @@ contains
    call self%get_parameter(self%lina_B_star, 'B_star','d', 'Other EPS production parameter', default=-999.99_rk) 
    call self%get_parameter(self%lina_arho, 'arho','1/1', 'Density Parameter', default=-999.99_rk) 
    call self%get_parameter(self%lina_cn, 'cn','1/1', 'Colimitation Parameter', default=-999.99_rk) 
-   call self%get_parameter(self%id_ma,'ma','ms-1','AGG Aggregate mortality')
-   call self%get_parameter(self%id_dx,'dx','1/1','AGG Phytoplankton Size')
-   call self%get_parameter(self%id_md,'md','ms-1','AGG detritus mortality')
+   call self%get_parameter(self%ma,'ma','ms-1','AGG Aggregate mortality')
+   call self%get_parameter(self%dx,'dx','1/1','AGG Phytoplankton Size')
+   call self%get_parameter(self%md,'md','ms-1','AGG detritus mortality')
 
 
    !Register LINA interals as diagnostic variables, allowing debugging
