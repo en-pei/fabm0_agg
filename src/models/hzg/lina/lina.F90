@@ -87,13 +87,13 @@ module hzg_lina
   type (type_dependency_id)   :: id_Temperature, id_PAR!,id_Velocity,id_Tide
  
   
-  type(type_dependency_id)::id_mx
-  type(type_dependency_id)::id_ma
+!  type(type_dependency_id)::id_mx
+!  type(type_dependency_id)::id_ma
   type(type_dependency_id)::id_wa
   type(type_dependency_id)::id_kB
   type(type_dependency_id)::id_dx
   type(type_dependency_id)::id_Cx
-  type(type_dependency_id)::id_md
+!  type(type_dependency_id)::id_md
   type(type_dependency_id)::id_wD
   type(type_dependency_id)::id_CD
   type(type_dependency_id)::id_CL
@@ -172,6 +172,9 @@ module hzg_lina
      real(rk)::lina_arho
      real(rk)::lina_cn
 
+
+     real(rk)::lina_ma,lina_mx,lina_md
+
   logical::dummy_logical
   real(rk):: dummy_inital_value,dummy_parameter
 
@@ -234,6 +237,11 @@ contains
    call self%get_parameter(self%lina_B_star, 'B_star','d', 'Other EPS production parameter', default=-999.99_rk) 
    call self%get_parameter(self%lina_arho, 'arho','1/1', 'Density Parameter', default=-999.99_rk) 
    call self%get_parameter(self%lina_cn, 'cn','1/1', 'Colimitation Parameter', default=-999.99_rk) 
+   call self%get_parameter(self%id_ma,'ma','ms-1','AGG Aggregate mortality')
+   call self%get_parameter(self%id_dx,'dx','1/1','AGG Phytoplankton Size')
+   call self%get_parameter(self%id_md,'md','ms-1','AGG detritus mortality')
+
+
    !Register LINA interals as diagnostic variables, allowing debugging
 
    call self%register_diagnostic_variable(self%id_lina_muX, 'muX','1/d', 'Phytoplankton Growth Rate', output=output_instantaneous)  
@@ -283,9 +291,9 @@ contains
    call self%register_dependency(self%id_Cx,'Cx','d-1','Phytoplankton Coagulation rate')
    call self%register_dependency(self%id_kB,'kB','1/1','AGG kB')
    call self%register_dependency(self%id_wa,'wa','ms-1','AGG Aggregate sinking speed')
-   call self%register_dependency(self%id_ma,'ma','ms-1','AGG Aggregate mortality')
-   call self%register_dependency(self%id_dx,'dx','1/1','AGG Phytoplankton Size')
-   call self%register_dependency(self%id_md,'md','ms-1','AGG detritus mortality')
+!   call self%register_dependency(self%id_ma,'ma','ms-1','AGG Aggregate mortality')
+!   call self%register_dependency(self%id_dx,'dx','1/1','AGG Phytoplankton Size')
+!   call self%register_dependency(self%id_md,'md','ms-1','AGG detritus mortality')
    call self%register_dependency(self%id_wD,'wd','ms-1','AGG Detritus sinking speed')
    call self%register_dependency(self%id_CD,'CD','1/s','AGG Detritus Coagulation ')
    call self%register_dependency(self%id_CL,'CL','1/s','AGG Lithogenous Coagulation ')
@@ -378,12 +386,12 @@ subroutine do(self,_ARGUMENTS_DO_)
 
 !   _GET_(self%id_mx, var%mx)
 !   _GET_(self%id_ma, var%ma)
-!   _GET_(self%id_Cx, var%Cx)
+   _GET_(self%id_Cx, var%Cx)
 !   _GET_(self%id_md, var%md)
    _GET_(self%id_CD, var%CD)
    _GET_(self%id_CL, var%CL)
    _GET_(self%id_wd, var%wd)  
-   _GET_(self%id_c_tot,var%C_tot)      
+      
 !-------------------------------------------------
 
 !Copy Variables into private copy
@@ -393,6 +401,8 @@ subroutine do(self,_ARGUMENTS_DO_)
 !intermediate results......
 !
 !
+
+   c_tot=var%Cx*var%lina_X+var%CL*var%lina_L+var%CD*var%lina_D
    lina_qN=(var%lina_QXN-self%lina_Q0N)/(self%lina_Q_starN-self%lina_Q0N)              !eqn 10
    lina_qP=(var%lina_QXP-self%lina_Q0P)/(self%lina_Q_starP-self%lina_Q0P)  !eqn 10
    lina_gammaN=self%lina_gamma_starN*((var%lina_N*self%lina_AN)/(self%lina_gamma_starN + (var%lina_N*self%lina_AN)))*(1.0_rk-lina_gn(lina_qN,lina_MI)) !eqn 11
