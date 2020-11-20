@@ -414,8 +414,8 @@ subroutine do(self,_ARGUMENTS_DO_)
    rhsv%lina_A= var%C_tot - (var%ma + var%kB) * var%lina_A !eqn 2
    !(E and L ,D  are solved by the external AGG model)
    !rhsv%lina_E= lina_eta * var%lina_X - lina_h * var%lina_A !eqn 3
-   rhsv%lina_L= lina_rL - var%CL*var%lina_L + var%kB*lina_psi * var%lina_A !eqn 4 
-   rhsv%lina_D= var%mx * var%lina_X - (var%mD +var%CD) * var%lina_D + var%kB (1- lina_psi) * var%lina_A !eqn 5
+!   rhsv%lina_L= lina_rL - var%CL*var%lina_L + var%kB*lina_psi * var%lina_A !eqn 4 
+!   rhsv%lina_D= var%mx * var%lina_X - (var%mD +var%CD) * var%lina_D + var%kB (1- var%lina_psi) * var%lina_A !eqn 5
    rhsv%lina_N= - lina_gammaN * var%lina_X + var%mD * var%lina_D * var%lina_QDN + var%ma * var%lina_A * var%lina_QAN +self%lina_eN !eqn 6
    rhsv%lina_P= - lina_gammaP * var%lina_X + var%mD * var%lina_D * var%lina_QDP + var%ma * var%lina_A * var%lina_QAP +self%lina_eP !eqn 7
 
