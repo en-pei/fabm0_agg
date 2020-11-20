@@ -173,7 +173,7 @@ module hzg_lina
      real(rk)::lina_cn
 
 
-     real(rk)::lina_ma,lina_mx,lina_md
+     real(rk)::ma,mx,md
 
   logical::dummy_logical
   real(rk):: dummy_inital_value,dummy_parameter
