@@ -375,11 +375,11 @@ subroutine do(self,_ARGUMENTS_DO_)
    _GET_(self%id_Temperature, var%Temperature)  !
    _GET_(self%id_PAR, var%PAR)  !
    _GET_(self%id_kB, var%kB)
-   _GET_(self%id_dx, var%dx)
-   _GET_(self%id_mx, var%mx)
-   _GET_(self%id_ma, var%ma)
-   _GET_(self%id_Cx, var%Cx)
-   _GET_(self%id_md, var%md)
+
+!   _GET_(self%id_mx, var%mx)
+!   _GET_(self%id_ma, var%ma)
+!   _GET_(self%id_Cx, var%Cx)
+!   _GET_(self%id_md, var%md)
    _GET_(self%id_CD, var%CD)
    _GET_(self%id_CL, var%CL)
    _GET_(self%id_wd, var%wd)  
