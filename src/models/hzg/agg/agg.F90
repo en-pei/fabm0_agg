@@ -30,13 +30,10 @@
 #endif
       type (type_state_variable_id)      :: id_phyc,id_detc
       type (type_state_variable_id)      :: id_doc
-<<<<<<< HEAD
-      type (type_diagnostic_variable_id) :: id_aggvol,id_G,id_Breakup,id_ws,id_aggmass !added
+!      type (type_diagnostic_variable_id) :: id_aggvol,id_G,id_Breakup,id_ws,id_aggmass !added
       type (type_diagnostic_variable_id) :: id_esd,id_rho_part
-=======
       type (type_diagnostic_variable_id) :: id_aggvol,id_G,id_Breakup,id_ws,id_aggmass,id_coagulationphy,id_coagulationlpm,id_coagulationdet !added
-      type (type_diagnostic_variable_id) :: id_esd
->>>>>>> ec8828ee2f9fd514cb31277c91758843d771b0c4
+!      type (type_diagnostic_variable_id) :: id_esd
       type (type_dependency_id) :: id_eps,id_num
       type (type_state_variable_id)      :: id_dD,id_Dsize 
       
@@ -199,14 +196,11 @@
    call self%register_diagnostic_variable(self%id_ws,'ws','m/s','sinking velocity',time_treatment=time_treatment_last)
    call self%register_diagnostic_variable(self%id_esd,'esd','m','mean ESD',time_treatment=time_treatment_last)
    call self%register_diagnostic_variable(self%id_aggmass,'aggmass','g m-3','mass concentration of aggregates',time_treatment=time_treatment_last)
-<<<<<<< HEAD
    call self%register_diagnostic_variable(self%id_rho_part,'rho_part','kg m-3','density of aggregates',time_treatment=time_treatment_last)
-=======
    call self%register_diagnostic_variable(self%id_coagulationphy,'coagulationphy','1/s','coagulaiton phy',time_treatment=time_treatment_last)
- call self%register_diagnostic_variable(self%id_coagulationdet,'coagulationdet','1/s','coagulaiton det',time_treatment=time_treatment_last)
- call self%register_diagnostic_variable(self%id_coagulationlpm,'coagulationlpm','1/s','coagulaiton lpm',time_treatment=time_treatment_last)
+   call self%register_diagnostic_variable(self%id_coagulationdet,'coagulationdet','1/s','coagulaiton det',time_treatment=time_treatment_last)
+   call self%register_diagnostic_variable(self%id_coagulationlpm,'coagulationlpm','1/s','coagulaiton lpm',time_treatment=time_treatment_last)
 
->>>>>>> ec8828ee2f9fd514cb31277c91758843d771b0c4
 
    ! Register conserved quantities
    
@@ -368,7 +362,6 @@
 
 !      coagulation_lpm = coagulation * (lpm**2*1.d-3/self%dens_lpm + Vol_agg* lpm) 			!g m**-3 s-1 
       coagulation_lpm = coagulation * (Vol_agg* lpm) 			!g m**-3 s-1    !only coagulates with existing aggregates
-<<<<<<< HEAD
       _SET_ODE_(self%id_lpm, (loss_lpm - coagulation_lpm)*self%onoff) !- A1_lpm - A2_lpm
       _SET_ODE_(self%id_agglpm, (-loss_lpm + coagulation_lpm)*self%onoff) !A1_lpm + A2_lpm 
    
@@ -379,14 +372,9 @@
       _SET_ODE_(self%id_Dsize,-self%breakup_factor*G**1.5d0*(Dsize-self%min_size)*Dsize**2) ! !Dsize size change due to breakup
    end if
    
-=======
-          _SET_DIAGNOSTIC_(self%id_coagulationphy,coagulation_lpm)
-      _SET_ODE_(self%id_lpm, loss_lpm - coagulation_lpm) !- A1_lpm - A2_lpm
-      _SET_ODE_(self%id_agglpm, -loss_lpm + coagulation_lpm) !A1_lpm + A2_lpm 
-   
-   endif
+      _SET_DIAGNOSTIC_(self%id_coagulationphy,coagulation_lpm)
+
  
->>>>>>> ec8828ee2f9fd514cb31277c91758843d771b0c4
    _SET_DIAGNOSTIC_(self%id_G,G)
    _SET_DIAGNOSTIC_(self%id_breakup,breakup)
    _SET_DIAGNOSTIC_(self%id_aggvol,Vol_agg)
