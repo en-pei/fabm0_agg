@@ -31,7 +31,7 @@
       type (type_state_variable_id)      :: id_phyc,id_detc
       type (type_state_variable_id)      :: id_doc
       type (type_diagnostic_variable_id) :: id_aggvol,id_G,id_Breakup,id_ws,id_aggmass !added
-      type (type_diagnostic_variable_id) :: id_esd
+      type (type_diagnostic_variable_id) :: id_esd,id_rho_part
       type (type_dependency_id) :: id_eps,id_num
       type (type_state_variable_id)      :: id_dD,id_Dsize 
       
@@ -61,6 +61,8 @@
       integer  :: size_method
       real(rk) :: tep_remin
       real(rk) :: onoff
+      real(rk) :: fractal_dimension
+      real(rk) :: min_size
 
       contains
 
@@ -137,6 +139,8 @@
    self%NC_agg = 1000*16.0_rk/106.0_rk  ! Redfield
    self%NP_agg = 1000*16.0_rk           ! Redfield
    self%org2N  = 1000*16.0_rk/3550.0_rk ! g->mmolN 
+   self%fractal_dimension=2 !added nf
+!   self%min_size=1.d-5 
 
    call self%get_parameter(self%doc_min, 'doc_min', 'mmolC/m3', 'minimum doc concentration', default=1.0_rk)
    call self%get_parameter(self%doc_mean,'doc_mean', 'mmolC/m3', 'mean doc concentration', default=100.0_rk)
@@ -147,6 +151,8 @@
    call self%get_parameter(self%size_method, 'size_method', '-', 'size method: 1: sigmoid, 2: Xu et al. (2008) steady-state, 3: Xu ea. (2008) Bale experiment,  4: Winterwerp (1998)', default=2)
    call self%get_parameter(self%tep_remin, 'tep_remin', '1/d', 'remineralization rate of TEP', default=0.0_rk, scale_factor=one_pr_day)
    call self%get_parameter(self%onoff, 'onoff', 'dimensionless', 'on or off of dD/dt term', default=0.0_rk)
+!   call self%get_parameter(self%fractal_dimension, 'fractal_dimension', 'dimensionless', 'fractal dimension of particles', default=2)
+   call self%get_parameter(self%min_size, 'min_size', 'm', 'maximum aggregate size', default=1.0e-6_rk)
 
    ! Register state variables
    call self%register_state_variable(self%id_aggorg,'aggorg','g/m**3', & !changed from mg/m**3 to g/m**3
@@ -188,6 +194,7 @@
    call self%register_diagnostic_variable(self%id_ws,'ws','m/s','sinking velocity',time_treatment=time_treatment_last)
    call self%register_diagnostic_variable(self%id_esd,'esd','m','mean ESD',time_treatment=time_treatment_last)
    call self%register_diagnostic_variable(self%id_aggmass,'aggmass','g m-3','mass concentration of aggregates',time_treatment=time_treatment_last)
+   call self%register_diagnostic_variable(self%id_rho_part,'rho_part','kg m-3','density of aggregates',time_treatment=time_treatment_last)
 
    ! Register conserved quantities
    
@@ -276,7 +283,7 @@
    G = sqrt(eps/(num_turb + num_water)) ! turbulent shear
 
 
-   breakup = self%breakup_factor * G**1.5d0 * (self%onoff*Dsize + self%meansize(aggmass,G,doc, lpm, agglpm,aggorg))**2! self%meansize(agglpm+aggorg,G)**2  #Dsize dd ODE added
+   breakup = self%breakup_factor * G**1.5d0 * (self%meansize(aggmass,G,doc, lpm, agglpm,aggorg, Dsize))**2! self%meansize(agglpm+aggorg,G)**2  !self%onoff*Dsize 
    !breakup = self%breakup_factor * G**1.5d0 * self%max_size**2 ! [1/s]
    !breakup_factor is in Xu.etal2008: efficiency*sqrt(viscosity/yield_strength)*2 with
    !yield_strength=10.e-10 and efficiency=?
@@ -347,18 +354,24 @@
 
 !      coagulation_lpm = coagulation * (lpm**2*1.d-3/self%dens_lpm + Vol_agg* lpm) 			!g m**-3 s-1 
       coagulation_lpm = coagulation * (Vol_agg* lpm) 			!g m**-3 s-1    !only coagulates with existing aggregates
-      _SET_ODE_(self%id_lpm, loss_lpm - coagulation_lpm) !- A1_lpm - A2_lpm
-      _SET_ODE_(self%id_agglpm, -loss_lpm + coagulation_lpm) !A1_lpm + A2_lpm 
+      _SET_ODE_(self%id_lpm, (loss_lpm - coagulation_lpm)*self%onoff) !- A1_lpm - A2_lpm
+      _SET_ODE_(self%id_agglpm, (-loss_lpm + coagulation_lpm)*self%onoff) !A1_lpm + A2_lpm 
    
    endif
+
+   if (self%onoff==0) then
+      _SET_ODE_(self%id_Dsize,coagulation*1.d-3*lpm*Dsize**(4-self%fractal_dimension)) !Dsize size change due to coagulation   !coagulation=k_A*G !aggmass changed to lpm
+      _SET_ODE_(self%id_Dsize,-self%breakup_factor*G**1.5d0*(Dsize-self%min_size)*Dsize**2) ! !Dsize size change due to breakup
+   end if
    
    _SET_DIAGNOSTIC_(self%id_G,G)
    _SET_DIAGNOSTIC_(self%id_breakup,breakup)
    _SET_DIAGNOSTIC_(self%id_aggvol,Vol_agg)
-   _SET_DIAGNOSTIC_(self%id_ws,self%sinking_velocity(aggorg,agglpm,G))
-   _SET_DIAGNOSTIC_(self%id_esd,self%meansize(aggmass,G,doc,lpm, agglpm,aggorg)) 
+   _SET_DIAGNOSTIC_(self%id_ws,self%sinking_velocity(aggorg,agglpm,G, Dsize))
+   _SET_DIAGNOSTIC_(self%id_esd,self%meansize(aggmass,G,doc,lpm, agglpm,aggorg, Dsize)) 
    _SET_DIAGNOSTIC_(self%id_aggmass,aggmass)
-   _SET_ODE_(self%id_Dsize,(Dsize-0.0001)*(self%max_size-Dsize)*(-2*self%breakup_factor * G**1.5d0 * Dsize)) !dD ODE
+   !_SET_ODE_(self%id_Dsize,(Dsize-0.0001)*(self%max_size-Dsize)*(-2*self%breakup_factor * G**1.5d0 * Dsize)) !dD ODE
+
    _LOOP_END_
 
    end subroutine do
@@ -373,7 +386,7 @@
    class (type_hzg_agg), intent(in) :: self
    _DECLARE_ARGUMENTS_GET_VERTICAL_MOVEMENT_
 
-   real(rk)                :: aggorg, agglpm
+   real(rk)                :: aggorg, agglpm, Dsize, lpm
    real(rk)                :: rho_part,rho_water!,visc
    real(rk)                :: G,eps,num_turb,aggmass
    real(rk)                :: ws
@@ -384,16 +397,24 @@
    ! Retrieve current (local) state variable values.
    _GET_STATE_(self%id_agglpm,agglpm)
    _GET_STATE_(self%id_aggorg,aggorg)
+   _GET_STATE_(self%id_Dsize,Dsize) !added
 !   _GET_STATE_(self%id_aggmass,aggmass)
 
    ! Retrieve dependencies
    _GET_DEPENDENCY_(self%id_eps, eps) ! dissipation [m**2/s**3]
    _GET_DEPENDENCY_(self%id_num, num_turb) ! kinematic (turbulent) viscosity [m**2/s]
    G = sqrt(eps/(num_turb + num_water)) ! turbulent shear
-   ws = self%sinking_velocity(aggorg,agglpm,G)
+   ws = self%sinking_velocity(aggorg,agglpm,G, Dsize)
 
-   _SET_VERTICAL_MOVEMENT_(self%id_agglpm,ws)
-   _SET_VERTICAL_MOVEMENT_(self%id_aggorg,ws)
+   if (self%onoff==1) then
+      _SET_VERTICAL_MOVEMENT_(self%id_agglpm,ws)
+      _SET_VERTICAL_MOVEMENT_(self%id_aggorg,ws)
+   else if (self%onoff==0) then
+      _SET_VERTICAL_MOVEMENT_(self%id_lpm,ws)
+   else 
+      print*, "unknown size method for vertical movement"
+
+   end if
 
 #ifndef AGG_WO_CHL
    if (self%use_chl) &
@@ -406,15 +427,15 @@
    end subroutine get_vertical_movement
 
 
-   real(rk) function sinking_velocity(self,aggorg,agglpm,G)
+   real(rk) function sinking_velocity(self,aggorg,agglpm,G, Dsize)
    implicit none
    class(type_hzg_agg)        :: self
    real(rk), intent(in)       :: aggorg
    real(rk), intent(in)       :: agglpm
-   real(rk), intent(in)       :: G
+   real(rk), intent(in)       :: G, Dsize
    real(rk)                   :: rho_part,rho_water,visc
    real(rk)                   :: Vol_agg, aggmass,doc,lpm
-   real(rk)                   :: dD, Dsize
+   real(rk)                   :: dD
 
    rho_water = 1025.d0 ! [kg/m**3]
    visc = 1.1d-3 ! dynamic viscosity for about 17 degC water [kg/(m*s)]
@@ -429,25 +450,31 @@
 		!(_ONE_-self%agg_porosity)*1.d-3*aggmass/Vol_agg + self%agg_porosity*rho_water
 
    !Stokes law:
+   if (self%onoff==1) then !diagnostic
    sinking_velocity = -2.d0*(rho_part - rho_water)*9.81d0/(9.d0*visc) * \
-         (self%onoff*dSize+self%meansize(aggmass,G,doc,lpm,agglpm,aggorg)/2.d0)**2
-
+         (self%meansize(aggmass,G,doc,lpm,agglpm,aggorg, Dsize)/2.d0)**2  !self%onoff*dSize+
+   else if (self%onoff==0) then !dynamical
+   sinking_velocity = -2.d0*(self%dens_lpm - rho_water)*9.81d0/(9.d0*visc)*\
+         (Dsize/2.d0)**2                        !dynamical  !self%min_size**(3-self%fractal_dimension)*
+   else 
+      print*, "unknown size method for calculating sinking velocity"
+   end if 
    end function sinking_velocity
 
 
-   real(rk) function meansize(self,aggmass,G,doc,lpm,agglpm,aggorg)
+   real(rk) function meansize(self,aggmass,G,doc,lpm,agglpm,aggorg,Dsize)
    implicit none
    class(type_hzg_agg)        :: self
    real(rk), intent(in)       :: aggmass
-   real(rk), intent(in)       :: G
+   real(rk), intent(in)       :: G, Dsize
    real(rk)                   :: modesize,sigma, doc, lpm, agglpm,aggorg,sms,k
-   real(rk), parameter        :: minsize= 0.0001 !changed to size of pp, was 50.d-6 ! [m] minimum size of arregates
+!   real(rk), parameter        :: minsize= 0.0001 !changed to size of pp, was 50.d-6 ! [m] minimum size of arregates
    real(rk), parameter        :: k_size = 50.d0  ! [g/m**3] half-saturation constant for size distribution !need to be checked
 
    if (self%size_method == 1) then
      ! Get mean size from log-normal distribution:
      !   most probable (mode) size is approaching self%max_size for high SPM
-     modesize = minsize+(self%max_size - minsize)*aggmass/(aggmass+k_size)
+     modesize = self%min_size+(self%max_size - self%min_size)*aggmass/(aggmass+k_size)
    else if (self%size_method == 2) then
      ! from 1d experiments in Xu.etal2008
      ! equilibrium D50 value depending on aggmass [g/l] and G, aggmass[g/m-3]
@@ -460,7 +487,7 @@
      modesize=0.0001_rk + 0.0003_rk*1.d-3*aggmass/G !0.00005_rk + 0.0001_rk*1.d-3*aggmass/G
    else if (self%size_method == 4) then  !current size method
      ! Winterwerp et al (1998)
-     modesize = 70.e-6+4.e-6 + 4.e-3*1.e-3*aggmass/sqrt(G)
+     modesize = 70.e-6+4.e-6 + 4.e-3*1.e-3*(agglpm+aggorg)/sqrt(G)
    else if (self%size_method == 5) then
      ! equilibrium of aggregation in this code when only lpm
      modesize = sqrt(0.001* self%coagulation_rate*max(self%doc_min,doc)/(doc+self%doc_mean)/(self%dens_lpm*(_ONE_-self%agg_porosity)*self%breakup_factor*sqrt(G))*(1+(_ONE_-self%agg_porosity)*0.001*lpm/0.001*agglpm*0.001*lpm)) 
@@ -475,9 +502,8 @@
    else if (self%size_method == 9) then !agglpm+lpm=k*agglpm
      k=1+lpm/agglpm 
      modesize = sqrt(self%coagulation_rate*max(self%doc_min,doc)/((doc+self%doc_mean)*self%breakup_factor*sqrt(G))*(1/(_ONE_-self%agg_porosity)+k-1)*(k-1)*(1.e-3*agglpm/self%dens_lpm))
-   else if (self%size_method == 10) then 
-     ! Winterwerp et al (1998) method4 + dD
-     modesize = 70.e-6+4.e-6 + 4.e-3*1.e-3*aggmass/sqrt(G) !+self%dD
+!   else if (self%onoff == 0) then 
+!     modesize = Dsize  !????does it work?
    end if
    meansize = min(modesize,self%max_size) !test the min equation
 #if 0
