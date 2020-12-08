@@ -1,0 +1,123 @@
+instances:
+  lina:
+    model: hzg/lina
+    parameters:
+      QstarN: 0.18 # 0.18-0.27
+      QstarP: 0.0020 #0.0018-0.021
+      Q0N: 0.02 # 0.0041-0.0018
+      Q0P: 0.001 #0.0003 - 0.0018
+      rhol: 2000 #lithogenous density
+      rhow: 1027 #default water density @saltwater 10C
+      rho_starx: 1200 #density of pytoplankton
+      alpha: 0.024 # 0.01.0.05
+      mu_max: 1 # 0.5-1.1
+      muw: 0.001397 #Pa s @saltwater 10C
+      E_min: 0.07 # 0.0 -0.1
+      E_max: 0.4 #0.1-1.0
+      zeta: 0.7 #0-1 ?
+      MI_star: 3 # 1-10
+      eN: 0 #assume no extra input of N
+      eP: 0 #assume no extra input of P
+      gamma_starN: 0.4 # 0.14-0.7
+      gamma_starP: 0.04 # 0.01-0.07
+      AN: 1.1 # 0.31-2.30
+      AP: 0.75 #0.15-1.15
+      B: 1
+      g: 9.81 # gravitational acceleration
+      B_star: 1
+      arho: 0
+      cn: 0
+    initialization:
+       Biomass_Phytoplankton: 300
+       Biomass_Aggregates: 200
+       Free_EPS: 5
+       Primary_lithogenic_particles: 0.005
+       Detritus : 700
+       Nitrogen: 0.050 #22-75µM Schlarbaum2010
+       Phosphorus: 0.070 # 11-127µM Schlarbaum2010
+       QAN: 0.009434 # use classical Redfield 1:106 for now
+       QAP: 0.15094  # classical Redfield 16:106
+       QDN: 0.009434
+       QDP: 0.15094
+       QXN: 0.009434
+       QXP: 0.15094
+       psi: 0.5 
+    coupling:
+       Detritus: npzd/det
+       Nitrogen: npzd/nut
+       Phosphorus: npzd/nut
+       Biomass_Phytoplankton: npzd/phy
+       Primary_lithogenic_particles: agg/agglpm
+       Biomass_Aggregates: agg/aggorg
+#       mx: 0.01 #npzd/rpdl
+       Cx: agg/Cx
+       kB: agg/kb
+       wa: agg/agg_ws
+       ma: agg/agg_Breakup
+       dx: agg/agg_esd
+       md: agg/agg_Breakup
+       wd: agg/agg_ws
+       CD: agg/CD
+       CL: agg/CL
+       C_tot: agg/C_tot
+  spm:
+    model: iow_spm
+    parameters:
+      diameter: 10 #50.
+      sinking_method: 0
+      pm_pool: .false. #.true. 	#		
+      tauc_const: 1.0   # critical stress for erosion
+      tauc_factor: 0.1  # critical stress factor for sedimentation
+      shading: 0.012
+      ws_const: 0.00012
+      rho: 2600 #2300 #2000 #2650.0
+      bedload_method: 0
+      add_to_density: .false.
+    initialization:
+      spm: 780 #3900 #4000 #2000 #1630 #2630 #3050.#3000 
+#      pmpool: 0.0
+
+  npzd:
+    model: gotm/npzd
+    parameters:
+      p0: 0.0225           # background phytoplankton concentration (mmol m-3), default = 0.0225
+      z0: 0.0225           # background zooplankton concentration (mmol m-3), default = 0.0225
+      kc: 0.03             # specific light extinction of phytoplankton and detritus (m2 mmol-1), default = 0.03
+      i_min: 25.0          # minimum light intensity in euphotic zone (W m-2), default = 25.0
+      rmax: 1.0            # maximum specific growth rate of phytoplankton (d-1), default = 1.0
+      gmax: 0.1 #0.2            # maximum specific grazing rate of zooplankton (d-1), default = 0.5
+      iv: 1.1              # Ivlev grazing constant (m3 mmol-1), default = 1.1
+      alpha: 1.35          # half-saturation nutrient concentration for phytoplankton (mmol m-3), default = 0.3
+      rpn: 0.01            # loss rate of phytoplankton to nutrients (d-1), default = 0.01
+      rzn: 0.01            # loss rate of zooplankton to nutrients (d-1), default = 0.01
+      rdn: 0.003           # detritus remineralization rate (d-1), default = 0.003
+      rpdu: 0	# 0.02     # phytoplankton mortality in euphotic zone (d-1), default = 0.02
+      rpdl: 0	#0.1	   # phytoplankton mortality below euphotic zone (d-1), default = 0.1
+      rzd: 0.02            # zooplankton mortality (d-1), default = 0.02
+      w_p: -1.0            # vertical velocity of phytoplankton (<0 for sinking) (m d-1), default = -1.0
+      w_d: -5.0            # vertical velocity of detritus  (<0 for sinking) (m d-1), default = -5.0
+    initialization:
+      nut: 0.0 	#80     	       # nutrients (mmol m-3)
+      phy: 0.0 #7.0	#7 	       # phytoplankton (mmol m-3)
+      zoo: 0.0 #0.05	#0.05 	       # zooplankton (mmol m-3)
+      det: 0.0 #1.07		       # detritus (mmol m-3)
+
+  agg:
+    model: hzg/agg
+    parameters:
+      dens_lpm: 2000 #1600 #2300 #2000 #1600 #2650 #1500.	#kg m-3
+      dens_org: 1200.	#kg m-3
+      max_size: 0.001 #0.0009 #0.001	#50.e-6 #0.000600	#400.e-6  50.e-6 #m
+      size_method: 4 #8 #6	# 2 5	#3 is default
+      # 1:sigmoid, 2:Xu ea. 2008 steady-state, 3:Xu ea. 2008 tank, 4:Winterwerp ea. 1998 6. equi in this model 8.k=2 9.k with model solution
+      coagulation_rate: 2 #10 #40 #43.5 #35.5 #30 #0.8 #0.22 #22 #35 #22 #11 #22 10.0
+      agg_porosity: 0.97  #0.96 #0.98
+      phyn_variable: npzd_phy
+      detn_variable: npzd_det
+      lpm_variable: spm_spm
+      tep_remin: 0.00
+      breakup_factor: 550 #8000 #12000 #12068 # 9000 #12068 #5000 #12068.	#16300
+    initialization:
+      aggorg: 0.		#g m-3
+      agglpm: 0.001 #2500 #2000 #1000 #870  #900 #1000	#g m-3
+
