@@ -67,6 +67,7 @@
 
 !     Model parameters
       real(rk) :: BioC(45)
+      real(rk) :: extdet, extdom
       real(rk) :: zpr, frr
       real(rk) :: prefZsPs
       real(rk) :: prefZsPl
@@ -190,6 +191,8 @@
    else
       call self%get_parameter( self%BioC(5) , 'Exphy',       'm**2/mmolN', 'phyto self-shading',              default=0.04_rk, scale_factor=1.0_rk/(redf(1)*redf(6)) )
    end if
+      call self%get_parameter( self%extdet , 'Exdet',       'm**2/molC', 'detritus self-shading',         default=0.0_rk, scale_factor=1.0_rk/1000.0_rk )
+      call self%get_parameter( self%extdom , 'Exdom',       'm**2/molC', 'dom self-shading',              default=0.0_rk, scale_factor=1.0_rk/1000.0_rk )
    call self%get_parameter( self%BioC(6) , 'rNH4',        'mmolN/m**3', 'NH4 half saturation',             default=0.20_rk,  scale_factor=redf(1)*redf(6))
    call self%get_parameter( self%BioC(7) , 'rNO3',        'mmolN/m**3', 'NO3 half saturation',             default=0.50_rk,  scale_factor=redf(1)*redf(6))
    call self%get_parameter( self%BioC(8) , 'psi',         'm**3/mmolN', 'NH4 inhibition',                  default=3.0_rk,   scale_factor=1.0_rk/(redf(1)*redf(6)) )
@@ -1267,6 +1270,7 @@ end subroutine initialize
    _DECLARE_ARGUMENTS_GET_EXTINCTION_
 
    real(rk)                     :: dom,det,diachl,flachl,bgchl
+   real(rk)                     :: dia,fla,bg
    real(rk)                     :: my_extinction
 
    ! Enter spatial loops (if any)
@@ -1276,9 +1280,16 @@ end subroutine initialize
 
    _GET_(self%id_det, det)
    _GET_(self%id_dom, dom)
+   _GET_(self%id_dia, dia)
+   _GET_(self%id_fla, fla)
+     if (self%use_cyanos) then
+   _GET_(self%id_bg, bg)
+     else
+       bg=0.0_rk
+     end if
 
    my_extinction = self%BioC(4)
-
+    !print*,'test ext params',self%extdet,self%extdom,self%BioC(5),self%BioC(4)
    if (self%use_chl) then
      _GET_(self%id_diachl, diachl)
      _GET_(self%id_flachl, flachl)
@@ -1287,10 +1298,11 @@ end subroutine initialize
      else
        bgchl=0.0_rk
      end if
-     my_extinction = my_extinction + self%BioC(5)*(diachl+flachl+bgchl)
+     my_extinction = my_extinction + self%BioC(5)*(diachl+flachl+bgchl) + self%extdet*det + self%extdom*dom
    else
      diachl=0.0_rk
      flachl=0.0_rk
+     my_extinction = my_extinction + self%BioC(5)*(dia+fla+bg) + self%extdet*det + self%extdom*dom
    end if
 
    _SET_EXTINCTION_( my_extinction )
