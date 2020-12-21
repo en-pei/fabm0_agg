@@ -23,6 +23,8 @@ instances:
       aa         : 0.012    # photosynthesis ef-cy            (m**2/W),                     default=0.03
       EXw        : 0.04     # light extinction                (1/m),                        default=0.05
       EXphy      : 0.041    # phyto self-shading              (m**2/mmolN),                 default=0.03
+      EXdet      : 0.00     # det self-shading              (m**2/molC),                 default=0.03
+      EXdom      : 0.00     # dom self-shading              (m**2/molC),                 default=0.03
       rNH4       : 0.20     # NH4 half saturation             (mmolN/m**3),                 default=0.20
       rNO3       : 0.50     # NO3 half saturation             (mmolN/m**3),                 default=0.50
       psi        : 3.00     # NH4 inhibition                  (m**3/mmolN),                 default=3.00

@@ -6,11 +6,11 @@ instances:
     parameters:
       muPl       : 1.30     # max growth rate for Pl          (1/d),                        default=1.30
       muPs       : 1.10     # max growth rate for Ps          (1/d),                        default=1.10
-      aa         : 0.04     # photosynthesis ef-cy            (m**2/W),                     default=0.03
-      EXw        : 0.041    # light extinction                (1/m),                        default=0.05
-      EXphy      : 0.04     # phyto self-shading              (m**2/mmolN),                 default=0.03
-      EXdet      : 0.00     # det self-shading              (m**2/molC),                 default=0.03
-      EXdom      : 0.00     # dom self-shading              (m**2/molC),                 default=0.03
+      aa         : 0.01     # photosynthesis ef-cy            (m**2/W),                     default=0.03
+      EXw        : 0.03    # light extinction                (1/m),                        default=0.05
+      EXphy      : 0.03     # phyto self-shading              (m**2/mmolN),                 default=0.03
+      EXdet      : 0.20     # det self-shading              (m**2/molC),                 default=0.03
+      EXdom      : 0.29     # dom self-shading              (m**2/molC),                 default=0.03
       rNH4       : 0.20     # NH4 half saturation             (mmolN/m**3),                 default=0.20
       rNO3       : 0.50     # NO3 half saturation             (mmolN/m**3),                 default=0.50
       psi        : 3.00     # NH4 inhibition                  (m**3/mmolN),                 default=3.00
@@ -20,14 +20,14 @@ instances:
       GrZsP      : 1.00     # Grazing rate Zs on Phyto        (1/d),                        default=1.00
       GrZlZ      : 0.50     # Grazing rate Zl on Zs           (1/d),                        default=0.50
       Rg         : 0.50     # Zs, Zl half saturation          (mmolN/m**3),                 default=0.50
-      mZl        : 0.08     # Zl mortality rate               (1/d),                        default=0.10
-      mZs        : 0.16     # Zs mortality rate               (1/d),                        default=0.20
+      mZl        : 0.10     # Zl mortality rate               (1/d),                        default=0.10
+      mZs        : 0.20     # Zs mortality rate               (1/d),                        default=0.20
       excZl      : 0.06     # Zl excretion rate               (1/d),                        default=0.06
       excZs      : 0.08     # Zs excretion rate               (1/d),                        default=0.08
       gammaZlp   : 0.75     # Zl assim. eff. on plankton      (-),                          default=0.75
       gammaZsp   : 0.75     # Zs assim. eff. on plankton      (-),                          default=0.75
       gammaZd    : 0.75     # Zl & Zs assim. eff. on det      (-),                          default=0.75
-      reminD     : 0.01    # Detritus remineralization rate  (1/d),                        default=0.003
+      reminD     : 0.15     # Detritus remineralization rate  (1/d),                        default=0.003
       sinkDet    : 5.00     # Detritus sinking rate           (m/d),                        default=5.00
       Wa         : 1.00     # Don't know what this is yet     (m/d),                        default=1.00
       rPO4       : 0.05     # PO4 half saturation             (mmolP/m**3),                 default=0.05
@@ -39,8 +39,8 @@ instances:
       GrBG       : 0.30     # BG max grazing rate             (1/d),                        default=0.30
       mBG        : 0.08     # BG mortality rate               (1/d),                        default=0.08
       upliftBG   : 0.10     # BG uplifting rate               (m/d),                        default=0.10
-      crBotStr   : 0.07    # critic. bot. stress for resusp. (N/m**2),                     default=0.007
-      resuspRt   : 5.00    # resuspension rate               (1/d),                        default=25.00
+      crBotStr   : 0.007    # critic. bot. stress for resusp. (N/m**2),                     default=0.007
+      resuspRt   : 25.00    # resuspension rate               (1/d),                        default=25.00
       sedimRt    : 3.50     # sedimentation rate              (m/d),                        default=3.50
       burialRt   : 0.00001  # burial rate                     (1/d),                        default=0.00001
       reminSED   : 0.001    # sediment remineralization rate  (1/d),                        default=0.001
@@ -51,15 +51,15 @@ instances:
       sinkOPAL   : 5.00     # OPAL sinking rate               (m/d),                        default=5.00
       sinkBG     : -1.00    # BG sinking rate                 (m/d),                        default=-1.00
       sinkDia    : 0.00     # Diatom sinking rate             (m/d),                        default=0.00
-      prefZsPs   : 0.68     # Grazing preference Zs on Ps     (-),                          default=0.70
-      prefZsPl   : 0.24     # Grazing preference Zs on Pl     (-),                          default=0.25
-      prefZsD    : 0.08     # Grazing preference Zs on Det.   (-),                          default=0.00
-      prefZsBG   : 0.0      # Grazing preference Zs on BG     (-),                          default=0.30
-      prefZlPs   : 0.08     # Grazing preference Zl on Ps     (-),                          default=0.10
-      prefZlPl   : 0.72     # Grazing preference Zl on Pl     (-),                          default=0.85
-      prefZlZs   : 0.12     # Grazing preference Zl on Zs     (-),                          default=0.15
-      prefZlD    : 0.08     # Grazing preference Zl on Det.   (-),                          default=0.00
-      prefZlBG   : 0.0      # Grazing preference Zl on BG     (-),                          default=0.30
+      prefZsPs   : 0.70     # Grazing preference Zs on Ps     (-),                          default=0.70
+      prefZsPl   : 0.25     # Grazing preference Zs on Pl     (-),                          default=0.25
+      prefZsD    : 0.10     # Grazing preference Zs on Det.   (-),                          default=0.00
+      prefZsBG   : 0.30      # Grazing preference Zs on BG     (-),                          default=0.30
+      prefZlPs   : 0.10     # Grazing preference Zl on Ps     (-),                          default=0.10
+      prefZlPl   : 0.85     # Grazing preference Zl on Pl     (-),                          default=0.85
+      prefZlZs   : 0.15     # Grazing preference Zl on Zs     (-),                          default=0.15
+      prefZlD    : 0.10     # Grazing preference Zl on Det.   (-),                          default=0.00
+      prefZlBG   : 0.30      # Grazing preference Zl on BG     (-),                          default=0.30
       zpr        : 0.00     # zpr_long_name_needed            (?),                          default=0.001
       frr        : 0.4      # fraction of dissolved from det. (-),                          default=0.4
       MINchl2nPs : 0.5      # minimum Chl to N ratio Ps       (mgChl/mmolN),                default=0.5
@@ -126,10 +126,10 @@ instances:
       sinkBgD    : 0.0      # Detritus originating from cyanob. sinking rate (m/d),         default=5.0
       sinkFish1D : 8.0      # Detritus originating from fish1 sinking rate (m/d),         default=5.0
       sinkFish2D : 10.0      # Detritus originating from fish2 sinking rate (m/d),         default=5.0
-      use_chl    : true
-      use_cyanos : false
+      use_chl    : false
+      use_cyanos : true
       couple_co2 : false
-      use_fish  : true 
+      use_fish  : false 
       community_export: false
       bg_growth_minimum_daily_rad : 120.0 #10000.0 # bg growth minimum daily rad, default = 120.0
       nfixation_minimum_daily_par : 35.0 # 10000.0  # nfixation minimum daily par, default = 35.0
@@ -153,10 +153,10 @@ instances:
       fla        : 0.1    # small phytoplankton (mmol n/m**3)
       mesozoo    : 0.01    # mesozooplankton (mmolN/m**3)
       microzoo   : 0.01    # microzooplankton (mmolN/m**3)
-      #bg         : 1e-7    # cyanobacteria (mmolN/m**3)
-      diachl     : 0.005    # large phytoplankton chl-a (mmolN/m**3)
-      flachl     : 0.005    # small phytoplankton chl-a (mmolN/m**3)
+      bg         : 1e-7    # cyanobacteria (mmolN/m**3)
+      #diachl     : 0.005    # large phytoplankton chl-a (mmolN/m**3)
+      #flachl     : 0.005    # small phytoplankton chl-a (mmolN/m**3)
       #bgchl      : 1e-8    # cyanobacteria chl-a (mmolN/m**3)
-      mb1        : 0.01    # macrobenthos (mmolN/m**3)
-      fis1      : 0.01    # fish functional group (mmolN/m**3)
-      fis2      : 0.001    # fish functional group (mmolN/m**3)
+      #mb1        : 0.01    # macrobenthos (mmolN/m**3)
+      #fis1      : 0.01    # fish functional group (mmolN/m**3)
+      #fis2      : 0.001    # fish functional group (mmolN/m**3)
