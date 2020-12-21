@@ -1293,7 +1293,6 @@ end subroutine initialize
      end if
 
    my_extinction = self%BioC(4)
-    !print*,'test ext params',self%extdet,self%extdom,self%BioC(5),self%BioC(4)
    if (self%use_chl) then
      _GET_(self%id_diachl, diachl)
      _GET_(self%id_flachl, flachl)

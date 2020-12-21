@@ -2,6 +2,8 @@ instances:
 
   light:
     model: gotm/light
+    parameters:
+      g2         : 24.00     # e-folding depth of visible fraction  (m)                     default=23.0
 
   CO2:
     model: pml/carbonate
@@ -21,7 +23,7 @@ instances:
       muPl       : 1.75     # max growth rate for Pl          (1/d),                        default=1.30
       muPs       : 1.45     # max growth rate for Ps          (1/d),                        default=1.10
       aa         : 0.012    # photosynthesis ef-cy            (m**2/W),                     default=0.03
-      EXw        : 0.04     # light extinction                (1/m),                        default=0.05
+      EXw        : 0.00     # light extinction ==g2 in gotm/light     (1/m),                default=0.05
       EXphy      : 0.041    # phyto self-shading              (m**2/mmolN),                 default=0.03
       EXdet      : 0.00     # det self-shading              (m**2/molC),                 default=0.03
       EXdom      : 0.00     # dom self-shading              (m**2/molC),                 default=0.03

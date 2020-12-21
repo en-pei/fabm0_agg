@@ -1,13 +1,15 @@
 instances:
   light:
     model: gotm/light
+    parameters:
+      g2         : 33.00     # e-folding depth of visible fraction  (m)                     default=23.0
   ECO:    # any name you like - it'll be the variable prefix in all output
     model: nersc_ecosmo
     parameters:
       muPl       : 1.30     # max growth rate for Pl          (1/d),                        default=1.30
       muPs       : 1.10     # max growth rate for Ps          (1/d),                        default=1.10
       aa         : 0.01     # photosynthesis ef-cy            (m**2/W),                     default=0.03
-      EXw        : 0.03    # light extinction                (1/m),                        default=0.05
+      EXw        : 0.00     # light extinction= g2 in gotm/light   (1/m),                   default=0.05
       EXphy      : 0.03     # phyto self-shading              (m**2/mmolN),                 default=0.03
       EXdet      : 0.20     # det self-shading              (m**2/molC),                 default=0.03
       EXdom      : 0.29     # dom self-shading              (m**2/molC),                 default=0.03
