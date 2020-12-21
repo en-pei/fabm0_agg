@@ -647,10 +647,10 @@ end subroutine initialize
    ! grazing
    Fs = self%prefZsPs*fla + self%prefZsPl*dia + self%prefZsD*det !+ self%prefZsBG*bg error correction 25.02.2020
    Fl = self%prefZlPs*fla + self%prefZlPl*dia + self%prefZlZs*microzoo + &
-         self%prefZlD*det + self%prefZlBG*bg
+         self%prefZlD*det !+ self%prefZlBG*bg
    if (self%use_cyanos) then
     Fs = Fs + self%prefZsBG*bg
-    Fl = Fl + self%prefZlBg*bg
+    Fl = Fl + self%prefZlBG*bg
    end if
 
    ZsonPs = fla_loss * self%BioC(12) * self%prefZsPs * fla/(self%BioC(14) + Fs)
@@ -1243,6 +1243,10 @@ end subroutine initialize
         MBflux=+self%excMB1*exp((self%tempcMB1/(8.6173324*10.**(-4.)))*ttemp)*mb1
          _SET_BOTTOM_EXCHANGE_(self%id_nh4,MBflux)     
          _SET_BOTTOM_EXCHANGE_(self%id_pho,MBflux) 
+        MBflux =-(BioOM6*6.625_rk*self%excMB1* &
+              exp((self%tempcMB1/(8.6173324*10.**(-4.)))*ttemp)*mb1) &
+                *REDF(11)*REDF(16)
+         _SET_BOTTOM_EXCHANGE_(self%id_oxy,MBflux) 
         fishi1=fishi    
         fishi3=fishi2    
  !ute diagnostics for fish
