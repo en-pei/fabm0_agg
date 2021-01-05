@@ -3,10 +3,11 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !MODULE: fabm_nersc_ecosmo --- ECOSMO biogeochemical model
+! !MODULE: fabm_nersc_ecosmo_ice --- ECOSMO biogeochemical model + ice
+! biogeochemistry
 !
 ! !INTERFACE:
-   module fabm_nersc_ecosmo
+   module fabm_nersc_ecosmo_ice
 !
 ! !DESCRIPTION:
 !
@@ -22,7 +23,7 @@
    private
 !
 ! !PUBLIC MEMBER FUNCTIONS:
-   public type_nersc_ecosmo
+   public type_nersc_ecosmo_ice
 !
 ! !PRIVATE DATA MEMBERS:
    real(rk), parameter :: secs_pr_day = 86400.0_rk
@@ -32,7 +33,7 @@
    real(rk)            :: BioC(45)=0.0_rk
 !
 ! !PUBLIC DERIVED TYPES:
-   type,extends(type_base_model) :: type_nersc_ecosmo
+   type,extends(type_base_model) :: type_nersc_ecosmo_ice
 !     Variable identifiers
       type (type_state_variable_id)         :: id_no3, id_nh4, id_pho, id_sil
       type (type_state_variable_id)         :: id_opa, id_det1, id_det2, id_dia, id_fla
@@ -121,7 +122,7 @@
       procedure :: get_light_extinction
       procedure :: get_vertical_movement 
 
-   end type type_nersc_ecosmo
+   end type type_nersc_ecosmo_ice
 !EOP
 !-----------------------------------------------------------------------
 
@@ -136,7 +137,7 @@
    subroutine initialize(self,configunit)
 !
 ! !INPUT PARAMETERS:
-   class (type_nersc_ecosmo),intent(inout),target  :: self
+   class (type_nersc_ecosmo_ice),intent(inout),target  :: self
    integer,                intent(in)            :: configunit
 !
 ! !REVISION HISTORY:
@@ -491,7 +492,7 @@ end subroutine initialize
 ! !DESCRIPTION:
 !
 ! !INPUT PARAMETERS:
-   class (type_nersc_ecosmo),intent(in) :: self
+   class (type_nersc_ecosmo_ice),intent(in) :: self
    _DECLARE_ARGUMENTS_DO_
 !
 ! !REVISION HISTORY:
@@ -1002,7 +1003,7 @@ end subroutine initialize
 ! !INTERFACE:
 
    subroutine do_surface(self,_ARGUMENTS_DO_SURFACE_)
-   class (type_nersc_ecosmo),intent(in) :: self
+   class (type_nersc_ecosmo_ice),intent(in) :: self
    _DECLARE_ARGUMENTS_DO_SURFACE_
 !
 ! !LOCAL VARIABLES:
@@ -1077,7 +1078,7 @@ end subroutine initialize
 ! !INTERFACE:
 
    subroutine do_bottom(self,_ARGUMENTS_DO_BOTTOM_)
-   class (type_nersc_ecosmo),intent(in) :: self
+   class (type_nersc_ecosmo_ice),intent(in) :: self
    _DECLARE_ARGUMENTS_DO_BOTTOM_
 !
 ! !LOCAL VARIABLES:
@@ -1349,7 +1350,7 @@ end subroutine initialize
 !EOC
 
    subroutine get_light_extinction(self,_ARGUMENTS_GET_EXTINCTION_)
-   class (type_nersc_ecosmo), intent(in) :: self
+   class (type_nersc_ecosmo_ice), intent(in) :: self
    _DECLARE_ARGUMENTS_GET_EXTINCTION_
 
    real(rk)                     :: dom,det1,det2,diachl,flachl,bgchl
@@ -1398,7 +1399,7 @@ end subroutine initialize
 
 ! ----- COMMUNITY DEPENDENT VARIABLE SINKING ------------------------------
    subroutine get_vertical_movement(self,_ARGUMENTS_GET_VERTICAL_MOVEMENT_)
-      class (type_nersc_ecosmo),intent(in) :: self
+      class (type_nersc_ecosmo_ice),intent(in) :: self
       _DECLARE_ARGUMENTS_GET_VERTICAL_MOVEMENT_
 
       real(rk) :: det1, det2, dsnk, dsnk2, meanspd, meanspd2
@@ -1425,5 +1426,5 @@ end subroutine initialize
    end subroutine get_vertical_movement
 ! ------------------------------------------------------------------------- 
 
-   end module fabm_nersc_ecosmo
+   end module fabm_nersc_ecosmo_ice
 

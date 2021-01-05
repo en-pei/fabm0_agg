@@ -96,8 +96,10 @@ horizontal:
     units: m
   - name: snow_thickness
     units: m
-  - name: ice_concentration
+  - name: ice_conc
     units: 1/1
+  - name: dh_growth
+    units: m s-1
   - name: surface_specific_humidity
     units: 1
   - name: surface_air_pressure
