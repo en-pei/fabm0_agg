@@ -617,9 +617,12 @@ endif
 
   function lina_colimitation(qi,qj,n,cn) result(c)
      real(rk), intent(in)::qi,qj,n,cn
-     real(rk)  ::c,cn1
-      cn1 = 1.0_rk/(4.0_rk*n) − 1.0_rk/2.0_rk
-      c=qi*lina_gn(qj/qi,n)*(1.0_rk+qi*qj*n+cn1)
+     real(rk)  :: c
+     !real(rk)  :: cn1
+
+      !cn1 = (1.0_rk/(4.0_rk*n) − 1.0_rk/2.0_rk)
+      c=qi*lina_gn(qj/qi,n)*(1.0_rk+qi*qj*n+(1.0_rk/(4.0_rk*n) − 1.0_rk/2.0_rk))
+      !c=qi*lina_gn(qj/qi,n)*(1.0_rk+qi*qj*n+cn1)
 !     c=qi*lina_gn(qj/qi,n)
   end function
   
