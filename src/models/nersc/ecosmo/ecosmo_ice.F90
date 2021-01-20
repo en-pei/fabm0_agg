@@ -81,6 +81,7 @@
       real(rk) :: surface_deposition_nh4
       real(rk) :: surface_deposition_pho
       real(rk) :: surface_deposition_sil
+      real(rk) :: extdet,extdom
       real(rk) :: nfixation_minimum_daily_par
       real(rk) :: bg_growth_minimum_daily_rad
       real(rk) :: MAXchl2nPs, MINchl2nPs 
