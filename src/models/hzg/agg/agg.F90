@@ -30,10 +30,8 @@
 #endif
       type (type_state_variable_id)      :: id_phyc,id_detc
       type (type_state_variable_id)      :: id_doc
-!      type (type_diagnostic_variable_id) :: id_aggvol,id_G,id_Breakup,id_ws,id_aggmass !added
       type (type_diagnostic_variable_id) :: id_esd,id_rho_part
       type (type_diagnostic_variable_id) :: id_aggvol,id_G,id_Breakup,id_ws,id_aggmass,id_coagulationphy,id_coagulationlpm,id_coagulationdet !added
-!      type (type_diagnostic_variable_id) :: id_esd
       type (type_dependency_id) :: id_eps,id_num
       type (type_state_variable_id)      :: id_dD,id_Dsize 
       
@@ -191,7 +189,7 @@
 
    ! Register diagnostic variables
    call self%register_diagnostic_variable(self%id_G,'G','1/s','turbulent shear',time_treatment=time_treatment_last)
-   call self%register_diagnostic_variable(self%id_breakup,'Breakup','1/d','breakup rate',time_treatment=time_treatment_last)
+   call self%register_diagnostic_variable(self%id_Breakup,'Breakup','1/d','breakup rate',time_treatment=time_treatment_last)
    call self%register_diagnostic_variable(self%id_aggvol,'Vol_agg','m**3/m**3','relative Volume of aggregates',time_treatment=time_treatment_last)
    call self%register_diagnostic_variable(self%id_ws,'ws','m/s','sinking velocity',time_treatment=time_treatment_last)
    call self%register_diagnostic_variable(self%id_esd,'esd','m','mean ESD',time_treatment=time_treatment_last)
@@ -277,6 +275,7 @@
 #ifndef AGG_WO_CHL
    if (self%use_chl) &
      _GET_STATE_(self%id_aggchl,aggchl)
+   endif ! bug?????? added endif
 #endif
 
    ! total volume
@@ -289,7 +288,13 @@
    G = sqrt(eps/(num_turb + num_water)) ! turbulent shear
 
 
-   breakup = self%breakup_factor * G**1.5d0 * (self%meansize(aggmass,G,doc, lpm, agglpm,aggorg, Dsize))**2! self%meansize(agglpm+aggorg,G)**2  !self%onoff*Dsize 
+   if (self%onoff==0) then
+   	breakup= self%breakup_factor*G**1.5d0*(Dsize-self%min_size)*Dsize**2  !added breakup diagnostic for dynamical size 
+   	!breakup = self%breakup_factor*G**1.5d0*(self%meansize(aggmass,G,doc, lpm, agglpm,aggorg, Dsize)-self%min_size)*self%meansize(aggmass,G,doc, lpm, agglpm,aggorg, Dsize)**2  !same but changed Dsize to function of size
+   else if (self%onoff==1) then   !negative sign added in loss_lpm
+   	breakup = self%breakup_factor * G**1.5d0 * (self%meansize(aggmass,G,doc, lpm, agglpm,aggorg, Dsize))**2! self%meansize(agglpm+aggorg,G)**2      
+   end if
+
    !breakup = self%breakup_factor * G**1.5d0 * self%max_size**2 ! [1/s]
    !breakup_factor is in Xu.etal2008: efficiency*sqrt(viscosity/yield_strength)*2 with
    !yield_strength=10.e-10 and efficiency=?
@@ -355,32 +360,38 @@
 #endif
 
    if (self%use_lpm) then
-      _GET_STATE_(self%id_lpm,lpm) !
+     _GET_STATE_(self%id_lpm,lpm) !
 !      A1_lpm=coagulation/self%dens_lpm * 1.d-3 * lpm**2
 !      A2_lpm=coagulation * Vol_agg * lpm
-      loss_lpm =  (decomposition + breakup)*agglpm ![g/m**3/s]
+     loss_lpm =  (decomposition + breakup)*agglpm ![g/m**3/s]
+         if (self%onoff==0) then  
+            coagulation_lpm = coagulation*1.d-3*lpm*Dsize**(4-self%fractal_dimension) !updated to dynamical size change
+         else if (self%onoff==1) then  
+	!      coagulation_lpm = coagul ation * (lpm**2*1.d-3/self%dens_lpm + Vol_agg* lpm) 			!g m**-3 s-1 
+            coagulation_lpm = coagulation * (Vol_agg* lpm) 			!g m**-3 s-1    !only coagulates with existing aggregates
 
-!      coagulation_lpm = coagulation * (lpm**2*1.d-3/self%dens_lpm + Vol_agg* lpm) 			!g m**-3 s-1 
-      coagulation_lpm = coagulation * (Vol_agg* lpm) 			!g m**-3 s-1    !only coagulates with existing aggregates
+         end if
       _SET_ODE_(self%id_lpm, (loss_lpm - coagulation_lpm)*self%onoff) !- A1_lpm - A2_lpm
       _SET_ODE_(self%id_agglpm, (-loss_lpm + coagulation_lpm)*self%onoff) !A1_lpm + A2_lpm 
    
    endif
 
    if (self%onoff==0) then
-      _SET_ODE_(self%id_Dsize,coagulation*1.d-3*lpm*Dsize**(4-self%fractal_dimension)) !Dsize size change due to coagulation   !coagulation=k_A*G !aggmass changed to lpm
-      _SET_ODE_(self%id_Dsize,-self%breakup_factor*G**1.5d0*(Dsize-self%min_size)*Dsize**2) ! !Dsize size change due to breakup
+      _SET_ODE_(self%id_Dsize,coagulation_lpm-breakup) !coagulation*1.d-3*lpm*Dsize**(4-self%fractal_dimension) !Dsize size change due to coagulation   !coagulation=k_A*G !aggmass changed to lpm
+      !_SET_ODE_(self%id_Dsize,) !-self%breakup_factor*G**1.5d0*(Dsize-self%min_size)*Dsize**2 !Dsize size change due to breakup
    end if
    
-      _SET_DIAGNOSTIC_(self%id_coagulationphy,coagulation_lpm)
+      _SET_DIAGNOSTIC_(self%id_coagulationphy,coagulation_lpm) !?are they the same? this diagnostic works...
+      _SET_DIAGNOSTIC_(self%id_coagulationlpm,coagulation_lpm) !added, still doesn't work, output=0
 
  
    _SET_DIAGNOSTIC_(self%id_G,G)
-   _SET_DIAGNOSTIC_(self%id_breakup,breakup)
+   _SET_DIAGNOSTIC_(self%id_Breakup,breakup) 
    _SET_DIAGNOSTIC_(self%id_aggvol,Vol_agg)
    _SET_DIAGNOSTIC_(self%id_ws,self%sinking_velocity(aggorg,agglpm,G, Dsize))
    _SET_DIAGNOSTIC_(self%id_esd,self%meansize(aggmass,G,doc,lpm, agglpm,aggorg, Dsize)) 
    _SET_DIAGNOSTIC_(self%id_aggmass,aggmass)
+   
    !_SET_ODE_(self%id_Dsize,(Dsize-0.0001)*(self%max_size-Dsize)*(-2*self%breakup_factor * G**1.5d0 * Dsize)) !dD ODE
 
    _LOOP_END_
