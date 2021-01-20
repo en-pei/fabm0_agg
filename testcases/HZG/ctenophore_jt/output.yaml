@@ -6,4 +6,10 @@ output:
    time_step: 480
    variables:
       - source: *
+#      - source: temp
+#      - source: salt
+#      - source: par
+#      - source: copepod_biom
+#      - source: copepod_size
+#      - source: phy
 

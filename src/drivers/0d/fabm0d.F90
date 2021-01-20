@@ -580,7 +580,8 @@
          if (associated(config_error)) call fatal_error('parse_input_variable',config_error%message)
          scale_factor = mapping%get_real('scale_factor',default=1.0_rk,error=config_error)
          if (associated(config_error)) call fatal_error('parse_input_variable',config_error%message)
-         call register_input_0d(path,column,pdata,variable_name,scale_factor=scale_factor)
+         !call register_input_0d(path,column,pdata,variable_name,scale_factor=scale_factor)
+call register_input_0d(path,column,pdata,variable_name,scale_factor)
          call driver%log_message('    file: '//trim(path))
          write (message,'(i0)') column
          call driver%log_message('    column: '//adjustl(message))

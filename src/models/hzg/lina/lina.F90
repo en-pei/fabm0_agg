@@ -8,9 +8,9 @@
 !---------------------------------------------------------------------------
 !NPD-Type model that includes the LIght-Nutrient-Aggreation Feedback
 !
-!Idea: Enpei Li, Ovidio Garcia, Johannes Timm 2020
-!Equations: OG 2020
-!Code: JT 2020
+!Idea: Enpei Li, Ovidio Garcia, Johannes Timm 2020,21
+!Equations: OG 2020,21
+!Code: JT 2020,21
 !
 !
 !---------------------------------------------------------------------------
@@ -88,7 +88,7 @@ module hzg_lina
  
   
 !  type(type_dependency_id)::id_mx
-!  type(type_dependency_id)::
+!  type(type_dependency_id)::id_ma
   type(type_dependency_id)::id_wa
   type(type_dependency_id)::id_kB
   type(type_dependency_id)::id_dx
@@ -98,8 +98,8 @@ module hzg_lina
   type(type_dependency_id)::id_CD
   type(type_dependency_id)::id_CL
   type(type_dependency_id)::id_C_tot
-  type(type_dependency_id)::id_lina_L          
-  
+  type(type_dependency_id)::id_lina_L
+   
   !LINA State Variables
   type(type_state_variable_id)::id_lina_X
   type(type_state_variable_id)::id_lina_A
@@ -212,8 +212,9 @@ contains
 
    call self%get_parameter(self%dummy_parameter,'Dummy_tunable_Parameter', default=-999.99_rk)
    call self%get_parameter(self%dummy_logical,'Dummy_logical_Parameter', default=.true.)
-     call self%get_parameter(self%coupledtonpzd,'npzdcoupling', default=.true.)
-        call self%get_parameter(self%coupledtoagg,'aggcoupling', default=.true.)
+   call self%get_parameter(self%coupledtonpzd,'npzdcoupling', default=.true.)
+   call self%get_parameter(self%coupledtoagg,'aggcoupling', default=.true.)
+  
    
    !Register LINA parameters
      
@@ -327,7 +328,7 @@ subroutine do(self,_ARGUMENTS_DO_)
     !
     !LOCAL VARIABLES:
   
-   logical:: Debugout=.False.
+   logical:: Debugout=.FALSE.
     type (type_lina_state_var)      :: var
     type (type_lina_rhs)       :: rhsv
   
@@ -405,8 +406,6 @@ subroutine do(self,_ARGUMENTS_DO_)
      write(*,*) 'LINA P LinaX,', var%lina_X ,'LinaA',var%lina_A, 'linaE', var%lina_E,'linaL',var%lina_L,'linaD',var%lina_D,'linaN',var%lina_N,'linaP',var%lina_P
      write(*,*) 'LINA P LinaQAN',var%lina_QAN,'QAP',var%lina_QAP,'QDN',var%lina_QDN,'QDP',var%lina_QDP,'QXN',var%lina_QXN,'QXP',var%lina_QXP
   endif
-
-  
 !-------------------------------------------------
 
 !Copy Variables into private copy
@@ -428,7 +427,9 @@ if ((lina_qP .lt. 0_rk) .or. isnan(lina_qP)) then
   write (*,*) 'LINA QP is below zero'
   !stop
 endif 
+
 lina_MI=self%lina_MI_star*(1+lina_qN) ! eqn 21
+
 !if (Debugout) then
 !      write(*,*) 'LINA DEBUG  gamma_starN',self%lina_gamma_starN,'N',var%lina_N,'AN',self%lina_AN,'MI',lina_MI,'qN',lina_qN
 !      write(*,*) 'LINA DEBUG  gamma_starP',self%lina_gamma_starP,'P',var%lina_P,'AP',self%lina_AP,'MI',lina_MI,'qP',lina_qP
@@ -444,7 +445,7 @@ lina_MI=self%lina_MI_star*(1+lina_qN) ! eqn 21
 
    lina_R=self%lina_zeta*lina_gammaN !eqn 14
    lina_cI=1-exp(-self%lina_alpha*var%PAR/self%lina_mu_max) !eqn 15
-if (Debugout) then
+   if (Debugout) then
       write(*,*) 'LINA DEBUG  qN',lina_qN,'qP',lina_qP,'MI',lina_MI,'Cn',self%lina_cn
 endif   
 
@@ -495,12 +496,15 @@ endif
 if (Debugout) then
       write(*,*) 'LINA DEBUG QD: mx',self%mx,'x', var%lina_X,'qxn',var%lina_QXN,'md',self%mD,'wd',var%wD,'cd', var%CD,'d',var%lina_D,'qdn',var%lina_QDN,'kb',var%kB,'1-psi',(1.0_rk- var%lina_psi),'a',var%lina_A,'qan',var%lina_QAN 
 endif
+
    rhsv%lina_QDN= self%mx *var%lina_X * var%lina_QXN - (self%mD -var%wD + var%CD) * var%lina_D * var%lina_QDN + var%kB *(1.0_rk- var%lina_psi) * var%lina_A * var%lina_QAN !eqn 39
+
 if (Debugout) then
       write(*,*) 'LINA DEBUG QD: QDN:',rhsv%lina_QDN,'1term', self%mx *var%lina_X * var%lina_QXN,'2term',( self%mD + var%wD + var%CD) * var%lina_D * var%lina_QDN,'3term',var%kB *(1.0_rk- var%lina_psi) * var%lina_A * var%lina_QAN
 write(*,*) 'LINA DEBUG QD: md',self%mD,'wd',var%wD,'CD',var%CD,'D',var%lina_D 
 
 endif
+
    rhsv%lina_QDP= self%mx *var%lina_X * var%lina_QXP - ( self%mD - var%wD + var%CD) * var%lina_D * var%lina_QDP + var%kB *(1.0_rk- var%lina_psi) * var%lina_A * var%lina_QAP !eqn 40
 
 if (Debugout) then
@@ -618,6 +622,7 @@ endif
       c=qi*lina_gn(qj/qi,n)*(1.0_rk+qi*qj*n+cn1)
 !     c=qi*lina_gn(qj/qi,n)
 
+     c=qi*lina_gn(qj/qi,n)*(1+qi*qj*n+cn)
   end function
   
   function lina_gn(gn_r,gn_n) result(gn_g)

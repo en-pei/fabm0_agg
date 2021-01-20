@@ -586,13 +586,13 @@ contains
     real(rk),dimension(3) :: graz_dl, som_dl, init_dl, sen_dl,ft3
     real(rk),dimension(3):: yield_factor
 
-    real(rk), dimension(3) :: Imax, Imact, di_dl, di0_dl, dg_dly, dprod_dl
+    real(rk), dimension(3) :: Imax, Ingest_kernel, di_dl, di0_dl, dg_dly, dprod_dl
     real(rk), dimension(3) :: Change_of_optimal_prey_size,optimal_prey_size, graz,Temperature_dep,sig13, sig23, ksat
-    real(rk), dimension(3) :: mGrz, sig, log_size_variance_mesozoo, log_mean_size, mass, relDens
+    real(rk), dimension(3) :: mort_graz, sig, log_size_variance_mesozoo, log_mean_size, mass, relDens
     real(rk), dimension(3) :: mort_R, mort_R0, mort_P
     real(rk), dimension(3) :: optimal_prey_size_adult,experimental_optimal_prey_size_adult, preyc, paras, fLc, m_host,rpara, pS, test0
     real(rk),dimension(3) :: Size_Adult,Size_Maturity,lavg
-    real(rk), dimension(3,3):: grss,grazing_pressure_ji 
+    real(rk), dimension(3,3):: graz_term,grazing_pressure_ji 
 
     real(rk) :: dl, bcrit1, preyE
     real(rk) :: fR, lm_adult, al, aff, activ, no_div_zero_eps,mean_Temperature_HR,mben,Temperaturep
@@ -848,7 +848,7 @@ end do
 
        do j = 1, 3
           dg_dly(j) = 0.0d0
-          mGrz(j)   = 0.0d0
+          mort_graz(j)   = 0.0d0
           ! integration result with Gaussian size distribution (cf. effective prey biomass)
           sig23(j)   = 1.5d0/(1.0d0 + 3*log_size_variance_mesozoo(j))  ! "life-span"=1 : width of life-stage dependent mortality
           sig13(j)   = 1.0d0/sqrt(1.0d0 + 3*log_size_variance_mesozoo(j))
@@ -897,10 +897,10 @@ end do
                 dl      = log_mean_size(j) - optimal_prey_size(i)     ! size match to prey
                 if(i .eq. 3 .and. dl .gt. 1.5 ) dl = log_mean_size(j) + 2*optimal_prey_size_adult(j) - optimal_prey_size(i)
                 ! ingestion kernel
-                Imact(j)= Imax(i) * exp(-1.5d0 * dl**2)
+                Ingest_kernel(j)= Imax(i) * exp(-1.5d0 * dl**2)
                 ! effective prey mass after integration over selection kernel, with "neutral" selectivity s=3/2
                 preyc(j)= sig13(j) * exp(-sig23(j)*dl**2)  
-                !     if (i.eq.1 .and. j.eq.3 ) then preyc(j)= 0   Imact(j)= 0    endif
+                !     if (i.eq.1 .and. j.eq.3 ) then preyc(j)= 0   Ingest_kernel(j)= 0    endif
                 ! reduce cannibalism in Beroe (Hosia2011)     
                 ! contribution to consumer size scaling in Imax 
                 di_dl(j)= di0_dl(i) + 3*dl*Change_of_optimal_prey_size(i)
@@ -931,10 +931,11 @@ end do
           !   dummy_reused_variable2      = 0.5*affin(i) * prey_mass_after_selection_relative_biovolume(i) / (self%mR*Temperature_dep(i)*exp(-0.5*log_mean_size(i)))
           ! Temperature dependent loss, with surface-to-volume scaling
           !   mort_R  = self%mR * Temperature_dep(i) * exp(-0.5*log_mean_size(i)+lavg(i)-0*optimal_prey_size(i))!)
-          dummy_reused_variable2 = f_Temperature(self%Q10+0.+ 0.*optimal_prey_size_adult(i), Temperaturep, self%Tc)
+          !dummy_reused_variable2 = f_Temperature(self%Q10+0.+ 0.*optimal_prey_size_adult(i), Temperaturep, self%Tc)
+          dummy_reused_variable2 = f_Temperature(self%Q10, Temperaturep, self%Tc)
           !   mort_R0(i) = self%mR * Temperature_dep(i) * exp(-0.5*log_mean_size(i)+0*optimal_prey_size_adult(i))!)
-          mort_R0(i) = self%mR * dummy_reused_variable2 * exp(-0.5*log_mean_size(i)-0.*optimal_prey_size_adult(i))!)
-
+          !mort_R0(i) = self%mR * dummy_reused_variable2 * exp(-0.5*log_mean_size(i)-0.*optimal_prey_size_adult(i))!)
+	  mort_R0(i) = self%mR * dummy_reused_variable2 * exp(-0.5*log_mean_size(i))
           !***!
           dummy_reused_variable3        = affin(i) * prey_mass_after_selection_relative_biovolume(i) /(mort_R0(i)+no_div_zero_eps)
           !   dummy_reused_variable3      = 2*affin(i) * prey_mass_after_selection_relative_biovolume(i) /(self%mR+no_div_zero_eps)
@@ -946,34 +947,33 @@ end do
           do j = 1, 3 ! calc total available prey biomass first
              ! if (webtopo(j,i) .gt. 0) then
              if (webtopo(j,i)) then
-                ksat(j)    = Imact(j)/affin(i)
+                ksat(j)    = Ingest_kernel(j)/affin(i)
                 preyE      = preyc(j)* mass(j) ! effective prey mass after integration over selection kernel  
-                eargA1      = exp(-(affin(i)*prey_mass_after_selection_relative_biovolume(i))/Imact(j))
+                eargA1      = exp(-(affin(i)*prey_mass_after_selection_relative_biovolume(i))/Ingest_kernel(j))
 
                 ! grazing rate (partial gross 2ndary production) of consumer i on prey j
-                grss(i,j)  = Imact(j) * (1.0d0-eargA1) * preyc(j)/(prey_mass_after_selection(i)+no_div_zero_eps) ! * exp(-0*mort_P(i)/Imax(i))
-                grazing_pressure_ji(i,j)=grss(i,j)*mass(j)
+                graz_term(i,j)  = Ingest_kernel(j) * (1.0d0-eargA1) * preyc(j)/(prey_mass_after_selection(i)+no_div_zero_eps) ! * exp(-0*mort_P(i)/Imax(i))
+                grazing_pressure_ji(i,j)=graz_term(i,j)*mass(j)
 
                 if (Debugout .and. grazing_pressure_ji(i,j) .gt. 0.5) write (*,'(A,2(I2),F12.4)') 'grazingpressure',i,j,grazing_pressure_ji(i,j) 
 
                 gross(i)      = gross(i)   + grazing_pressure_ji(i,j)
                 if (Debugout .and. gross(i) .gt. 1)  write (*,'(A,2(i3),2(F12.4))' ) 'grazing of *i* on *j* is during ** quite large:',i,j,var(1)%BenTime, gross(i)
-                mGrz(j)    = mGrz(j) + (grss(i,j) * mass(i))
+                mort_graz(j)    = mort_graz(j) + (graz_term(i,j) * mass(i))
 
-                if (Debugout .and. Is_Copepod_biomass_exhausted) write (*,'(A,2(I2),1(F12.4))') 'gr=',i,j,grss(i,j)*1E3
+                if (Debugout .and. Is_Copepod_biomass_exhausted) write (*,'(A,2(I2),1(F12.4))') 'gr=',i,j,graz_term(i,j)*1E3
 
                 ! update size gradients in grazing rate
                 ! size match to selective predation kernel 
                 ! derivative of selection kernelexp(-1.5d0*(dl**2))*
-                dg_dly(j)  = dg_dly(j) - (log_mean_size(j) - optimal_prey_size(i))* grss(i,j)* mass(i) 
+                dg_dly(j)  = dg_dly(j) - (log_mean_size(j) - optimal_prey_size(i))* graz_term(i,j)* mass(i) 
                 ! affinity term; degree of food limitation (aff=0: g=Imax   aff=Imax: no food)
                 aff        = affin(i)*preyE* eargA1  
                 ! derivative with respect to prey mass
-                dp_dB      = (grss(i,j)*(prey_mass_after_selection(i)-preyE)/(preyc(j)+no_div_zero_eps)+(relDens(j)**0.667) *aff)/(prey_mass_after_selection(i)+no_div_zero_eps)
+                dp_dB      = (graz_term(i,j)*(prey_mass_after_selection(i)-preyE)/(preyc(j)+no_div_zero_eps)+(relDens(j)**0.667) *aff)/(prey_mass_after_selection(i)+no_div_zero_eps)
                 ! production derivative with respect to consumer size
                 !***!
-                dp_dl(i)      = dp_dl(i) + dp_dB*2*sig23(j)*(log_mean_size(j)-optimal_prey_size(i))* Change_of_optimal_prey_size(i)
-                dp_dl(i)      = dp_dl(i) + (grss(i,j)*mass(j)-aff)*di_dl(j) + 0.5*aff
+                dp_dl(i)      = dp_dl(i) + (dp_dB*2*sig23(j)*(log_mean_size(j)-optimal_prey_size(i))* Change_of_optimal_prey_size(i))+ (graz_term(i,j)*mass(j)-aff)*di_dl(j) + 0.5*aff
 !!! derivative with respect to consumer size (through optimal prey size dependency)     
 
 
@@ -1066,7 +1066,7 @@ end do
              mort_top(i)=0.0
           endif
           !  sum of all mortality rates
-          mort_sum(i) = mort_R(i) + mort_S(i)  + mGrz(i)+ mort_P(i) + mort_top(i)
+          mort_sum(i) = mort_R(i) + mort_S(i)  + mort_graz(i)+ mort_P(i) + mort_top(i)+ mort_T(i)
 
 
           ! ----------  stage and size dynamics  -------------------
@@ -1171,7 +1171,7 @@ end do
                 _SET_DIAGNOSTIC_(self%id_mort_P_Be, mort_P(i))                  !step_integrated density dependent mortality - parasites
                 _SET_DIAGNOSTIC_(self%id_mort_S_Be, mort_S(i))                  !step_integrated Biomass_Phytoplanktonsiological adult mortality rate
                 _SET_DIAGNOSTIC_(self%id_mort_R_Be, mort_R(i))                  !step_integrated Temperature dependent mortality
-                _SET_DIAGNOSTIC_(self%id_mort_G_Be, mGrz(i))                  !step_integrated top-predation
+                _SET_DIAGNOSTIC_(self%id_mort_G_Be, mort_graz(i))                  !step_integrated top-predation
 
                 _SET_DIAGNOSTIC_(self%id_mort_top_Be,mort_top(i))
 
@@ -1225,7 +1225,7 @@ end do
                 _SET_DIAGNOSTIC_(self%id_mort_P_Pp, mort_P(i))                  !step_integrated density dependent mortality - parasites
                 _SET_DIAGNOSTIC_(self%id_mort_S_Pp, mort_S(i))                  !step_integrated Biomass_Phytoplanktonsiological adult mortality rate
                 _SET_DIAGNOSTIC_(self%id_mort_R_Pp, mort_R(i))                  !step_integrated Temperature dependent mortality
-                _SET_DIAGNOSTIC_(self%id_mort_G_Pp, mGrz(i))                  !step_integrated top-predation
+                _SET_DIAGNOSTIC_(self%id_mort_G_Pp, mort_graz(i))                  !step_integrated top-predation
 
                 _SET_DIAGNOSTIC_(self%id_mort_top_Pp,mort_top(i))
                 ! TODO:???
@@ -1336,6 +1336,7 @@ end do
   end function grazrate
 
   ! ------------------------------------------------------------------------------
+!!Temperature response function which uses a Q10 approach with cutoff at mini
   pure real(rk) function f_Temperature(q10,T,T_c)
     implicit none
     real(rk), intent(in)      :: q10,T,T_c
@@ -1347,6 +1348,7 @@ end do
   end function f_Temperature
 
   ! ------------------------------------------------------------------------------
+!! Temperature response function
   pure real(rk) function e_Temperature(T,T_c)
     implicit none
     real(rk), intent(in)      :: T,T_c
