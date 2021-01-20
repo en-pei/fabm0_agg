@@ -1,6 +1,7 @@
 add_library(fabm_models_nersc OBJECT
             nersc_model_library.F90
             ecosmo/ecosmo.F90
+            ecosmo/ecosmo_ice.F90
             ecosmo/ecosmo_operational.F90
            )
 

@@ -3,10 +3,11 @@
 !-----------------------------------------------------------------------
 !BOP
 !
-! !MODULE: fabm_nersc_ecosmo --- ECOSMO biogeochemical model
+! !MODULE: fabm_nersc_ecosmo_ice --- ECOSMO biogeochemical model + ice
+! biogeochemistry
 !
 ! !INTERFACE:
-   module fabm_nersc_ecosmo
+   module fabm_nersc_ecosmo_ice
 !
 ! !DESCRIPTION:
 !
@@ -16,14 +17,13 @@
    use fabm_types
    use fabm_expressions
 
-   
    implicit none
 
 !  default: all is private.
    private
 !
 ! !PUBLIC MEMBER FUNCTIONS:
-   public type_nersc_ecosmo
+   public type_nersc_ecosmo_ice
 !
 ! !PRIVATE DATA MEMBERS:
    real(rk), parameter :: secs_pr_day = 86400.0_rk
@@ -33,10 +33,10 @@
    real(rk)            :: BioC(45)=0.0_rk
 !
 ! !PUBLIC DERIVED TYPES:
-   type,extends(type_base_model) :: type_nersc_ecosmo
+   type,extends(type_base_model) :: type_nersc_ecosmo_ice
 !     Variable identifiers
       type (type_state_variable_id)         :: id_no3, id_nh4, id_pho, id_sil
-      type (type_state_variable_id)         :: id_opa, id_det, id_dia, id_fla
+      type (type_state_variable_id)         :: id_opa, id_det1, id_det2, id_dia, id_fla
       type (type_state_variable_id)         :: id_diachl, id_flachl, id_bgchl
       type (type_state_variable_id)         :: id_mesozoo, id_microzoo, id_bg,id_dom, id_oxy
       type (type_state_variable_id)         :: id_dic, id_alk
@@ -54,20 +54,19 @@
       type (type_bottom_state_variable_id)  :: id_mb1
 
       ! community sinking id's
-      type (type_state_variable_id)         :: id_dsnk ! variable that advects detritus sinking speed
-      type (type_diagnostic_variable_id)    :: id_snkspd ! average calculated sinking speed
+      type (type_state_variable_id)         :: id_dsnk, id_dsnk2 ! variable that advects detritus sinking speed
+      type (type_diagnostic_variable_id)    :: id_snkspd, id_snkspd2 ! average calculated sinking speed
 
 !id diagnostics for fish calculation - integration
-      type (type_horizontal_diagnostic_variable_id)    :: id_meso_integr,id_micro_integr,id_det_integr,id_fish_integr,id_fish2_integr
-      type (type_horizontal_dependency_id)             :: id_mesoint,id_microint, id_detint,id_fishint,id_fish2int
-      type (type_horizontal_diagnostic_variable_id)    :: id_dF1onZl,id_dF1onZs,id_dF1onDet
-      type (type_horizontal_diagnostic_variable_id)    :: id_dF2onZl,id_dF2onF1,id_dF2onDet
-      type (type_horizontal_dependency_id)             :: id_f1zl,id_f1zs, id_f1det, id_f1mb1
-      type (type_horizontal_dependency_id)             :: id_f2zl,id_f2f1, id_f2det, id_f2mb1
+      type (type_horizontal_diagnostic_variable_id)    :: id_meso_integr,id_micro_integr,id_det1_integr,id_det2_integr,id_fish_integr,id_fish2_integr
+      type (type_horizontal_dependency_id)             :: id_mesoint,id_microint, id_det1int,id_det2int,id_fishint,id_fish2int
+      type (type_horizontal_diagnostic_variable_id)    :: id_dF1onZl,id_dF1onZs,id_dF1onDet1,id_dF1onDet2
+      type (type_horizontal_diagnostic_variable_id)    :: id_dF2onZl,id_dF2onF1,id_dF2onDet1,id_dF2onDet2
+      type (type_horizontal_dependency_id)             :: id_f1zl,id_f1zs, id_f1det1, id_f1det2, id_f1mb1
+      type (type_horizontal_dependency_id)             :: id_f2zl,id_f2f1, id_f2det1, id_f2det2, id_f2mb1
 
 !     Model parameters
       real(rk) :: BioC(45)
-      real(rk) :: extdet, extdom
       real(rk) :: zpr, frr
       real(rk) :: prefZsPs
       real(rk) :: prefZsPl
@@ -87,7 +86,10 @@
       real(rk) :: MAXchl2nPs, MINchl2nPs 
       real(rk) :: MAXchl2nPl, MINchl2nPl 
       real(rk) :: MAXchl2nBG, MINchl2nBG 
-      real(rk) :: alfaPl, alfaPs, alfaBG 
+      real(rk) :: alfaPl, alfaPs, alfaBG
+! Déborah IA parameter declaration
+      real(rk) :: sinkIdet
+      real(rk) :: T_lim_phy
 ! Ute MB parameter declaration   
       real(rk) :: mMB1,excMB1,rMB1,tempcMB1
       real(rk) :: GrMB1Z,GrMB1P,GrMB1Det,GrMB1Sed 
@@ -120,7 +122,7 @@
       procedure :: get_light_extinction
       procedure :: get_vertical_movement 
 
-   end type type_nersc_ecosmo
+   end type type_nersc_ecosmo_ice
 !EOP
 !-----------------------------------------------------------------------
 
@@ -135,7 +137,7 @@
    subroutine initialize(self,configunit)
 !
 ! !INPUT PARAMETERS:
-   class (type_nersc_ecosmo),intent(inout),target  :: self
+   class (type_nersc_ecosmo_ice),intent(inout),target  :: self
    integer,                intent(in)            :: configunit
 !
 ! !REVISION HISTORY:
@@ -232,7 +234,9 @@
    call self%get_parameter( self%BioC(42),  'reminSEDsi', '1/day',      'sed. remineralization rate Si',   default=0.0002_rk,scale_factor=1.0_rk/sedy0)
    call self%get_parameter( self%BioC(43),  'sinkOPAL',   'm/day',      'OPAL sinking rate',               default=5.0_rk,   scale_factor=1.0_rk/sedy0)
    call self%get_parameter( self%BioC(44),  'sinkBG',     'm/day',      'BG sinking rate',                 default=-1.0_rk,  scale_factor=1.0_rk/sedy0)
-   call self%get_parameter( self%BioC(45),  'sinkDia',    'm/day',      'Diatom sinking rate',             default=0.0_rk,   scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%BioC(45),  'sinkDia',    'm/y',      'Diatom sinking rate',             default=0.0_rk,   scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%sinkIdet,  'sinkIdet',   'm/day',      'Ice algae sinking rate',          default=0.0_rk,   scale_factor=1.0_rk/sedy0)
+   call self%get_parameter( self%T_lim_phy, 'T_lim_phy',  '-',          'Coefficient of temperature dependency relationship',     default=0.0582_rk)
    !  growth fractions
    call self%get_parameter( self%prefZsPs,  'prefZsPs',   '-',          'Grazing preference Zs on Ps',     default=0.70_rk)
    call self%get_parameter( self%prefZsPl,  'prefZsPl',   '-',          'Grazing preference Zs on Pl',     default=0.25_rk)
@@ -346,8 +350,10 @@
                                       initial_value=1e-6_rk*redf(1)*redf(6) )
    call self%register_state_variable( self%id_mesozoo,  'mesozoo', 'mgC/m3',    'mesozooplankton',           minimum=1.0e-7_rk,     vertical_movement=0.0_rk, &
                                       initial_value=1e-6_rk*redf(1)*redf(6) )
-   call self%register_state_variable( self%id_det,      'det',     'mgC/m3',    'detritus',                  minimum=0.0_rk,        vertical_movement=-self%BioC(23) , &
-                                      initial_value=2.0_rk*redf(1)*redf(6)  )
+   call self%register_state_variable( self%id_det1,      'det1',   'mgC/m3',    'fast sinking detritus',     minimum=0.0_rk,        vertical_movement=-self%sinkIdet , &
+                                      initial_value=1.0_rk*redf(1)*redf(6)  )
+   call self%register_state_variable( self%id_det2,      'det2',   'mgC/m3',    'slow sinking detritus',     minimum=0.0_rk,        vertical_movement=-self%BioC(23) , &
+                                      initial_value=1.0_rk*redf(1)*redf(6)  )
    call self%register_state_variable( self%id_opa,      'opa',     'mgC/m3',    'opal',                      minimum=0.0_rk,        vertical_movement=-self%BioC(43) , &
                                       initial_value=2.0_rk*redf(3)*redf(6) )
    call self%register_state_variable( self%id_dom,      'dom',     'mgC/m3',    'labile dissolved om',       minimum=0.0_rk , &
@@ -369,7 +375,9 @@
     end if
    ! community sinking speed state variable
    if (self%community_export) then
-      call self%register_state_variable( self%id_dsnk,      'dsnk',    'mgC/m3', 'detritus sinking speed advector', minimum=0.0_rk, vertical_movement=self%BioC(23) , &
+      call self%register_state_variable( self%id_dsnk,      'dsnk',    'mgC/m3', 'detritus group 1 sinking speed advector', minimum=0.0_rk, vertical_movement=self%BioC(23) , &
+                                      initial_value=2.0_rk*redf(1)*redf(6)*self%BioC(23))
+      call self%register_state_variable( self%id_dsnk2,      'dsnk2',    'mgC/m3', 'detritus group 2 sinking speed advector', minimum=0.0_rk, vertical_movement=self%BioC(23) , &
                                       initial_value=2.0_rk*redf(1)*redf(6)*self%BioC(23))
    end if
 
@@ -384,7 +392,9 @@
          'daily-mean photosynthetically active radiation', output=output_time_step_averaged)
    if (self%community_export) then
       call self%register_diagnostic_variable(self%id_snkspd,'snkspd','m/d', & 
-         'daily-mean detritus sinking speed', output=output_time_step_averaged) 
+         'daily-mean detritus group 1 sinking speed', output=output_time_step_averaged) 
+      call self%register_diagnostic_variable(self%id_snkspd2,'snkspd2','m/d', & 
+         'daily-mean detritus group 2 sinking speed', output=output_time_step_averaged) 
    end if
 ! CAGLAR: Turned off to avoid excess disk space usage
 ! calls outputs - simulated Carbon to chlorophyll-a ratio
@@ -406,16 +416,20 @@
          'depthintegrated mesozooplankton')
    call self%register_diagnostic_variable(self%id_micro_integr,'Zsint','mgC/m**2', &
          'depthintegrated microzooplankton')
-   call self%register_diagnostic_variable(self%id_det_integr,'Detint','mgC/m**2', &
-         'depthintegrated detritus')
+   call self%register_diagnostic_variable(self%id_det1_integr,'Det1int','mgC/m**2', &
+         'depthintegrated detritus group 1')
+   call self%register_diagnostic_variable(self%id_det2_integr,'Det2int','mgC/m**2', &
+         'depthintegrated detritus group 2')
    call self%register_diagnostic_variable(self%id_fish_integr,'Fishint','mgC/m**2', &
          'depthintegrated fish1')
    call self%register_diagnostic_variable(self%id_dF1onZl,'F1Zl','mgC/m**2/s', &
          'Fish feeding on Mesozoo')
    call self%register_diagnostic_variable(self%id_dF1onZs,'F1Zs','mgC/m**2/s', &
          'Fish feeding on Microzoo')
-   call self%register_diagnostic_variable(self%id_dF1onDet,'F1De','mgC/m**2/s', &
-         'Fish feeding on Detritus')
+   call self%register_diagnostic_variable(self%id_dF1onDet1,'F1De1','mgC/m**2/s', &
+         'Fish feeding on Detritus group 1')
+   call self%register_diagnostic_variable(self%id_dF1onDet2,'F1De2','mgC/m**2/s', &
+         'Fish feeding on Detritus group 2')
 !  fish 2
    call self%register_diagnostic_variable(self%id_fish2_integr,'F2int','mgC/m**2', &
          'depthintegrated fish2')
@@ -423,8 +437,10 @@
          'Fish2 feeding on Mesozoo')
    call self%register_diagnostic_variable(self%id_dF2onF1,'F2F1','mgC/m**2/s', &
          'Fish2 feeding on Fish1')
-   call self%register_diagnostic_variable(self%id_dF2onDet,'F2De','mgC/m**2/s', &
-         'Fish2 feeding on Detritus')
+   call self%register_diagnostic_variable(self%id_dF2onDet1,'F2De1','mgC/m**2/s', &
+         'Fish2 feeding on Detritus group 1')
+   call self%register_diagnostic_variable(self%id_dF2onDet2,'F2De2','mgC/m**2/s', &
+         'Fish2 feeding on Detritus group 2')
     endif
 
    ! Register dependencies
@@ -442,23 +458,22 @@
      call self%register_state_dependency(self%id_alk, 'alk_target','mmol m-3','alkalinity budget')
    end if
 
-!   call self%register_dependency(self%id_h,       'icethickness', 'm',    'ice thickness')
-!   call self%register_dependency(self%id_hs,      'snowthickness','m',    'snow thickness')
-   
-
     if (self%use_fish) then
    ! ute dependencies used for fish production 
    call self%register_dependency(self%id_mesoint,vertical_integral(self%id_mesozoo))
    call self%register_dependency(self%id_microint,vertical_integral(self%id_microzoo))
-   call self%register_dependency(self%id_detint,vertical_integral(self%id_det))
+   call self%register_dependency(self%id_det1int,vertical_integral(self%id_det1))
+   call self%register_dependency(self%id_det2int,vertical_integral(self%id_det2))
    call self%register_dependency(self%id_fishint,vertical_integral(self%id_fish1))
    call self%register_dependency(self%id_f1zl,'ECO_F1Zl')
    call self%register_dependency(self%id_f1zs,'ECO_F1Zs')
-   call self%register_dependency(self%id_f1det,'ECO_F1De')
+   call self%register_dependency(self%id_f1det1,'ECO_F1De1')
+   call self%register_dependency(self%id_f1det2,'ECO_F1De2')
    call self%register_dependency(self%id_fish2int,vertical_integral(self%id_fish2))
    call self%register_dependency(self%id_f2zl,'ECO_F2Zl')
    call self%register_dependency(self%id_f2f1,'ECO_F2F1')
-   call self%register_dependency(self%id_f2det,'ECO_F2De')
+   call self%register_dependency(self%id_f2det1,'ECO_F2De1')
+   call self%register_dependency(self%id_f2det2,'ECO_F2De2')
    end if
 
    return
@@ -477,7 +492,7 @@ end subroutine initialize
 ! !DESCRIPTION:
 !
 ! !INPUT PARAMETERS:
-   class (type_nersc_ecosmo),intent(in) :: self
+   class (type_nersc_ecosmo_ice),intent(in) :: self
    _DECLARE_ARGUMENTS_DO_
 !
 ! !REVISION HISTORY:
@@ -486,15 +501,15 @@ end subroutine initialize
 ! !LOCAL VARIABLES:
    real(rk) :: no3,nh4,pho,sil,t_sil,oxy,fla,bg,dia
    real(rk) :: flachl,diachl,bgchl,chl2c_fla,chl2c_dia,chl2c_bg
-   real(rk) :: microzoo,mesozoo,opa,det,dom
+   real(rk) :: microzoo,mesozoo,opa,det1,det2,dom
    real(rk) :: temp,salt,par
    real(rk) :: frem, fremDOM, blight
    real(rk) :: Ts,Tl,Tbg
    real(rk) :: Prod,Ps_prod,Pl_prod,Bg_prod
-   real(rk) :: Fs,Fl,ZlonPs,ZlonPl,ZsonD,ZlonD,ZlonBg,ZsonBg,ZsonPs,ZsonPl,ZlonZs
+   real(rk) :: Fs,Fl,ZlonPs,ZlonPl,ZsonD1,ZsonD2,ZlonD1,ZlonD2,ZlonBg,ZsonBg,ZsonPs,ZsonPl,ZlonZs
    real(rk) :: up_no3,up_nh4,up_n,up_pho,up_sil
    real(rk) :: bioom1,bioom2,bioom3,bioom4,bioom5,bioom6,bioom7,bioom8,Onitr
-   real(rk) :: rhs,dxxdet
+   real(rk) :: rhs,dxxdet1,dxxdet2,rhs_ID
    real(rk) :: Zl_prod, Zs_prod
    real(rk) :: mean_par, mean_surface_par, Bg_fix
    real(rk) :: fla_loss=1.0_rk
@@ -505,11 +520,11 @@ end subroutine initialize
    real(rk) :: tbs
    real(rk) :: rhs_oxy,rhs_amm,rhs_nit
 ! local variables for fish (Ute)   
-   real(rk) :: mesoi,microi,deti,fishi,F1onZl,F1onZs,F1onDet, Fish_prod,ttemp
+   real(rk) :: mesoi,microi,deti1,deti2,fishi,F1onZl,F1onZs,F1onDet1,F1onDet2, Fish_prod,ttemp
    real(rk) :: fish1,fish2
-   real(rk) :: fishi2,F2onZl,F2onF1,F2onDet, Fish2_prod
+   real(rk) :: fishi2,F2onZl,F2onF1,F2onDet1,F2onDet2, Fish2_prod
 ! local variables for community sinking
-   real(rk) :: dsnk, mean_snkspd  
+   real(rk) :: dsnk,dsnk2,mean_snkspd,mean_snkspd2  
  
 !EOP
 !-----------------------------------------------------------------------
@@ -544,7 +559,8 @@ end subroutine initialize
    end if
    _GET_(self%id_microzoo,microzoo)
    _GET_(self%id_mesozoo,mesozoo)
-   _GET_(self%id_det,det)
+   _GET_(self%id_det1,det1)
+   _GET_(self%id_det2,det2)
    _GET_(self%id_dom,dom)
    _GET_(self%id_opa,opa)
    _GET_(self%id_oxy,oxy)
@@ -555,15 +571,18 @@ end subroutine initialize
     ! get horizontal variables for fish estimates
    _GET_HORIZONTAL_(self%id_mesoint,mesoi)
    _GET_HORIZONTAL_(self%id_microint,microi)
-   _GET_HORIZONTAL_(self%id_detint,deti)
+   _GET_HORIZONTAL_(self%id_det1int,deti1)
+   _GET_HORIZONTAL_(self%id_det2int,deti2)
    _GET_HORIZONTAL_(self%id_fishint,fishi)
    _GET_HORIZONTAL_(self%id_fish2int,fishi2)
    _GET_HORIZONTAL_(self%id_f1zl,F1onZl)
    _GET_HORIZONTAL_(self%id_f1zs,F1onZs)
-   _GET_HORIZONTAL_(self%id_f1det,F1onDet)
+   _GET_HORIZONTAL_(self%id_f1det1,F1onDet1)
+   _GET_HORIZONTAL_(self%id_f1det2,F1onDet2)
    _GET_HORIZONTAL_(self%id_f2zl,F2onZl)
    _GET_HORIZONTAL_(self%id_f2f1,F2onF1)
-   _GET_HORIZONTAL_(self%id_f2det,F2onDet)
+   _GET_HORIZONTAL_(self%id_f2det1,F2onDet1)
+   _GET_HORIZONTAL_(self%id_f2det2,F2onDet2)
    _GET_(self%id_fish2,fish2)
    _GET_(self%id_fish1,fish1)
    end if
@@ -580,7 +599,7 @@ end subroutine initialize
    bg_loss  = max(sign(-1.0_rk,bg-0.01_rk),0.0_rk)        ! cyanobacteria
    mic_loss = max(sign(-1.0_rk,microzoo-0.001_rk),0.0_rk) !microzooplankton
    mes_loss = max(sign(-1.0_rk,mesozoo-0.001_rk),0.0_rk) ! mesozooplankton
-!c-----------------t dependy for fish & MB  -------------------------
+!c-----------------t dependy for fish & MB  ------------------------
         ttemp=temp/((temp+273.15)*273.15)
 
    ! remineralisation rate
@@ -600,8 +619,8 @@ end subroutine initialize
    blight = max(tanh(self%BioC(3)*par),0.0_rk)
 
    ! temperature dependence
-   Ts = 1.0_rk
-   Tl = 1.0_rk
+   Ts = exp(self%T_lim_phy * temp)
+   Tl = exp(self%T_lim_phy * temp)
    if ((salt<=10.0) .and. (mean_surface_par > self%bg_growth_minimum_daily_rad)) then
      Tbg = 1.0_rk/(1.0_rk + exp(self%BioC(29)*(self%BioC(30)-temp)))
    else
@@ -645,21 +664,24 @@ end subroutine initialize
    end if
 
    ! grazing
-   Fs = self%prefZsPs*fla + self%prefZsPl*dia + self%prefZsD*det !+ self%prefZsBG*bg error correction 25.02.2020
+   Fs = self%prefZsPs*fla + self%prefZsPl*dia + self%prefZsD*det1 + self%prefZsD*det2 !+ self%prefZsBG*bg
    Fl = self%prefZlPs*fla + self%prefZlPl*dia + self%prefZlZs*microzoo + &
-         self%prefZlD*det !+ self%prefZlBG*bg
+         self%prefZlD*det1 + self%prefZlD*det2 !+ self%prefZlBG*bg
    if (self%use_cyanos) then
     Fs = Fs + self%prefZsBG*bg
-    Fl = Fl + self%prefZlBG*bg
+    Fl = Fl + self%prefZlBg*bg
    end if
 
-   ZsonPs = fla_loss * self%BioC(12) * self%prefZsPs * fla/(self%BioC(14) + Fs)
-   ZsonPl = dia_loss * self%BioC(12) * self%prefZsPl * dia/(self%BioC(14) + Fs)
-   ZsonD  =            self%BioC(12) * self%prefZsD * det/(self%BioC(14) + Fs)
+   ZsonPs = fla_loss * self%BioC(12) * self%prefZsPs * fla/(self%BioC(14)  + Fs)
+   ZsonPl = dia_loss * self%BioC(12) * self%prefZsPl * dia/(self%BioC(14)  + Fs)
+   ZsonD1 =            self%BioC(12) * self%prefZsD  * det1/(self%BioC(14)  + Fs)
+   ZsonD2 =            self%BioC(12) * self%prefZsD  * det2/(self%BioC(14) + Fs) ! Add for sympagic system coupling
+   
 
-   ZlonPs = fla_loss * self%BioC(11) * self%prefZlPs * fla/(self%BioC(14) + Fl)
-   ZlonPl = dia_loss * self%BioC(11) * self%prefZlPl * dia/(self%BioC(14) + Fl)
-   ZlonD =             self%BioC(11) * self%prefZlD * det/(self%BioC(14) + Fl)
+   ZlonPs = fla_loss * self%BioC(11) * self%prefZlPs * fla/(self%BioC(14)  + Fl)
+   ZlonPl = dia_loss * self%BioC(11) * self%prefZlPl * dia/(self%BioC(14)  + Fl)
+   ZlonD1 =            self%BioC(11) * self%prefZlD  * det1/(self%BioC(14)  + Fl)
+   ZlonD2 =            self%BioC(11) * self%prefZlD  * det2/(self%BioC(14) + Fl) ! Add for sympagic system coupling
    ZlonZs = mic_loss * self%BioC(13) * self%prefZlZs * microzoo/(self%BioC(14) + Fl)
    if (self%use_cyanos) then
      ZsonBg = bg_loss  * self%BioC(31) * self%prefZsBG * bg/(self%BioC(14) + Fs)
@@ -714,7 +736,7 @@ end subroutine initialize
 
    ! microzooplankton
 
-   Zs_prod = self%BioC(20)*(ZsonPs + ZsonPl + ZsonBg) + self%BioC(21)*ZsonD
+   Zs_prod = self%BioC(20)*(ZsonPs + ZsonPl + ZsonBg) + self%BioC(21)*ZsonD1 + self%BioC(21)*ZsonD2 ! modif sympagic system coupling
    rhs = (Zs_prod - (self%BioC(16) + self%BioC(18) + self%zpr)*mic_loss) * microzoo &
          - ZlonZs * mesozoo
     if (self%use_fish) then
@@ -725,7 +747,7 @@ end subroutine initialize
     _SET_ODE_(self%id_microzoo, rhs)
 
    ! mesozooplankton
-   Zl_prod = self%BioC(19)*(ZlonPs + ZlonPl + ZlonBg + ZlonZs) + self%BioC(21)*ZlonD
+   Zl_prod = self%BioC(19)*(ZlonPs + ZlonPl + ZlonBg + ZlonZs) + self%BioC(21)*ZlonD1 + self%BioC(21)*ZlonD2 !modif sympagic system coupling
    rhs = (Zl_prod - (self%BioC(15) + self%BioC(17) + self%zpr)*mes_loss) * mesozoo
     if(self%use_fish)then
     rhs=rhs- F1onZl*mesozoo/mesoi*fishi &
@@ -738,7 +760,8 @@ end subroutine initialize
    Fish_prod=0.
    Fish_prod=self%asefF1*(F1onZs*microzoo/microi  &
              +F1onZl*mesozoo/mesoi  &
-             +F1onDet*det/deti)*fishi   !6,7,8,9
+             +F1onDet1*det1/deti1 &
+ 	     +F1onDet2*det2/deti2)*fishi   !6,7,8,9
    rhs=Fish_prod-(self%mF1+self%excF1*exp((self%tempcF1/(8.6173324*10.**(-5.)))*ttemp))*fish1  & 
          - F2onF1*fish1/fishi*fishi2  !fish1 predation
    _SET_ODE_(self%id_fish1, rhs)
@@ -746,7 +769,8 @@ end subroutine initialize
    Fish2_prod=0.
    Fish2_prod=self%asefF2*(F2onF1*fish1/fishi  &
              +F2onZl*mesozoo/mesoi  &
-             +F2onDet*det/deti)*fishi2   !6,7,8,9
+             +F2onDet1*det1/deti1 &
+	     +F2onDet2*det2/deti2)*fishi2   !6,7,8,9
 !     print*,'test fish',Fish2_prod,rhs,fishi2
    rhs=Fish2_prod-(self%mF2+self%excF2*exp((self%tempcF2/(8.6173324*10.**(-5.)))*ttemp))*fish2   
    _SET_ODE_(self%id_fish2, rhs)
@@ -754,35 +778,54 @@ end subroutine initialize
     end if
 
    ! detritus
-   dxxdet = (  ((1.0_rk-self%BioC(20))*(ZsonPs + ZsonPl + ZsonBg) &
-              + (1.0_rk-self%BioC(21))*ZsonD) * microzoo &
+   dxxdet1 = (  ((1.0_rk-self%BioC(21))*ZsonD1) * microzoo &
+              + ((1.0_rk-self%BioC(21))*ZlonD1) * mesozoo  )
+
+   dxxdet2 = (  ((1.0_rk-self%BioC(20))*(ZsonPs + ZsonPl + ZsonBg) &
+              + (1.0_rk-self%BioC(21))*ZsonD2)  * microzoo &
               + ((1.0_rk-self%BioC(19))*(ZlonPs + ZlonPl + ZlonBg + ZlonZs) &
-              + (1.0_rk-self%BioC(21))*ZlonD) * mesozoo &
+              + (1.0_rk-self%BioC(21))*ZlonD2) * mesozoo &
               + self%BioC(16) * microzoo * mic_loss &
               + self%BioC(15) * mesozoo * mes_loss &
-              + self%BioC(10) * fla * fla_loss &
-              + self%BioC(9)  * dia * dia_loss )
+              + self%BioC(9)  * dia * dia_loss &
+              + self%BioC(10) * fla * fla_loss)
+
    if (self%use_cyanos) then
-              dxxdet = dxxdet + (self%BioC(32) * bg * bg_loss )
+              dxxdet2 = dxxdet2 + (self%BioC(32) * bg * bg_loss )
    end if
    if (self%use_fish)then
-   dxxdet=dxxdet + (1.-self%asefF1)*(F1onZs*microzoo/microi+F1onZl*mesozoo/mesoi+F1onDet*det/deti)*fishi  &      !Fish 1 detritus
+   dxxdet1=dxxdet1 + (1.-self%asefF1)*(F1onDet1*det1/deti1)*fishi  &      !Fish 1 detritus
+              + (1.-self%asefF2)*(F2onDet1*det1/deti1)*fishi2      !Fish 1 detritus
+
+   dxxdet2=dxxdet2 + (1.-self%asefF1)*(F1onZs*microzoo/microi+F1onZl*mesozoo/mesoi+F1onDet2*det2/deti2)*fishi  &      !Fish 1 detritus
               + self%mF1*fish1 & 
-              + (1.-self%asefF2)*(F2onF1*fish1/fishi+F2onZl*mesozoo/mesoi+F2onDet*det/deti)*fishi2  &      !Fish 1 detritus
+              + (1.-self%asefF2)*(F2onF1*fish1/fishi+F2onZl*mesozoo/mesoi+F2onDet2*det2/deti2)*fishi2  &      !Fish 1 detritus
               + self%mF2*fish2
    end if
 
-   rhs = (1.0_rk-self%frr) * dxxdet &
-         - ZsonD * microzoo &
-         - ZlonD * mesozoo &
-         - frem * det
+   rhs = (1.0_rk-self%frr) * dxxdet1 &
+         - ZsonD1 * microzoo &
+         - ZlonD1 * mesozoo &
+         - frem * det1
 
     if (self%use_fish)then 
-    rhs=rhs - F1onDet*det/deti*fishi &
-         - F2onDet*det/deti*fishi2
+    rhs=rhs - F1onDet1*det1/deti1*fishi &
+         - F2onDet1*det1/deti1*fishi2
     end if
 
-   _SET_ODE_(self%id_det, rhs)
+   _SET_ODE_(self%id_det1, rhs)
+
+   rhs = (1.0_rk-self%frr) * dxxdet2 &
+         - ZsonD2 * microzoo &
+         - ZlonD2 * mesozoo &
+         - frem * det2
+
+    if (self%use_fish)then 
+    rhs=rhs - F1onDet2*det2/deti2*fishi &
+         - F2onDet2*det2/deti2*fishi2
+    end if
+
+   _SET_ODE_(self%id_det2, rhs)
 
    if (self%community_export) then
    ! community dependent sinking rate
@@ -790,34 +833,51 @@ end subroutine initialize
    ! dsnk/det is the calculated (and applied) detritus sinking speed
    ! assumptions: unassimilated food uses detritus sinking rates from the prey,
    ! not the predator. 
-     dxxdet = (  ((1.0_rk-self%BioC(20))*(ZsonPs * self%sinkFlaD + ZsonPl * self%sinkDiaD + ZsonBg * self%sinkBgD) &
-              + (1.0_rk-self%BioC(21)) * ZsonD * dsnk/det) * microzoo &
+     dxxdet1 = (  ((1.0_rk-self%BioC(21))* ZsonD1 * dsnk/det1) * microzoo &
+              +   ((1.0_rk-self%BioC(21))* ZlonD1 * dsnk/det1) * mesozoo)
+ 
+     dxxdet2 = (  ((1.0_rk-self%BioC(20))*(ZsonPs * self%sinkFlaD + ZsonPl * self%sinkDiaD + ZsonBg * self%sinkBgD) &
+              + (1.0_rk-self%BioC(21)) * ZsonD2 * dsnk2/det2) * microzoo &
               + ((1.0_rk-self%BioC(19))*(ZlonPs * self%sinkFlaD + ZlonPl * self%sinkDiaD + ZlonBg * self%sinkBgD + ZlonZs * self%sinkMicD) &
-              + (1.0_rk-self%BioC(21)) * ZlonD * dsnk/det) * mesozoo &
+              + (1.0_rk-self%BioC(21)) * ZlonD2 * dsnk2/det2) * mesozoo &
               + self%BioC(16) * microzoo * mic_loss * self%sinkMicD &
               + self%BioC(15) * mesozoo * mes_loss * self%sinkMesD &
               + self%BioC(10) * fla * fla_loss * self%sinkFlaD &
               + self%BioC(9)  * dia * dia_loss * self%sinkDiaD )
        if (self%use_cyanos) then
-              dxxdet = dxxdet + (self%BioC(32) * bg * bg_loss * self%sinkBgD)
+              dxxdet2 = dxxdet2 + (self%BioC(32) * bg * bg_loss * self%sinkBgD)
        end if 
        if (self%use_fish)then
-          dxxdet = dxxdet &
-                   + (1.-self%asefF1)*(F1onZs * self%sinkMicD * microzoo/microi + F1onZl * self%sinkMesD * mesozoo/mesoi + F1onDet * dsnk/det * det/deti)*fishi &
+          dxxdet1 = dxxdet1 &
+                   + (1.-self%asefF1)*(F1onDet1 * dsnk/det1 * det1/deti1)*fishi &
+                   + (1.-self%asefF2)*(F2onDet1 * dsnk/det1 * det1/deti1)*fishi2
+
+          dxxdet2 = dxxdet2 &
+                   + (1.-self%asefF1)*(F1onZs * self%sinkMicD * microzoo/microi + F1onZl * self%sinkMesD * mesozoo/mesoi + F1onDet2 * dsnk2/det2 * det2/deti2)*fishi &
                    + self%mF1 * fish1 * self%sinkFish1D &
-                   + (1.-self%asefF2)*(F2onF1 * self%sinkFish1D * fish1/fishi + F2onZl * self%sinkDiaD * mesozoo/mesoi + F2onDet * dsnk/det * det/deti)*fishi2 &
+                   + (1.-self%asefF2)*(F2onF1 * self%sinkFish1D * fish1/fishi + F2onZl * self%sinkDiaD * mesozoo/mesoi + F2onDet2 * dsnk2/det2 * det2/deti2)*fishi2 &
                    + self%mF2 * fish2 * self%sinkFish2D
        end if
 
-     rhs = (1.0_rk-self%frr) * dxxdet &
-         + ( - ZsonD * microzoo - ZlonD * mesozoo ) * dsnk/det &
+     rhs = (1.0_rk-self%frr) * dxxdet1 &
+         + ( - ZsonD1 * microzoo - ZlonD1 * mesozoo ) * dsnk/det1 &
              - frem * dsnk
 
         if (self%use_fish) then
-           rhs = rhs + ( - F1onDet*det/deti*fishi - F2onDet*det/deti*fishi2 ) * dsnk/det
+           rhs = rhs + ( - F1onDet1*det1/deti1*fishi - F2onDet1*det1/deti1*fishi2 ) * dsnk/det1
         end if
 
      _SET_ODE_(self%id_dsnk, rhs)
+
+     rhs = (1.0_rk-self%frr) * dxxdet2 &
+         + ( - ZsonD2 * microzoo - ZlonD2 * mesozoo ) * dsnk2/det2 &
+             - frem * dsnk2
+
+        if (self%use_fish) then
+           rhs = rhs + ( - F1onDet2*det2/deti2*fishi - F2onDet2*det2/deti2*fishi2 ) * dsnk2/det2
+        end if
+
+     _SET_ODE_(self%id_dsnk2, rhs)
 
 !    dxxdet = (  ((1.0_rk-self%BioC(20))*(ZsonPs + ZsonPl + ZsonBg) &
 !              + (1.0_rk-self%BioC(21))*ZsonD) * microzoo * self%sinkMicD &
@@ -838,13 +898,13 @@ end subroutine initialize
    end if 
 
    ! labile dissolved organic matter
-   _SET_ODE_(self%id_dom, self%frr*dxxdet - fremdom * dom)
+   _SET_ODE_(self%id_dom, self%frr*(dxxdet1 + dxxdet2) - fremdom * dom)
 
    ! nitrate
    rhs_nit = -(up_no3+0.5d-10)/(up_n+1.0d-10)*Prod &
          + bioom1 * nh4 &
          - bioom3 * no3 &
-         - frem * det * bioom5 &
+         - frem * (det1 + det2) * bioom5 &
          - fremDOM * dom * bioOM5
    _SET_ODE_(self%id_no3, rhs_nit)
 
@@ -852,7 +912,7 @@ end subroutine initialize
    rhs_amm = -(up_nh4+0.5d-10)/(up_n+1.0d-10)*Prod &
          + self%BioC(18) * microzoo * mic_loss &
          + self%BioC(17) * mesozoo * mes_loss &
-         + frem * det &
+         + frem * (det1 + det2) &
          + fremDOM * dom - bioom1 * nh4
     if(self%use_fish)then
     rhs_amm = rhs_amm + self%excF1*exp((self%tempcF1/(8.6173324*10.**(-5.)))*ttemp)*fish1 &
@@ -866,7 +926,7 @@ end subroutine initialize
    rhs = -Prod -self%BioC(28)*bg*Bg_fix &
          + self%BioC(18) * microzoo * mic_loss &
          + self%BioC(17) * mesozoo * mes_loss &
-         + frem*det + fremDOM*dom
+         + frem*(det1+det2) + fremDOM*dom
     if(self%use_fish)then
     rhs = rhs + self%excF1*exp((self%tempcF1/(8.6173324*10.**(-5.)))*ttemp)*fish1 &
          + self%excF2*exp((self%tempcF2/(8.6173324*10.**(-5.)))*ttemp)*fish2
@@ -888,14 +948,14 @@ end subroutine initialize
          +self%BioC(17)*mesozoo*mes_loss &
          + self%excF1*exp((self%tempcF1/(8.6173324*10.**(-5.)))*ttemp)*fish1 &
          + self%excF2*exp((self%tempcF2/(8.6173324*10.**(-5.)))*ttemp)*fish2) &
-         -frem*det*(bioom6+bioom7)*6.625 &
+         -frem*(det1+det2)*(bioom6+bioom7)*6.625 &
          -(bioom6+bioom7)*6.625*fremDOM*dom &
          -2.0_rk*bioom1*nh4)*redf(11)*redf(16)
     else
     rhs_oxy = ((6.625*up_nh4 + 8.125*up_no3+1.d-10)/(up_n+1.d-10)*Prod &
          -bioom6*6.625*(self%BioC(18)*microzoo*mic_loss &
          +self%BioC(17)*mesozoo*mes_loss) &
-         -frem*det*(bioom6+bioom7)*6.625 &
+         -frem*(det1+det2)*(bioom6+bioom7)*6.625 &
          -(bioom6+bioom7)*6.625*fremDOM*dom &
          -2.0_rk*bioom1*nh4)*redf(11)*redf(16)
     end if
@@ -906,7 +966,7 @@ end subroutine initialize
    if (self%couple_co2) then
      rhs =  redf(16) *( BioC(18)*microzoo*mic_loss &
             + BioC(17)*mesozoo*mes_loss &
-            + frem*det + fremDOM*dom - Prod) 
+            + frem*(det1+det2) + fremDOM*dom - Prod) 
      _SET_ODE_(self%id_dic, rhs)
 
      rhs = redf(16)*(rhs_amm-rhs_nit)*redf(11) - 0.5_rk*rhs_oxy*(1._rk-bioom6)
@@ -914,14 +974,15 @@ end subroutine initialize
    end if
 
    ! Export diagnostic variables
-   _SET_DIAGNOSTIC_(self%id_denit,(frem*det*bioom5+fremDOM*dom*bioom5)*redf(11)*redf(16))
+   _SET_DIAGNOSTIC_(self%id_denit,(frem*(det1+det2)*bioom5+fremDOM*dom*bioom5)*redf(11)*redf(16))
    _SET_DIAGNOSTIC_(self%id_primprod, Prod + self%BioC(28)*bg*Bg_fix )
    _SET_DIAGNOSTIC_(self%id_secprod, Zl_prod*mesozoo + Zs_prod*microzoo)
    _SET_DIAGNOSTIC_(self%id_parmean_diag, mean_par)
-   _SET_DIAGNOSTIC_(self%id_snkspd,dsnk/det*86400.) ! multiplication by 86400.
+   _SET_DIAGNOSTIC_(self%id_snkspd,dsnk/det1*86400.) ! multiplication by 86400.
 !                                                     should not be there, but during development, 
 !                                                     it is handy to have the diagnostics
 !                                                     in m/days. Will switch to m/sec when development complete.
+   _SET_DIAGNOSTIC_(self%id_snkspd2,dsnk2/det2*86400.) 
 !   if (self%use_chl) then
 !     _SET_DIAGNOSTIC_(self%id_c2chl_fla, 1.0_rk/chl2c_fla)
 !     _SET_DIAGNOSTIC_(self%id_c2chl_dia, 1.0_rk/chl2c_dia)
@@ -942,7 +1003,7 @@ end subroutine initialize
 ! !INTERFACE:
 
    subroutine do_surface(self,_ARGUMENTS_DO_SURFACE_)
-   class (type_nersc_ecosmo),intent(in) :: self
+   class (type_nersc_ecosmo_ice),intent(in) :: self
    _DECLARE_ARGUMENTS_DO_SURFACE_
 !
 ! !LOCAL VARIABLES:
@@ -1017,25 +1078,25 @@ end subroutine initialize
 ! !INTERFACE:
 
    subroutine do_bottom(self,_ARGUMENTS_DO_BOTTOM_)
-   class (type_nersc_ecosmo),intent(in) :: self
+   class (type_nersc_ecosmo_ice),intent(in) :: self
    _DECLARE_ARGUMENTS_DO_BOTTOM_
 !
 ! !LOCAL VARIABLES:
-   real(rk) :: temp, tbs, oxy, no3, det, opa, sed1, sed2, sed3
+   real(rk) :: temp, tbs, oxy, no3, det1, det2, opa, sed1, sed2, sed3
    real(rk) :: pho, Rds, Rsd, Rsa, Rsdenit, Rsa_p, yt1, yt2
    real(rk) :: rhs, flux, alk_flux
    real(rk) :: bioom1, bioom2, bioom3, bioom4, bioom5, bioom6, bioom7, bioom8
 ! ute mb new variables
    real(rk) :: mb1
-   real(rk) :: FM,MBonMicro,MBonMeso,MBonDet,MBonSed,MBonFla,MBonDia,MBonDom
+   real(rk) :: FM,MBonMicro,MBonMeso,MBonDet1,MBonDet2,MBonSed,MBonFla,MBonDia,MBonDom
    real(rk) :: dia, fla, microzoo,mesozoo,dom 
-   real(rk) :: ttemp, rcMB,rrcMB,MBflux 
+   real(rk) :: ttemp, rcMB,rrcMB,MBflux,MBflux1,MBflux2 
 ! ute add fish local variables integrated values
-   real(rk) :: mesoi,microi,deti,fishi,fishi1,fishi2,fishi3
-   real(rk) :: Ff1,F1onZl,F1onZs,F1onDet,F1onMB1
-   real(rk) :: Ff2,F2onZl,F2onF1,F2onDet,F2onMB1
+   real(rk) :: mesoi,microi,deti1,deti2,fishi,fishi1,fishi2,fishi3
+   real(rk) :: Ff1,F1onZl,F1onZs,F1onDet1,F1onDet2,F1onMB1
+   real(rk) :: Ff2,F2onZl,F2onF1,F2onDet1,F2onDet2,F2onMB1
 ! add community sinking local variables
-   real(rk) :: dsnk
+   real(rk) :: dsnk, dsnk2
 !EOP
 !-----------------------------------------------------------------------
 !BOC
@@ -1043,11 +1104,13 @@ end subroutine initialize
 
    _GET_(self%id_temp,temp)
    _GET_(self%id_oxy,oxy)
-   _GET_(self%id_det,det)
+   _GET_(self%id_det1,det1)
+   _GET_(self%id_det2,det2)
    _GET_(self%id_opa,opa)
    _GET_(self%id_no3,no3)
    if (self%community_export) then
      _GET_(self%id_dsnk,dsnk)
+     _GET_(self%id_dsnk2,dsnk2)
    end if
    _GET_HORIZONTAL_(self%id_sed1,sed1)
    _GET_HORIZONTAL_(self%id_sed2,sed2)
@@ -1064,7 +1127,8 @@ end subroutine initialize
   !ute get dependencies for fish growth
    _GET_HORIZONTAL_(self%id_mesoint,mesoi)
    _GET_HORIZONTAL_(self%id_microint,microi)
-   _GET_HORIZONTAL_(self%id_detint,deti)
+   _GET_HORIZONTAL_(self%id_det1int,deti1)
+   _GET_HORIZONTAL_(self%id_det2int,deti2)
    _GET_HORIZONTAL_(self%id_fishint,fishi)
    _GET_HORIZONTAL_(self%id_fish2int,fishi2)
    end if
@@ -1092,34 +1156,38 @@ end subroutine initialize
 
     if (self%use_fish)then
     !ute grazing fish
-    Ff1=self%prefF1Zl*mesoi+self%prefF1Zs*microi+self%prefF1Det*deti+self%prefF1MB1*mb1
+    Ff1=self%prefF1Zl*mesoi+self%prefF1Zs*microi+self%prefF1Det*deti1+self%prefF1Det*deti2+self%prefF1MB1*mb1
 !    Ff2=self%prefF2Zl*mesoi+self%prefF2Zs*microi+self%prefF2Det*deti+self%prefF2MB1*mb1
-    Ff2=self%prefF2Zl*mesoi+self%prefF2F1*fishi+self%prefF2Det*deti+self%prefF2MB1*mb1
+    Ff2=self%prefF2Zl*mesoi+self%prefF2F1*fishi+self%prefF2Det*deti1+self%prefF2Det*deti2+self%prefF2MB1*mb1
 !
      F1onZl=0.
      F1onZs=0.
-     F1onDet=0.
+     F1onDet1=0.
+     F1onDet2=0.
      F1onMB1=0.
     if(oxy .gt. 0.0)then
        if(mesoi.ge.0.) F1onZl=self%prefF1Zl*self%GrF1Zl*mesoi/(self%rF1+Ff1)
        if(microi.ge.0.) F1onZs=self%prefF1Zs*self%GrF1Zs*microi/(self%rF1+Ff1)
-       if(deti.ge.0.) F1onDet =self%prefF1Det*self%GrF1Det*deti/(self%rF1+Ff1)
+       if(deti1.ge.0.) F1onDet1 =self%prefF1Det*self%GrF1Det*deti1/(self%rF1+Ff1)
+       if(deti2.ge.0.) F1onDet2 =self%prefF1Det*self%GrF1Det*deti2/(self%rF1+Ff1)
        if(mb1.ge.0.)F1onMB1=self%prefF1MB1*self%GrF1MB1*mb1/(self%rF1MB+Ff1)
        if(mesoi.ge.0.) F2onZl=self%prefF2Zl*self%GrF2Zl*mesoi/(self%rF2+Ff2)
        if(fishi.ge.0.) F2onF1=self%prefF2F1*self%GrF2F1*fishi/(self%rF2+Ff2)
-       if(deti.ge.0.) F2onDet =self%prefF2Det*self%GrF2Det*deti/(self%rF2+Ff2)
+       if(deti1.ge.0.) F2onDet1 =self%prefF2Det*self%GrF2Det*deti1/(self%rF2+Ff2)
+       if(deti2.ge.0.) F2onDet2 =self%prefF2Det*self%GrF2Det*deti2/(self%rF2+Ff2)
        if(mb1.ge.0.)F2onMB1=self%prefF2MB1*self%GrF2MB1*mb1/(self%rF2MB+Ff2)
      endif
 !c-----------------t dependy for fish & MB  -------------------------
         ttemp=temp/((temp+273.15)*273.15)
-!---------------------------------------------------------------
+!--------------------------------------------------------------
 ! Ute macrobenthos feeding preferences
      FM=self%prefMB1Zs*microzoo+self%prefMB1Zl*mesozoo   &
-        +self%prefMB1Det*det+self%prefMB1Sed*sed1        &
+        +self%prefMB1Det*det1+self%prefMB1Det*det2+self%prefMB1Sed*sed1        &
         +self%prefMB1P*fla+self%prefMB1P*dia+self%prefMB1Dom*dom
         MBonMicro=0.
         MBonMeso =0.
-        MBonDet  =0.
+        MBonDet1 =0.
+        MBonDet2 =0.
         MBonSed  =0.
         MBonFla  =0.
         MBonDia  =0.
@@ -1128,7 +1196,8 @@ end subroutine initialize
        if(oxy .gt. 0.0)then
        if(microzoo.ge.0.) MBonMicro=self%prefMB1Zs*self%GrMB1Z*microzoo/(self%rMB1+FM)
        if(mesozoo.ge.0.) MBonMeso=self%prefMB1Zl*self%GrMB1Z*mesozoo/(self%rMB1+FM)
-       if(det.ge.0.) MBonDet =self%prefMB1Det*self%GrMB1Det*det/(self%rMB1+FM)
+       if(det1.ge.0.) MBonDet1 =self%prefMB1Det*self%GrMB1Det*det1/(self%rMB1+FM)
+       if(det2.ge.0.) MBonDet2 =self%prefMB1Det*self%GrMB1Det*det2/(self%rMB1+FM)
        if(sed1.ge.0.) MBonSed =self%prefMB1Sed*self%GrMB1Sed*sed1/(self%rMB1+FM)
        if(fla.ge.0.) MBonFla =self%prefMB1P*self%GrMB1P*fla/(self%rMB1+FM)
        if(dia.ge.0.) MBonDia =self%prefMB1P*self%GrMB1P*dia/(self%rMB1+FM)
@@ -1155,13 +1224,14 @@ end subroutine initialize
         end if
 
         !--- sediment 1 total sediment biomass and nitrogen pool
-        rhs = Rds*det - Rsd*sed1 - 2.0_rk*Rsa*sed1 - Rsdenit*sed1 &
+        rhs = Rds*(det1+det2) - Rsd*sed1 - 2.0_rk*Rsa*sed1 - Rsdenit*sed1 &
               - self%BioC(37)*sed1
         _SET_BOTTOM_ODE_(self%id_sed1, rhs)
 
         ! community sinking variable exchange
         if (self%community_export) then
-           _SET_BOTTOM_EXCHANGE_(self%id_dsnk, Rsd*sed1*dsnk/det - Rds*det*dsnk/det)   
+           _SET_BOTTOM_EXCHANGE_(self%id_dsnk, Rsd*sed1*dsnk/det1 - Rds*det1*dsnk/det1)   
+           _SET_BOTTOM_EXCHANGE_(self%id_dsnk2, Rsd*sed1*dsnk2/det2 - Rds*det2*dsnk2/det2)   
         end if
         ! oxygen
         flux = -(BioOM6*6.625_rk*2.0_rk*Rsa*sed1 &
@@ -1174,7 +1244,8 @@ end subroutine initialize
         _SET_BOTTOM_EXCHANGE_(self%id_no3, -BioOM5*Rsdenit*sed1)
 
         ! detritus
-        _SET_BOTTOM_EXCHANGE_(self%id_det, Rsd*sed1 - Rds*det)
+        _SET_BOTTOM_EXCHANGE_(self%id_det1, Rsd*sed1 - Rds*det1)
+        _SET_BOTTOM_EXCHANGE_(self%id_det2, Rsd*sed1 - Rds*det2)
 
         ! ammonium
         _SET_BOTTOM_EXCHANGE_(self%id_nh4, (Rsdenit+Rsa)*sed1)
@@ -1212,7 +1283,7 @@ end subroutine initialize
        !Ute Macrobenthos & benthic fish
          _SET_BOTTOM_EXCHANGE_(self%id_fish1,+self%asefF1*F1onMB1*fishi)
          _SET_BOTTOM_EXCHANGE_(self%id_fish2,+self%asefF2*F2onMB1*fishi2)
-        rrcMB=(MBonSed+MBonDet+MBonDom+MBonMicro+MBonMeso+MBonDia+MBonFla) 
+        rrcMB=(MBonSed+MBonDet1+MBonDet2+MBonDom+MBonMicro+MBonMeso+MBonDia+MBonFla) 
         rcMB=(+self%BioC(21)*rrcMB  &
              -self%mMB1 &
            -self%excMB1*exp((self%tempcMB1/(8.6173324*10.**(-4.)))*ttemp))*mb1 &
@@ -1225,15 +1296,21 @@ end subroutine initialize
          _SET_BOTTOM_EXCHANGE_(self%id_mesozoo,-MBonMeso*mb1)     
          _SET_BOTTOM_EXCHANGE_(self%id_dia,-MBonDia*mb1)     
          _SET_BOTTOM_EXCHANGE_(self%id_fla,-MBonFla*mb1)     
-         MBflux=-MBonDet*mb1  &
+        MBflux1=-MBonDet1*mb1 
+	MBflux2=-MBonDet2*mb1  &
          +(1.-self%frr)*((1.-self%asefF1)*F1onMB1*fishi &
          +(1.-self%asefF2)*F2onMB1*fishi2)
-          _SET_BOTTOM_EXCHANGE_(self%id_det,MBflux)
+          _SET_BOTTOM_EXCHANGE_(self%id_det2,MBflux2)
+	  _SET_BOTTOM_EXCHANGE_(self%id_det1,MBflux1)
 
         if (self%community_export) then
-           MBflux=-MBonDet * mb1 * dsnk/det &
-                  +(1.-self%frr)*((1.-self%asefF1)*F1onMB1*fishi*dsnk/det+(1.-self%asefF2)*F2onMB1*fishi2* dsnk/det) 
-           _SET_BOTTOM_EXCHANGE_(self%id_dsnk,MBflux)
+           MBflux1=-MBonDet1 * mb1 * dsnk/det1 &
+                  +(1.-self%frr)*((1.-self%asefF1)*F1onMB1*fishi*dsnk/det1+(1.-self%asefF2)*F2onMB1*fishi2*dsnk/det1) 
+           _SET_BOTTOM_EXCHANGE_(self%id_dsnk,MBflux1)
+
+           MBflux=-MBonDet2 * mb1 * dsnk2/det2 &
+                  +(1.-self%frr)*((1.-self%asefF1)*F1onMB1*fishi*dsnk2/det2+(1.-self%asefF2)*F2onMB1*fishi2* dsnk2/det2) 
+           _SET_BOTTOM_EXCHANGE_(self%id_dsnk2,MBflux2)
         end if     
 
          MBflux=-MBonDom*mb1+(self%frr)*(((1.-self%BioC(21))*rrcMB+self%mMB1)*mb1 &
@@ -1252,16 +1329,19 @@ end subroutine initialize
  !ute diagnostics for fish
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_meso_integr,mesoi)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_micro_integr,microi)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_det_integr,deti)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_det1_integr,deti1)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_det2_integr,deti2)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_fish_integr,fishi1)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_fish2_integr,fishi3)
 ! diagnostics for dependency
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dF1onZl,F1onZl)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dF1onZs,F1onZs)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dF1onDet,F1onDet)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dF1onDet1,F1onDet1)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dF1onDet2,F1onDet2)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dF2onZl,F2onZl)
    _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dF2onF1,F2onF1)
-   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dF2onDet,F2onDet)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dF2onDet1,F2onDet1)
+   _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dF2onDet2,F2onDet2)
     end if
 
    _HORIZONTAL_LOOP_END_
@@ -1270,10 +1350,10 @@ end subroutine initialize
 !EOC
 
    subroutine get_light_extinction(self,_ARGUMENTS_GET_EXTINCTION_)
-   class (type_nersc_ecosmo), intent(in) :: self
+   class (type_nersc_ecosmo_ice), intent(in) :: self
    _DECLARE_ARGUMENTS_GET_EXTINCTION_
 
-   real(rk)                     :: dom,det,diachl,flachl,bgchl
+   real(rk)                     :: dom,det1,det2,diachl,flachl,bgchl
    real(rk)                     :: dia,fla,bg
    real(rk)                     :: my_extinction
 
@@ -1282,7 +1362,8 @@ end subroutine initialize
 
    ! Retrieve current (local) state variable values.
 
-   _GET_(self%id_det, det)
+   _GET_(self%id_det1, det1)
+   _GET_(self%id_det2, det2)
    _GET_(self%id_dom, dom)
    _GET_(self%id_dia, dia)
    _GET_(self%id_fla, fla)
@@ -1293,6 +1374,7 @@ end subroutine initialize
      end if
 
    my_extinction = self%BioC(4)
+
    if (self%use_chl) then
      _GET_(self%id_diachl, diachl)
      _GET_(self%id_flachl, flachl)
@@ -1301,11 +1383,11 @@ end subroutine initialize
      else
        bgchl=0.0_rk
      end if
-     my_extinction = my_extinction + self%BioC(5)*(diachl+flachl+bgchl) + self%extdet*det + self%extdom*dom
+     my_extinction = my_extinction + self%BioC(5)*(diachl+flachl+bgchl)+ self%extdet*(det1+det2) + self%extdom*dom
    else
      diachl=0.0_rk
      flachl=0.0_rk
-     my_extinction = my_extinction + self%BioC(5)*(dia+fla+bg) + self%extdet*det + self%extdom*dom
+     my_extinction = my_extinction + self%BioC(5)*(dia+fla+bg) + self%extdet*(det1+det2) + self%extdom*dom
    end if
 
    _SET_EXTINCTION_( my_extinction )
@@ -1317,26 +1399,32 @@ end subroutine initialize
 
 ! ----- COMMUNITY DEPENDENT VARIABLE SINKING ------------------------------
    subroutine get_vertical_movement(self,_ARGUMENTS_GET_VERTICAL_MOVEMENT_)
-      class (type_nersc_ecosmo),intent(in) :: self
+      class (type_nersc_ecosmo_ice),intent(in) :: self
       _DECLARE_ARGUMENTS_GET_VERTICAL_MOVEMENT_
 
-      real(rk) :: det, dsnk, meanspd
+      real(rk) :: det1, det2, dsnk, dsnk2, meanspd, meanspd2
 
       _LOOP_BEGIN_
          if (self%community_export) then
-           _GET_(self%id_det, det)
+           _GET_(self%id_det1, det1)
+           _GET_(self%id_det2, det2)
            _GET_(self%id_dsnk, dsnk)
+           _GET_(self%id_dsnk2, dsnk2)
 
-           meanspd = dsnk / det
+           meanspd = dsnk / det1
+           meanspd2 = dsnk2 / det2
 
-           _SET_VERTICAL_MOVEMENT_(self%id_det,-meanspd)
+           _SET_VERTICAL_MOVEMENT_(self%id_det1,-meanspd)
+           _SET_VERTICAL_MOVEMENT_(self%id_det2,-meanspd2)
            _SET_VERTICAL_MOVEMENT_(self%id_dsnk,-meanspd)
+           _SET_VERTICAL_MOVEMENT_(self%id_dsnk2,-meanspd2)
          else
-           _SET_VERTICAL_MOVEMENT_(self%id_det,-self%BioC(23))
+           _SET_VERTICAL_MOVEMENT_(self%id_det1,-self%sinkIdet)
+           _SET_VERTICAL_MOVEMENT_(self%id_det2,-self%BioC(23))
          endif
       _LOOP_END_
    end subroutine get_vertical_movement
 ! ------------------------------------------------------------------------- 
 
-   end module fabm_nersc_ecosmo
+   end module fabm_nersc_ecosmo_ice
 

@@ -62,7 +62,7 @@ module hzg_lina
      real(rk)::lina_X
      real(rk)::lina_A
      real(rk)::lina_E
-     real(rk)::lina_L
+     !real(rk)::lina_L
      real(rk)::lina_D
      real(rk)::lina_N
      real(rk)::lina_P
@@ -88,7 +88,7 @@ module hzg_lina
  
   
 !  type(type_dependency_id)::id_mx
-!  type(type_dependency_id)::id_ma
+!  type(type_dependency_id)::
   type(type_dependency_id)::id_wa
   type(type_dependency_id)::id_kB
   type(type_dependency_id)::id_dx
@@ -97,12 +97,14 @@ module hzg_lina
   type(type_dependency_id)::id_wD
   type(type_dependency_id)::id_CD
   type(type_dependency_id)::id_CL
-  type(type_dependency_id)::id_C_tot          
+  type(type_dependency_id)::id_C_tot
+  type(type_dependency_id)::id_lina_L          
+  
   !LINA State Variables
   type(type_state_variable_id)::id_lina_X
   type(type_state_variable_id)::id_lina_A
   type(type_state_variable_id)::id_lina_E
-  type(type_state_variable_id)::id_lina_L
+  !type(type_state_variable_id)::id_lina_L
   type(type_state_variable_id)::id_lina_D
   type(type_state_variable_id)::id_lina_N
   type(type_state_variable_id)::id_lina_P
@@ -177,6 +179,7 @@ module hzg_lina
      real(rk)::ma,mx,md,dx
 
   logical::dummy_logical
+  logical::coupledtonpzd,coupledtoagg
   real(rk):: dummy_inital_value,dummy_parameter
 
   contains
@@ -205,11 +208,12 @@ contains
    dummy_inital_value=-999.99_rk
    dummy_model_switch=.false.
 
-   write(0,*) 'reading parameters'
+   write(*,*) 'LINA reading parameters'
 
    call self%get_parameter(self%dummy_parameter,'Dummy_tunable_Parameter', default=-999.99_rk)
    call self%get_parameter(self%dummy_logical,'Dummy_logical_Parameter', default=.true.)
-
+     call self%get_parameter(self%coupledtonpzd,'npzdcoupling', default=.true.)
+        call self%get_parameter(self%coupledtoagg,'aggcoupling', default=.true.)
    
    !Register LINA parameters
      
@@ -273,7 +277,7 @@ contains
    call self%register_state_variable(self%id_lina_X,  'Biomass_Phytoplankton','mol-C m-3','Phytoplankton concentration', minimum=_ZERO_, no_river_dilution=.false. )
    call self%register_state_variable(self%id_lina_A,  'Biomass_Aggregates','mol-C m-3','Aggregate concentration', minimum=_ZERO_, no_river_dilution=.false. )
    call self%register_state_variable(self%id_lina_E,  'Free_EPS','mol-C m-3','EPS concentration', minimum=_ZERO_, no_river_dilution=.false. )
-   call self%register_state_variable(self%id_lina_L,  'Primary_lithogenic_particles','mol-C m-3','lithogenic concentration', minimum=_ZERO_, no_river_dilution=.false. )
+   !call self%register_state_variable(self%id_lina_L,  'Primary_lithogenic_particles','mol-C m-3','lithogenic concentration', minimum=_ZERO_, no_river_dilution=.false. )
    call self%register_state_variable(self%id_lina_D,  'Detritus','mol-C m-3','Detritus concentration', minimum=_ZERO_, no_river_dilution=.false. )
    call self%register_state_variable(self%id_lina_N,  'Nitrogen','mol-N m-3','Nitrogen concentration', minimum=_ZERO_, no_river_dilution=.false. )
    call self%register_state_variable(self%id_lina_P,  'Phosphorus','mol-P m-3','Phosphorus concentration', minimum=_ZERO_, no_river_dilution=.false. )
@@ -299,13 +303,13 @@ contains
    call self%register_dependency(self%id_CD,'CD','1/s','AGG Detritus Coagulation ')
    call self%register_dependency(self%id_CL,'CL','1/s','AGG Lithogenous Coagulation ')
    call self%register_dependency(self%id_C_tot,'C_tot','1/s','AGG total Coagulation ')
-   
+   call self%register_dependency(self%id_lina_L,  'Primary_lithogenic_particles','mol-C m-3','lithogenic concentration AGG LPM')
 !depending on phyics
    call self%register_dependency(self%id_Temperature,standard_variables%temperature)
    call self%register_dependency(self%id_PAR,standard_variables%downwelling_photosynthetic_radiative_flux)
    !call self%register_dependency(self%id_Biomass_Phytoplankton,'phy','mol-C/m3','mole_concentration_of_phytoplankton_expressed_as_carbon_in_sea_water')
 
-
+   write(*,*) 'LINA read parameters'
    !..........................................................................................................................................................
    return
   end subroutine initialize
@@ -323,7 +327,7 @@ subroutine do(self,_ARGUMENTS_DO_)
     !
     !LOCAL VARIABLES:
   
-   logical:: Debugout=.TRUE.
+   logical:: Debugout=.False.
     type (type_lina_state_var)      :: var
     type (type_lina_rhs)       :: rhsv
   
@@ -346,9 +350,9 @@ subroutine do(self,_ARGUMENTS_DO_)
 !---------------------------------
 
    if (Debugout) then
-     write(*,*) 'Starting DO routine'
+     write(*,*) 'LINA Starting DO routine'
    else
-     write(*,*) 'debugging turned off'
+    ! write(*,*) 'LINA debugging turned off'
    endif
 
 !---------------------------------
@@ -372,14 +376,14 @@ subroutine do(self,_ARGUMENTS_DO_)
    _GET_(self%id_lina_D, var%lina_D)
    _GET_(self%id_lina_N, var%lina_N)
    _GET_(self%id_lina_P, var%lina_P)
-
+   _GET_(self%id_lina_psi, var%lina_psi)
 
    _GET_(self%id_lina_QAN,var%lina_QAN)
    _GET_(self%id_lina_QAP,var%lina_QAP)
    _GET_(self%id_lina_QDN,var%lina_QDN)
    _GET_(self%id_lina_QDP,var%lina_QDP)
    _GET_(self%id_lina_QXN,var%lina_QXN)
-   _GET_(self%id_lina_QXP,var%lina_QXN)
+   _GET_(self%id_lina_QXP,var%lina_QXP)
  
 !Get externals
    _GET_(self%id_Temperature, var%Temperature)  !
@@ -393,7 +397,16 @@ subroutine do(self,_ARGUMENTS_DO_)
    _GET_(self%id_CD, var%CD)
    _GET_(self%id_CL, var%CL)
    _GET_(self%id_wd, var%wd)  
-      
+   _GET_(self%id_wa, var%wa)
+
+  if (Debugout) then
+     write(*,*) 'LINA Enviroment from previous'
+     write(*,*) 'LINA P Temperature',var%Temperature,'PAR',var%PAR,'kB',var%kB,'cX',var%Cx,'CD',var%CD,'CL',var%CL,'wd',var%wd
+     write(*,*) 'LINA P LinaX,', var%lina_X ,'LinaA',var%lina_A, 'linaE', var%lina_E,'linaL',var%lina_L,'linaD',var%lina_D,'linaN',var%lina_N,'linaP',var%lina_P
+     write(*,*) 'LINA P LinaQAN',var%lina_QAN,'QAP',var%lina_QAP,'QDN',var%lina_QDN,'QDP',var%lina_QDP,'QXN',var%lina_QXN,'QXP',var%lina_QXP
+  endif
+
+  
 !-------------------------------------------------
 
 !Copy Variables into private copy
@@ -407,40 +420,103 @@ subroutine do(self,_ARGUMENTS_DO_)
    lina_C_tot=var%Cx*var%lina_X+var%CL*var%lina_L+var%CD*var%lina_D
    lina_qN=(var%lina_QXN-self%lina_Q0N)/(self%lina_Q_starN-self%lina_Q0N)              !eqn 10
    lina_qP=(var%lina_QXP-self%lina_Q0P)/(self%lina_Q_starP-self%lina_Q0P)  !eqn 10
+if ((lina_qN .lt. 0_rk) .or. isnan(lina_qN)) then
+  write (*,*) 'LINA QN is below zero'
+  !stop
+endif 
+if ((lina_qP .lt. 0_rk) .or. isnan(lina_qP)) then
+  write (*,*) 'LINA QP is below zero'
+  !stop
+endif 
+lina_MI=self%lina_MI_star*(1+lina_qN) ! eqn 21
+!if (Debugout) then
+!      write(*,*) 'LINA DEBUG  gamma_starN',self%lina_gamma_starN,'N',var%lina_N,'AN',self%lina_AN,'MI',lina_MI,'qN',lina_qN
+!      write(*,*) 'LINA DEBUG  gamma_starP',self%lina_gamma_starP,'P',var%lina_P,'AP',self%lina_AP,'MI',lina_MI,'qP',lina_qP
+!      write(*,*) 'LINA DEBUG  eqn11 ',self%lina_gamma_starN,var%lina_N,self%lina_AN,self%lina_gamma_starN,var%lina_N,self%lina_AN,1.0_rk,lina_gn(lina_qN,lina_MI)
+!      write(*,*) 'LINA DEBUG  eqn11 ',  self%lina_gamma_starN,(var%lina_N*self%lina_AN),(self%lina_gamma_starN + (var%lina_N*self%lina_AN)),(1.0_rk-lina_gn(lina_qN,lina_MI)) 
+!endif
+
    lina_gammaN=self%lina_gamma_starN*((var%lina_N*self%lina_AN)/(self%lina_gamma_starN + (var%lina_N*self%lina_AN)))*(1.0_rk-lina_gn(lina_qN,lina_MI)) !eqn 11
    lina_gammaP=self%lina_gamma_starP*((var%lina_P*self%lina_AP)/(self%lina_gamma_starP + (var%lina_P*self%lina_AP)))*(1.0_rk-lina_gn(lina_qP,lina_MI)) !eqn 12
+!if (Debugout) then
+!      write(*,*) 'LINA DEBUG  zeta',self%lina_zeta,'gammaN',lina_gammaN
+!endif  
+
    lina_R=self%lina_zeta*lina_gammaN !eqn 14
    lina_cI=1-exp(-self%lina_alpha*var%PAR/self%lina_mu_max) !eqn 15
-   lina_MI=self%lina_MI_star*(1+lina_qN) ! eqn 21
+if (Debugout) then
+      write(*,*) 'LINA DEBUG  qN',lina_qN,'qP',lina_qP,'MI',lina_MI,'Cn',self%lina_cn
+endif   
+
    lina_c=lina_colimitation(lina_qN,lina_qP,lina_MI,self%lina_cn) !colimitation implemented as function !eqn 17,18
+
+if (Debugout) then
+      write(*,*) 'LINA DEBUG  cI',lina_cI,'c',lina_c,'mu_max',self%lina_mu_max,'R',lina_R
+endif
+
    lina_muX=lina_cI*lina_c*self%lina_mu_max-lina_R !eqn 13
   !   lina_c_dot= !eqn 20
    lina_c_dot=-9999.99_rk
    lina_eta=lina_EPS_production(self%lina_E_min,self%lina_E_max,lina_muX,lina_MI,var%lina_N,var%lina_P,lina_qN,lina_qP,lina_gammaN,lina_gammaP)
-   lina_rhox= self%lina_rho_starx * (var%dx ** (-self%lina_arho)) *  (1.0_rk - (1.0_rk - (var%dx ** (-self%lina_arho))) * lina_cI * lina_c ) !eqn 22
-   lina_wx= 1.0_rk / (18.0_rk * self%lina_muw) * (lina_rhox-self%lina_rhow) * self%lina_g * var%dx ** 2.0_rk !eqn 23
+   lina_rhox= self%lina_rho_starx * (self%dx ** (-self%lina_arho)) *  (1.0_rk - (1.0_rk - (self%dx ** (-self%lina_arho))) * lina_cI * lina_c ) !eqn 22
+   lina_wx= 1.0_rk / (18.0_rk * self%lina_muw) * (lina_rhox-self%lina_rhow) * self%lina_g * self%dx ** 2.0_rk !eqn 23
 !-------------------------------------------------
 !Calculate RHS of the State equations these rates of change are defined by FABM to be per second
+ !(E and L ,D  are solved by the external AGG model)
+ if (.not. self%coupledtonpzd)  then
+    rhsv%lina_X= (lina_muX - self%mx -lina_wx -var%Cx) * var%lina_X !eqn 1
+   
+  
+ !   rhsv%lina_E= lina_eta * var%lina_X - lina_h * var%lina_A !eqn 3
+!    rhsv%lina_L= lina_rL - var%CL*var%lina_L + var%kB*lina_psi * var%lina_A !eqn 4 
+!    rhsv%lina_D= self%mx * var%lina_X - (var%mD +var%CD) * var%lina_D + var%kB (1- var%lina_psi) * var%lina_A !eqn 5
+    rhsv%lina_N= - lina_gammaN * var%lina_X + self%mD * var%lina_D * var%lina_QDN + self%ma * var%lina_A * var%lina_QAN +self%lina_eN !eqn 6
+    rhsv%lina_P= - lina_gammaP * var%lina_X + self%mD * var%lina_D * var%lina_QDP + self%ma * var%lina_A * var%lina_QAP +self%lina_eP !eqn 7
+ endif
+ !if (.not. self%coupledtoagg) then
+   rhsv%lina_A= lina_C_tot - (self%ma + var%kB) * var%lina_A !eqn 2
+ !endif
 
-   rhsv%lina_X= (lina_muX - var%mx -lina_wx -var%Cx) * var%lina_X !eqn 1
-   rhsv%lina_A= lina_C_tot - (var%ma + var%kB) * var%lina_A !eqn 2
-   !(E and L ,D  are solved by the external AGG model)
-   !rhsv%lina_E= lina_eta * var%lina_X - lina_h * var%lina_A !eqn 3
-!   rhsv%lina_L= lina_rL - var%CL*var%lina_L + var%kB*lina_psi * var%lina_A !eqn 4 
-!   rhsv%lina_D= var%mx * var%lina_X - (var%mD +var%CD) * var%lina_D + var%kB (1- var%lina_psi) * var%lina_A !eqn 5
-   rhsv%lina_N= - lina_gammaN * var%lina_X + var%mD * var%lina_D * var%lina_QDN + var%ma * var%lina_A * var%lina_QAN +self%lina_eN !eqn 6
-   rhsv%lina_P= - lina_gammaP * var%lina_X + var%mD * var%lina_D * var%lina_QDP + var%ma * var%lina_A * var%lina_QAP +self%lina_eP !eqn 7
+if (Debugout) then
+      write(*,*) 'LINA DEBUG  gammaN',lina_gammaN,'gammaP',lina_gammaP,'muX',lina_muX,'QXN',var%lina_QXN,'QXP',var%lina_QXP
+endif
 
-   rhsv%lina_QXN= lina_gammaN- lina_muX * var%lina_QXN !eqn 8
-   rhsv%lina_QXP= lina_gammaP- lina_muX * var%lina_QXP !eqn 9
+   rhsv%lina_QXN= lina_gammaN - lina_muX * var%lina_QXN !eqn 8
+   rhsv%lina_QXP= lina_gammaP - lina_muX * var%lina_QXP !eqn 9
 
-   rhsv%lina_QDN= var%mx *var%lina_X * var%lina_QXN - ( var%mD + var%wD + var%CD) * var%lina_D * var%lina_QDN + var%kB *(1- var%lina_psi) * var%lina_A * var%lina_QAN !eqn 39
+if (Debugout) then
+      write(*,*) 'LINA DEBUG  newQXN',rhsv%lina_QXN,'gammaN',lina_gammaN,'muX',lina_muX,'QXN',var%lina_QXN,'muX*QXN',lina_muX * var%lina_QXN
+      write(*,*) 'LINA DEBUG  newQXP',rhsv%lina_QXP,'gammaP',lina_gammaP,'muX',lina_muX,'QXP',var%lina_QXP,'muX*QXP',lina_muX * var%lina_QXP
+endif
 
-   rhsv%lina_QDP= var%mx *var%lina_X * var%lina_QXP - ( var%mD + var%wD + var%CD) * var%lina_D * var%lina_QDP + var%kB *(1- var%lina_psi) * var%lina_A * var%lina_QAP !eqn 40
+
+
+
+if (Debugout) then
+      write(*,*) 'LINA DEBUG QD: mx',self%mx,'x', var%lina_X,'qxn',var%lina_QXN,'md',self%mD,'wd',var%wD,'cd', var%CD,'d',var%lina_D,'qdn',var%lina_QDN,'kb',var%kB,'1-psi',(1.0_rk- var%lina_psi),'a',var%lina_A,'qan',var%lina_QAN 
+endif
+   rhsv%lina_QDN= self%mx *var%lina_X * var%lina_QXN - (self%mD -var%wD + var%CD) * var%lina_D * var%lina_QDN + var%kB *(1.0_rk- var%lina_psi) * var%lina_A * var%lina_QAN !eqn 39
+if (Debugout) then
+      write(*,*) 'LINA DEBUG QD: QDN:',rhsv%lina_QDN,'1term', self%mx *var%lina_X * var%lina_QXN,'2term',( self%mD + var%wD + var%CD) * var%lina_D * var%lina_QDN,'3term',var%kB *(1.0_rk- var%lina_psi) * var%lina_A * var%lina_QAN
+write(*,*) 'LINA DEBUG QD: md',self%mD,'wd',var%wD,'CD',var%CD,'D',var%lina_D 
+
+endif
+   rhsv%lina_QDP= self%mx *var%lina_X * var%lina_QXP - ( self%mD - var%wD + var%CD) * var%lina_D * var%lina_QDP + var%kB *(1.0_rk- var%lina_psi) * var%lina_A * var%lina_QAP !eqn 40
+
+if (Debugout) then
+      write(*,*) 'LINA DEBUG psi: cl',var%CL,'L',var%lina_L,'A',var%lina_A,'kb',var%kB,'psi',var%lina_psi,'newA',rhsv%lina_A
+endif
 
    rhsv%lina_psi= var%CL*var%lina_L/var%lina_A-var%kB*var%lina_psi-var%lina_psi/var%lina_A* rhsv%lina_A !eqn 24
-   rhsv%lina_QAN= var%Cx *var%lina_X * var%lina_QXN + var%CD* var%lina_D * var%lina_QDN - (var%wa + var%ma + var%kB) * var%lina_A * var%lina_QAN !eqn 25
-   rhsv%lina_QAP= var%Cx *var%lina_X * var%lina_QXP + var%CD* var%lina_D * var%lina_QDP - (var%wa + var%ma + var%kB) * var%lina_A * var%lina_QAP !eqn 26
+
+
+
+!if (Debugout) then
+!      write(*,*) 'LINA DEBUG QA: cx',var%Cx,'X', var%lina_X,'QXN',var%lina_QXN,'CD',var%CD,'D',var%lina_D,'QDN',var%lina_QDN,'wa',var%wa,'ma',self%ma,'kb',var%kB,'A',var%lina_A,'QAN',var%lina_QAN,'QXP',var%lina_QXP,'QDP',var%lina_QDP,'QAP',var%lina_QAP
+!endif
+
+   rhsv%lina_QAN= var%Cx *var%lina_X * var%lina_QXN + var%CD* var%lina_D * var%lina_QDN - (-var%wa + self%ma + var%kB) * var%lina_A * var%lina_QAN !eqn 25
+   rhsv%lina_QAP= var%Cx *var%lina_X * var%lina_QXP + var%CD* var%lina_D * var%lina_QDP - (-var%wa + self%ma + var%kB) * var%lina_A * var%lina_QAP !eqn 26
 
 !---------------------------------------------------
 
@@ -484,42 +560,78 @@ subroutine do(self,_ARGUMENTS_DO_)
 !   __ADD_SOURCE__(self%id_lina_QXN,rhsv%lina_QXN)
 !   __ADD_SOURCE__(self%id_lina_QXP,rhsv%lina_QXN)
 !   __ADD_SOURCE__(self%id_lina_psi,rhsv%lina_psi)
- 
-   
+  if (self%coupledtonpzd)   then
+   rhsv%lina_X=var%lina_X
+   rhsv%lina_D=var%lina_D
+   rhsv%lina_P=var%lina_P
+   rhsv%lina_N=var%lina_N
+  endif 
+  if (self%coupledtoagg)   then
+   rhsv%lina_A=var%lina_A
+   rhsv%lina_E=var%lina_E
+  endif 
+  if (.not. self%coupledtonpzd)   then
    _SET_ODE_(self%id_lina_X, rhsv%lina_X)
-   _SET_ODE_(self%id_lina_A, rhsv%lina_A)
-   _SET_ODE_(self%id_lina_E, rhsv%lina_E)
-   _SET_ODE_(self%id_lina_L, rhsv%lina_L)
    _SET_ODE_(self%id_lina_D, rhsv%lina_D)
    _SET_ODE_(self%id_lina_N, rhsv%lina_N)
    _SET_ODE_(self%id_lina_P, rhsv%lina_P)
+   endif 
+   if (.not. self%coupledtoagg)   then
+ 
+   _SET_ODE_(self%id_lina_A, rhsv%lina_A)
+   _SET_ODE_(self%id_lina_E, rhsv%lina_E)
+   endif
+!   _SET_ODE_(self%id_lina_L, rhsv%lina_L)
+
    _SET_ODE_(self%id_lina_QAN,rhsv%lina_QAN)
    _SET_ODE_(self%id_lina_QAP,rhsv%lina_QAP)
    _SET_ODE_(self%id_lina_QDN,rhsv%lina_QDN)
    _SET_ODE_(self%id_lina_QDP,rhsv%lina_QDP)
    _SET_ODE_(self%id_lina_QXN,rhsv%lina_QXN)
-   _SET_ODE_(self%id_lina_QXP,rhsv%lina_QXN)
+   _SET_ODE_(self%id_lina_QXP,rhsv%lina_QXP)
    _SET_ODE_(self%id_lina_psi,rhsv%lina_psi)
 
    !_SET_ODE_(self%id_lina_X, rhsv%lina_X)
 !--------------------------------------------finalize FABM loops
    !_FABM_LOOP_END_
+
+!  if (Debugout) then
+!     write(*,*) 'LINA C current'
+!     write(*,*) 'LINA C Temperature',var%Temperature,'PAR',var%PAR,'kB',var%kB,'cX',var%Cx,'CD',var%CD,'CL',var%CL,'wd',var%wd
+!     write(*,*) 'LINA C LinaX,', var%lina_X ,'LinaA',var%lina_A, 'linaE', var%lina_E,'linaL',var%lina_L,'linaD',var%lina_D,'linaN',var%lina_N,'linaP',var%lina_P
+!     write(*,*) 'LINA C LinaQAN',var%lina_QAN,'QAP',var%lina_QAP,'QDN',var%lina_QDN,'QDP',var%lina_QDP,'QXN',var%lina_QXN,'QXP',var%lina_QXP
+!     write(*,*) 'LINA RHS '
+!     write(*,*) 'LINA R LinaX,', rhsv%lina_X ,'LinaA',rhsv%lina_A, 'linaE', rhsv%lina_E,'linaD',rhsv%lina_D,'linaN',rhsv%lina_N,'linaP',rhsv%lina_P
+!     write(*,*) 'LINA R LinaQAN',rhsv%lina_QAN,'QAP',rhsv%lina_QAP,'QDN',rhsv%lina_QDN,'QDP',rhsv%lina_QDP,'QXN',rhsv%lina_QXN,'QXP',rhsv%lina_QXP
+!     !write(*,*) 'Lina_L',rhsv%lina_L
+!  endif
+
    _LOOP_END_
+
   end subroutine do
 
 
   function lina_colimitation(qi,qj,n,cn) result(c)
      real(rk), intent(in)::qi,qj,n,cn
-     real(rk)  ::c
+     real(rk)  ::c,cn1
+      cn1 = 1_rk/(4_rk*n) − 1_rk/2_rk
+      c=qi*lina_gn(qj/qi,n)*(1.0_rk+qi*qj*n+cn1)
+!     c=qi*lina_gn(qj/qi,n)
 
-     c=qi*lina_gn(qj/qi,n)*(1+qi*qj*n+cn)
   end function
   
   function lina_gn(gn_r,gn_n) result(gn_g)
     real(rk),intent(in):: gn_r,gn_n
     real(rk) ::gn_g
     
-    gn_g= (gn_r - ( gn_r**(1+gn_n))) / (1-(gn_r**(1+gn_n)))
+    gn_g= (gn_r - ( gn_r**(1.0_rk+gn_n))) / (1.0_rk-(gn_r**(1.0_rk+gn_n)))
+
+    if (isnan(gn_g)) then 
+    ! print*, 'LINA DEBUG gn  gn_r',gn_r,'gn_n',gn_n,'gn_g',gn_g
+    ! print*, 'LINA DEBUG gn   ',gn_r,(1.0_rk+gn_n),1.0_rk,gn_r**(1.0_rk+gn_n)
+
+     stop 
+    end if  
   end function
 
 function lina_EPS_production(E_min,E_max,muX,MI,N,P,qN,qP,gammaN,gammaP) result(eta)
@@ -527,9 +639,9 @@ function lina_EPS_production(E_min,E_max,muX,MI,N,P,qN,qP,gammaN,gammaP) result(
     real(rk) :: eta
     
     if (qN .le. qP) then
-        eta=E_min+(E_max-E_min)*(muX-gammaN/(1.-lina_gn(qN,MI))*(1.-(1.+MI)*qN**MI+MI*qN**(1.+MI))/(1.-qN**(1.+MI))**2)*(1-lina_gn(qN,MI)) !eqn 16
+        eta=E_min+(E_max-E_min)*(muX-gammaN/(1.0_rk-lina_gn(qN,MI))*(1.0_rk-(1.0_rk+MI)*qN**MI+MI*qN**(1.0_rk+MI))/(1.0_rk-qN**(1.0_rk+MI))**2.0_rk)*(1.0_rk-lina_gn(qN,MI)) !eqn 16
     else
-        eta=E_min+(E_max-E_min)*(muX-gammaP/(1.-lina_gn(qP,MI))*(1.-(1.+MI)*qP**MI+MI*qP**(1.+MI))/(1.-qP**(1.+MI))**2)*(1-lina_gn(qP,MI)) !eqn 16
+        eta=E_min+(E_max-E_min)*(muX-gammaP/(1.0_rk-lina_gn(qP,MI))*(1.0_rk-(1.0_rk+MI)*qP**MI+MI*qP**(1.0_rk+MI))/(1.0_rk-qP**(1.0_rk+MI))**2.0_rk)*(1.0_rk-lina_gn(qP,MI)) !eqn 16
     end if
 
   end function
