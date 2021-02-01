@@ -459,8 +459,8 @@ mAurelia60 =(/ 2.133,0.213,0.000,7.253,0.000,0.213,0.213,0.427,0.000,0.000,0.000
 mCyanea60  =(/ 0.033,0.000,0.000,0.780,0.423,0.195,0.033,0.553,0.033,0.000,0.000,0.748,1.301,0.065,2.211,0.325,0.585,0.228,0.033,0.033,0.325,5.236,0.358,0.423,0.520,9.138,2.699,0.585,1.528,1.691,5.463,2.472,0.065,3.089,1.203,0.195,10.862,0.748,0.358,0.423,0.260,0.455,1.789,6.667,1.203,0.390,2.146,11.740,1.171,0.098,0.618 /)
 
 ! Enter spatial loops (if any)
-_FABM_LOOP_BEGIN_
-
+!_FABM_LOOP_BEGIN_
+_LOOP_BEGIN_
 ! here box set-up within fabm-0D driver
 ! loop over boxes   1: HR  2: Offshore
  do ib = 1, numb
@@ -1009,8 +1009,8 @@ endif
 !#E_ODE
   end do
    ! Leave spatial loops (if any)
-   _FABM_LOOP_END_
-
+   !_FABM_LOOP_END_
+   _LOOP_END_
    end subroutine do
 !EOC
 
