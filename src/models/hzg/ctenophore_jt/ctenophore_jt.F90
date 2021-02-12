@@ -641,7 +641,8 @@ contains
     !-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     ! Enter spatial loops (if any)
-    _FABM_LOOP_BEGIN_
+    !_FABM_LOOP_BEGIN_
+    _LOOP_BEGIN_
 
     ! here box set-up within fabm-0D driver
     ! loop over boxes   1: HR  2: Offshore
@@ -1306,6 +1307,7 @@ end do
     end do
     ! Leave spatial loops (if any)
     _FABM_LOOP_END_
+    _LOOP_END_
 
   end subroutine do
   !EOC
