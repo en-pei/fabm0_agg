@@ -51,6 +51,7 @@
 
 !     Model parameters
       real(rk) :: BioC(45)
+      real(rk) :: extdet, extdom
       real(rk) :: zpr, frr
       real(rk) :: prefZsPs
       real(rk) :: prefZsPl
@@ -140,8 +141,8 @@
    ! set surface fluxes in [mgC/m2/s]
    call self%get_parameter( self%surface_deposition_no3, 'surface_deposition_no3', 'mmolN/m**2 d', 'surface deposition no3', default=0.0_rk, scale_factor=redf(1)*redf(6)/sedy0 )
    call self%get_parameter( self%surface_deposition_nh4, 'surface_deposition_nh4', 'mmolN/m**2 d', 'surface deposition nh4', default=0.0_rk, scale_factor=redf(1)*redf(6)/sedy0 )
-   call self%get_parameter( self%surface_deposition_pho, 'surface_deposition_pho', 'mmolN/m**2 d', 'surface deposition pho', default=0.0_rk, scale_factor=redf(2)*redf(6)/sedy0 )
-   call self%get_parameter( self%surface_deposition_sil, 'surface_deposition_sil', 'mmolN/m**2 d', 'surface deposition sil', default=0.0_rk, scale_factor=redf(3)*redf(6)/sedy0 )
+   call self%get_parameter( self%surface_deposition_pho, 'surface_deposition_pho', 'mmolP/m**2 d', 'surface deposition pho', default=0.0_rk, scale_factor=redf(2)*redf(6)/sedy0 )
+   call self%get_parameter( self%surface_deposition_sil, 'surface_deposition_sil', 'mmolSi/m**2 d', 'surface deposition sil', default=0.0_rk, scale_factor=redf(3)*redf(6)/sedy0 )
    !  change units 1/day to 1/sec and mmolN,P,Si to mmolC
    call self%get_parameter( self%BioC(1) , 'muPl',        '1/day',      'max growth rate for Pl',          default=1.30_rk,  scale_factor=1.0_rk/sedy0)
    call self%get_parameter( self%BioC(2) , 'muPs',        '1/day',      'max growth rate for Ps',          default=1.10_rk,  scale_factor=1.0_rk/sedy0)
@@ -152,6 +153,8 @@
    else
       call self%get_parameter( self%BioC(5) , 'Exphy',       'm**2/mmolN', 'phyto self-shading',              default=0.04_rk, scale_factor=1.0_rk/(redf(1)*redf(6)) )
    end if
+   call self%get_parameter( self%extdet , 'Exdet',       'm**2/molC', 'detritus self-shading',         default=0.0_rk, scale_factor=1.0_rk/1000.0_rk )
+   call self%get_parameter( self%extdom , 'Exdom',       'm**2/molC', 'dom self-shading',              default=0.0_rk, scale_factor=1.0_rk/1000.0_rk )
    call self%get_parameter( self%BioC(6) , 'rNH4',        'mmolN/m**3', 'NH4 half saturation',             default=0.20_rk,  scale_factor=redf(1)*redf(6))
    call self%get_parameter( self%BioC(7) , 'rNO3',        'mmolN/m**3', 'NO3 half saturation',             default=0.50_rk,  scale_factor=redf(1)*redf(6))
    call self%get_parameter( self%BioC(8) , 'psi',         'm**3/mmolN', 'NH4 inhibition',                  default=3.0_rk,   scale_factor=1.0_rk/(redf(1)*redf(6)) )
@@ -283,7 +286,7 @@
 !         end if
 !   end if
    call self%register_diagnostic_variable(self%id_tbsout,'botstrss','fill_later', &
-         'total bottom stress', output=output_time_step_averaged)
+         'total bottom stress', source=source_do_bottom)
    ! Register dependencies
    call self%register_dependency(self%id_temp,standard_variables%temperature)
    call self%register_dependency(self%id_salt,standard_variables%practical_salinity)
@@ -557,7 +560,7 @@ end subroutine initialize
    _SET_ODE_(self%id_det, rhs)
 
    ! labile dissolved organic matter
-   _SET_ODE_(self%id_dom, self%frr*dxxdet - fremdom * dom)
+   _SET_ODE_(self%id_dom, self%frr*dxxdet - fremDOM * dom)
 
    ! nitrate
    rhs_nit = -(up_no3+0.5d-10)/(up_n+1.0d-10)*Prod &
@@ -819,7 +822,6 @@ end subroutine initialize
 
         ! sediment opal(Si)
         _SET_BOTTOM_ODE_(self%id_sed2, Rds*opa - Rsd*sed2 - self%BioC(42)*sed2 - ( self%BioC(37)*1000.*(sed2**3/(sed2**3 + 1E+12)) )*sed2)
-
         _SET_BOTTOM_EXCHANGE_(self%id_opa, Rsd*sed2 - Rds*opa)
         _SET_BOTTOM_EXCHANGE_(self%id_sil, self%BioC(42)*sed2)
 
@@ -835,6 +837,7 @@ end subroutine initialize
    _DECLARE_ARGUMENTS_GET_EXTINCTION_
 
    real(rk)                     :: dom,det,diachl,flachl,bgchl
+   real(rk)                     :: dia,fla,bg
    real(rk)                     :: my_extinction
 
    ! Enter spatial loops (if any)
@@ -844,9 +847,15 @@ end subroutine initialize
 
    _GET_(self%id_det, det)
    _GET_(self%id_dom, dom)
+   _GET_(self%id_dia, dia)
+   _GET_(self%id_fla, fla)
+     if (self%use_cyanos) then
+   _GET_(self%id_bg, bg)
+     else
+       bg=0.0_rk
+     end if
 
    my_extinction = self%BioC(4)
-
    if (self%use_chl) then
      _GET_(self%id_diachl, diachl)
      _GET_(self%id_flachl, flachl)
@@ -855,10 +864,11 @@ end subroutine initialize
      else
        bgchl=0.0_rk
      end if
-     my_extinction = my_extinction + self%BioC(5)*(diachl+flachl+bgchl)
+     my_extinction = my_extinction + self%BioC(5)*(diachl+flachl+bgchl) + self%extdet*det + self%extdom*dom
    else
      diachl=0.0_rk
      flachl=0.0_rk
+     my_extinction = my_extinction + self%BioC(5)*(dia+fla+bg) + self%extdet*det + self%extdom*dom
    end if
 
    _SET_EXTINCTION_( my_extinction )
