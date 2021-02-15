@@ -1306,7 +1306,7 @@ end do
        !#E_ODE
     end do
     ! Leave spatial loops (if any)
-    _FABM_LOOP_END_
+    !_FABM_LOOP_END_
     _LOOP_END_
 
   end subroutine do
