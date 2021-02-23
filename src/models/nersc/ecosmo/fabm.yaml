@@ -55,10 +55,10 @@ instances:
       GrBG       : 0.30     # BG max grazing rate             (1/d),                        default=0.30
       mBG        : 0.08     # BG mortality rate               (1/d),                        default=0.08
       upliftBG   : 0.10     # BG uplifting rate               (m/d),                        default=0.10
-      crBotStr   : 0.021    # c2        ritic. bot. stress for resusp. (N/m**2),            default=0.007
+      crBotStr   : 0.007    # c2        ritic. bot. stress for resusp. (N/m**2),            default=0.007
       resuspRt   : 25.00    # resuspension rate               (1/d),                        default=25.00
       sedimRt    : 5.0      # sedimentation rate              (m/d),                        default=3.50
-      burialRt   : 0.00001  # burial rate                     (1/d),                        default=0.00001
+      burialRt   : 0.00005  # burial rate                     (1/d),                        default=0.00001
       reminSED   : 0.001    # sediment remineralization rate  (1/d),                        default=0.001
       TctrlDenit : 0.15     # temp. control denitrification   (1/degC),                     default=0.15
       RelSEDp1   : 0.15     # P sedim. rel. p1                (-),                          default=0.15

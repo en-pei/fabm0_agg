@@ -760,7 +760,10 @@ end subroutine initialize
 
 !----citical bottom shear stress
         if (tbs.ge.self%BioC(34)) then
-          Rsd=min(self%BioC(35), self%BioC(35) * (tbs**3/(0.1+tbs**3)))
+!          Rsd=min(self%BioC(35), self%BioC(35) * (tbs**3/(0.1+tbs**3)))
+!          Rsd=self%BioC(35)
+!          Rsd=min(self%BioC(35), self%BioC(35) * tbs**2 * 500.) ! sets to max=self%BioC(35) when tbs=0.032, else rapid increase from 0. 
+          Rsd=min(self%BioC(35), self%BioC(35) * tbs**2 * 100.) ! sets to max=self%BioC(35) when tbs~=0.070, else rapid increase from 0.
           Rds=0.0_rk
         else if (tbs.lt.self%BioC(34)) then
           Rsd=0.0_rk
@@ -779,7 +782,7 @@ end subroutine initialize
 
         !--- sediment 1 total sediment biomass and nitrogen pool
         rhs = Rds*det - Rsd*sed1 - 2.0_rk*Rsa*sed1 - Rsdenit*sed1 &
-              - self%BioC(37)*sed1
+              -(2.0E-3*self%BioC(37)*sed1)*sed1 !- self%BioC(37)*sed1
         _SET_BOTTOM_ODE_(self%id_sed1, rhs)
 
         ! oxygen
@@ -821,8 +824,10 @@ end subroutine initialize
         end if
 
         ! sediment opal(Si)
-        _SET_BOTTOM_ODE_(self%id_sed2, Rds*opa - Rsd*sed2 - self%BioC(42)*sed2 - ( self%BioC(37)*1000.*(sed2**3/(sed2**3 + 1E+12)) )*sed2)
-        _SET_BOTTOM_EXCHANGE_(self%id_opa, Rsd*sed2 - Rds*opa)
+!        _SET_BOTTOM_ODE_(self%id_sed2, Rds*opa - Rsd*sed2 - self%BioC(42)*sed2 - ( self%BioC(37)*1000.*(sed2**3/(sed2**3 + 1E+12)) )*sed2)
+        _SET_BOTTOM_ODE_(self%id_sed2, 2.0*Rds*opa - Rsd*sed2 - self%BioC(42)*sed2 - (2.0E-3*self%BioC(37)*sed2)*sed2)
+        _SET_BOTTOM_EXCHANGE_(self%id_opa, Rsd*sed2 - 2.0*Rds*opa)
+!        _SET_BOTTOM_EXCHANGE_(self%id_opa, Rsd*sed2 - Rds*opa)
         _SET_BOTTOM_EXCHANGE_(self%id_sil, self%BioC(42)*sed2)
 
            _SET_HORIZONTAL_DIAGNOSTIC_(self%id_tbsout, tbs)
