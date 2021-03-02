@@ -31,7 +31,7 @@
       type (type_state_variable_id)      :: id_phyc,id_detc
       type (type_state_variable_id)      :: id_doc
       type (type_diagnostic_variable_id) :: id_esd,id_rho_part
-      type (type_diagnostic_variable_id) :: id_aggvol,id_G,id_Breakup,id_ws,id_aggmass,id_coagulationphy,id_coagulationlpm,id_coagulationdet !added
+      type (type_diagnostic_variable_id) :: id_aggvol,id_G,id_Breakup,id_ws,id_aggmass,id_coagulationphy,id_coagulationlpm,id_coagulationdet,id_diffsetlpm,id_sinkinglpm,id_resuspensionlpm !added
       type (type_dependency_id) :: id_eps,id_num
       type (type_state_variable_id)      :: id_dD,id_Dsize 
       
@@ -198,6 +198,10 @@
    call self%register_diagnostic_variable(self%id_coagulationphy,'coagulationphy','1/s','coagulaiton phy',time_treatment=time_treatment_last)
    call self%register_diagnostic_variable(self%id_coagulationdet,'coagulationdet','1/s','coagulaiton det',time_treatment=time_treatment_last)
    call self%register_diagnostic_variable(self%id_coagulationlpm,'coagulationlpm','1/s','coagulaiton lpm',time_treatment=time_treatment_last)
+   call self%register_diagnostic_variable(self%id_diffsetlpm,'diffsetlpm','1/s','differential settling caused size change lpm',time_treatment=time_treatment_last)
+   call self%register_diagnostic_variable(self%id_sinkinglpm,'sinkinglpm','1/s','sinking caused size change lpm',time_treatment=time_treatment_last)
+   call self%register_diagnostic_variable(self%id_resuspensionlpm,'resuspensionlpm','1/s','resuspension caused size change lpm',time_treatment=time_treatment_last)
+
 
 
    ! Register conserved quantities
@@ -263,7 +267,10 @@
 #endif
    real(rk)                   :: Vol_agg, aggmass
    real(rk)                   :: num_water=1.1d-3/1025_rk
-   real(rk)                   :: dD, Dsize
+   real(rk)                   :: dD, Dsize, W, diffset_lpm, sinking_lpm, resuspension_lpm
+   real(rk)	 	      :: Pi = 3.1415927, rho_water = 1025.d0, visc = 1.1d-3 ! dynamic viscosity for about 17 degC water [kg/(m*s)] 
+
+
 
    _LOOP_BEGIN_
    
@@ -365,7 +372,7 @@
 !      A2_lpm=coagulation * Vol_agg * lpm
      loss_lpm =  (decomposition + breakup)*agglpm ![g/m**3/s]
          if (self%onoff==0) then  
-            coagulation_lpm = coagulation*1.d-3*lpm*Dsize**(4-self%fractal_dimension) !updated to dynamical size change
+            coagulation_lpm = coagulation*1.d-3 *lpm*Dsize**(4-self%fractal_dimension) !unit? !updated to dynamical size change
          else if (self%onoff==1) then  
 	!      coagulation_lpm = coagul ation * (lpm**2*1.d-3/self%dens_lpm + Vol_agg* lpm) 			!g m**-3 s-1 
             coagulation_lpm = coagulation * (Vol_agg* lpm) 			!g m**-3 s-1    !only coagulates with existing aggregates
@@ -377,12 +384,33 @@
    endif
 
    if (self%onoff==0) then
+      _GET_STATE_(self%id_lpm,lpm) !added
+      
+!      W=self%sinking_velocity(aggorg,agglpm,G,Dsize)/(Dsize**2) !note that W is negative if calculated from ws
+      W= -2.d0*(self%dens_lpm - rho_water)*9.81d0/(9.d0*visc)*(1/2.d0)**2       !sinking velocity equation divided by Dsize**2
+      diffset_lpm=- coagulation*2*Pi*(exp(1.)-1)/(exp(3.)*self%fractal_dimension*Pi/6*self%dens_lpm)*Dsize**(5-self%fractal_dimension)*lpm*W
       _SET_ODE_(self%id_Dsize,coagulation_lpm-breakup) !coagulation*1.d-3*lpm*Dsize**(4-self%fractal_dimension) !Dsize size change due to coagulation   !coagulation=k_A*G !aggmass changed to lpm
+!      _SET_ODE_(self%id_Dsize, diffset_lpm) !differential settling 
+
+      _SET_DIAGNOSTIC_(self%id_diffsetlpm,diffset_lpm)
+!      write (*,*) 'differential settling term = ', W !diffset_lpm
+
+      _SET_DIAGNOSTIC_(self%id_sinkinglpm,sinking_lpm)
+      _SET_DIAGNOSTIC_(self%id_resuspensionlpm,resuspension_lpm)
+
+	!self.ws     =self.W*self.D**(self.nf1-1)
+	!self.W      =alpha/(beta*18*self.mu)*(self.rho_p-self.rho_w)*g*self.Dp**(3-self.nf1)/(1+0.15*Re**0.687)*1
+	!self.dD_d     =2*np.pi*(np.e-1)/(np.e**3)*self.e_c*self.W/(self.nf*self.fs*self.rho_p)*self.D**(5-self.nf)*self.C !fs=Pi/6
+
+
       !_SET_ODE_(self%id_Dsize,) !-self%breakup_factor*G**1.5d0*(Dsize-self%min_size)*Dsize**2 !Dsize size change due to breakup
    end if
    
-      _SET_DIAGNOSTIC_(self%id_coagulationphy,coagulation_lpm) !?are they the same? this diagnostic works...
-      _SET_DIAGNOSTIC_(self%id_coagulationlpm,coagulation_lpm) !added, still doesn't work, output=0
+      _SET_DIAGNOSTIC_(self%id_coagulationphy,coagulation_phyn) 
+      _SET_DIAGNOSTIC_(self%id_coagulationlpm,coagulation_lpm)
+      
+
+ 
 
  
    _SET_DIAGNOSTIC_(self%id_G,G)
@@ -425,7 +453,7 @@
    ! Retrieve dependencies
    _GET_DEPENDENCY_(self%id_eps, eps) ! dissipation [m**2/s**3]
    _GET_DEPENDENCY_(self%id_num, num_turb) ! kinematic (turbulent) viscosity [m**2/s]
-   G = sqrt(eps/(num_turb + num_water)) ! turbulent shear
+   G = sqrt(eps/(num_turb + num_water)) ! turbulent shear  !num_water~mu
    ws = self%sinking_velocity(aggorg,agglpm,G, Dsize)
 
    if (self%onoff==1) then
@@ -472,12 +500,12 @@
 		!(_ONE_-self%agg_porosity)*1.d-3*aggmass/Vol_agg + self%agg_porosity*rho_water
 
    !Stokes law:
-   if (self%onoff==1) then !diagnostic
-   sinking_velocity = -2.d0*(rho_part - rho_water)*9.81d0/(9.d0*visc) * \
-         (self%meansize(aggmass,G,doc,lpm,agglpm,aggorg, Dsize)/2.d0)**2  !self%onoff*dSize+
-   else if (self%onoff==0) then !dynamical
+   if (self%onoff==0) then !dynamical
    sinking_velocity = -2.d0*(self%dens_lpm - rho_water)*9.81d0/(9.d0*visc)*\
          (Dsize/2.d0)**2                        !dynamical  !self%min_size**(3-self%fractal_dimension)*
+   else if (self%onoff==1) then !diagnostic
+   sinking_velocity = -2.d0*(rho_part - rho_water)*9.81d0/(9.d0*visc) * \
+         (self%meansize(aggmass,G,doc,lpm,agglpm,aggorg, Dsize)/2.d0)**2  !self%onoff*dSize+
    else 
       print*, "unknown size method for calculating sinking velocity"
    end if 
