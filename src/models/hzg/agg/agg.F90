@@ -268,7 +268,7 @@
    real(rk)                   :: Vol_agg, aggmass
    real(rk)                   :: num_water=1.1d-3/1025_rk
    real(rk)                   :: dD, Dsize, W, diffset_lpm, sinking_lpm, resuspension_lpm
-   real(rk)	 	      :: Pi = 3.1415927, rho_water = 1025.d0, visc = 1.1d-3 ! dynamic viscosity for about 17 degC water [kg/(m*s)] 
+   real(rk)	 	      :: Pi=4.D0*DATAN(1.D0), rho_water = 1025.d0, visc = 1.1d-3 ! dynamic viscosity for about 17 degC water [kg/(m*s)] 
 
 
 
@@ -299,7 +299,7 @@
    	breakup= self%breakup_factor*G**1.5d0*(Dsize-self%min_size)*Dsize**2  !added breakup diagnostic for dynamical size 
    	!breakup = self%breakup_factor*G**1.5d0*(self%meansize(aggmass,G,doc, lpm, agglpm,aggorg, Dsize)-self%min_size)*self%meansize(aggmass,G,doc, lpm, agglpm,aggorg, Dsize)**2  !same but changed Dsize to function of size
    else if (self%onoff==1) then   !negative sign added in loss_lpm
-   	breakup = self%breakup_factor * G**1.5d0 * (self%meansize(aggmass,G,doc, lpm, agglpm,aggorg, Dsize))**2! self%meansize(agglpm+aggorg,G)**2      
+   	breakup = self%breakup_factor * G**1.5d0 * (self%meansize(aggmass,G,doc, lpm, agglpm,aggorg))**2! self%meansize(agglpm+aggorg,G)**2      
    end if
 
    !breakup = self%breakup_factor * G**1.5d0 * self%max_size**2 ! [1/s]
@@ -385,22 +385,23 @@
 
    if (self%onoff==0) then
       _GET_STATE_(self%id_lpm,lpm) !added
-      
 !      W=self%sinking_velocity(aggorg,agglpm,G,Dsize)/(Dsize**2) !note that W is negative if calculated from ws
-      W= -2.d0*(self%dens_lpm - rho_water)*9.81d0/(9.d0*visc)*(1/2.d0)**2       !sinking velocity equation divided by Dsize**2
-      diffset_lpm=- coagulation*2*Pi*(exp(1.)-1)/(exp(3.)*self%fractal_dimension*Pi/6*self%dens_lpm)*Dsize**(5-self%fractal_dimension)*lpm*W
-      _SET_ODE_(self%id_Dsize,coagulation_lpm-breakup) !coagulation*1.d-3*lpm*Dsize**(4-self%fractal_dimension) !Dsize size change due to coagulation   !coagulation=k_A*G !aggmass changed to lpm
-!      _SET_ODE_(self%id_Dsize, diffset_lpm) !differential settling 
-
+      W= 2.d0*(self%dens_lpm - rho_water)*9.81d0/(9.d0*visc)*(1/2.d0)**2       !sinking velocity equation divided by Dsize**2
+      diffset_lpm=0*coagulation*2*Pi*(exp(1.)-1)/(exp(3.)*self%fractal_dimension*Pi/6*self%dens_lpm)*Dsize**(5-self%fractal_dimension)*(lpm*1.d-3)*W !lpm unit
+      
       _SET_DIAGNOSTIC_(self%id_diffsetlpm,diffset_lpm)
 !      write (*,*) 'differential settling term = ', W !diffset_lpm
-
+      sinking_lpm = self%sinking_velocity(aggorg,agglpm,G, Dsize)/0.014*Dsize**2*(self%fractal_dimension-1)/(self%fractal_dimension+1) !sinking #z as layer depth 0.28/20
       _SET_DIAGNOSTIC_(self%id_sinkinglpm,sinking_lpm)
       _SET_DIAGNOSTIC_(self%id_resuspensionlpm,resuspension_lpm)
 
 	!self.ws     =self.W*self.D**(self.nf1-1)
 	!self.W      =alpha/(beta*18*self.mu)*(self.rho_p-self.rho_w)*g*self.Dp**(3-self.nf1)/(1+0.15*Re**0.687)*1
 	!self.dD_d     =2*np.pi*(np.e-1)/(np.e**3)*self.e_c*self.W/(self.nf*self.fs*self.rho_p)*self.D**(5-self.nf)*self.C !fs=Pi/6
+
+      _SET_ODE_(self%id_Dsize,coagulation_lpm-breakup) !coagulation*1.d-3*lpm*Dsize**(4-self%fractal_dimension) !Dsize size change due to coagulation   !coagulation=k_A*G !aggmass changed to lpm
+      _SET_ODE_(self%id_Dsize,diffset_lpm)! differential settling !
+      _SET_ODE_(self%id_Dsize,sinking_lpm)! sinking term added to ODE
 
 
       !_SET_ODE_(self%id_Dsize,) !-self%breakup_factor*G**1.5d0*(Dsize-self%min_size)*Dsize**2 !Dsize size change due to breakup
@@ -417,7 +418,7 @@
    _SET_DIAGNOSTIC_(self%id_Breakup,breakup) 
    _SET_DIAGNOSTIC_(self%id_aggvol,Vol_agg)
    _SET_DIAGNOSTIC_(self%id_ws,self%sinking_velocity(aggorg,agglpm,G, Dsize))
-   _SET_DIAGNOSTIC_(self%id_esd,self%meansize(aggmass,G,doc,lpm, agglpm,aggorg, Dsize)) 
+   _SET_DIAGNOSTIC_(self%id_esd,self%meansize(aggmass,G,doc,lpm, agglpm,aggorg)) 
    _SET_DIAGNOSTIC_(self%id_aggmass,aggmass)
    
    !_SET_ODE_(self%id_Dsize,(Dsize-0.0001)*(self%max_size-Dsize)*(-2*self%breakup_factor * G**1.5d0 * Dsize)) !dD ODE
@@ -505,18 +506,18 @@
          (Dsize/2.d0)**2                        !dynamical  !self%min_size**(3-self%fractal_dimension)*
    else if (self%onoff==1) then !diagnostic
    sinking_velocity = -2.d0*(rho_part - rho_water)*9.81d0/(9.d0*visc) * \
-         (self%meansize(aggmass,G,doc,lpm,agglpm,aggorg, Dsize)/2.d0)**2  !self%onoff*dSize+
+         (self%meansize(aggmass,G,doc,lpm,agglpm,aggorg)/2.d0)**2  !self%onoff*dSize+
    else 
       print*, "unknown size method for calculating sinking velocity"
    end if 
    end function sinking_velocity
 
 
-   real(rk) function meansize(self,aggmass,G,doc,lpm,agglpm,aggorg,Dsize)
+   real(rk) function meansize(self,aggmass,G,doc,lpm,agglpm,aggorg)
    implicit none
    class(type_hzg_agg)        :: self
    real(rk), intent(in)       :: aggmass
-   real(rk), intent(in)       :: G, Dsize
+   real(rk), intent(in)       :: G
    real(rk)                   :: modesize,sigma, doc, lpm, agglpm,aggorg,sms,k
 !   real(rk), parameter        :: minsize= 0.0001 !changed to size of pp, was 50.d-6 ! [m] minimum size of arregates
    real(rk), parameter        :: k_size = 50.d0  ! [g/m**3] half-saturation constant for size distribution !need to be checked
