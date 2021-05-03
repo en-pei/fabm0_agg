@@ -30,7 +30,7 @@
 #endif
       type (type_state_variable_id)      :: id_phyc,id_detc
       type (type_state_variable_id)      :: id_doc
-      type (type_diagnostic_variable_id) :: id_esd,id_rho_part
+      type (type_diagnostic_variable_id) :: id_esd,id_rho_part,id_fractal_dimension
       type (type_diagnostic_variable_id) :: id_aggvol,id_G,id_Breakup,id_ws,id_aggmass,id_coagulationphy,id_coagulationlpm,id_coagulationdet,id_diffsetlpm,id_sinkinglpm,id_resuspensionlpm !added
       type (type_dependency_id) :: id_eps,id_num
       type (type_state_variable_id)      :: id_dD,id_Dsize 
@@ -61,7 +61,7 @@
       integer  :: size_method
       real(rk) :: tep_remin
       real(rk) :: onoff
-      real(rk) :: fractal_dimension
+!      real(rk) :: fractal_dimension
       real(rk) :: min_size
 
       contains
@@ -139,7 +139,6 @@
    self%NC_agg = 1000*16.0_rk/106.0_rk  ! Redfield
    self%NP_agg = 1000*16.0_rk           ! Redfield
    self%org2N  = 1000*16.0_rk/3550.0_rk ! g->mmolN 
-   self%fractal_dimension=2 !added nf
 !   self%min_size=1.d-5 
 
    call self%get_parameter(self%doc_min, 'doc_min', 'mmolC/m3', 'minimum doc concentration', default=1.0_rk)
@@ -151,7 +150,7 @@
    call self%get_parameter(self%size_method, 'size_method', '-', 'size method: 1: sigmoid, 2: Xu et al. (2008) steady-state, 3: Xu ea. (2008) Bale experiment,  4: Winterwerp (1998)', default=2)
    call self%get_parameter(self%tep_remin, 'tep_remin', '1/d', 'remineralization rate of TEP', default=0.0_rk, scale_factor=one_pr_day)
    call self%get_parameter(self%onoff, 'onoff', 'dimensionless', 'on or off of dD/dt term', default=0.0_rk)
-!   call self%get_parameter(self%fractal_dimension, 'fractal_dimension', 'dimensionless', 'fractal dimension of particles', default=2)
+!   call self%get_parameter(self%fractal_dimension, 'fractal_dimension', 'dimensionless', 'fractal dimension of particles', default=2.0_rk)
    call self%get_parameter(self%min_size, 'min_size', 'm', 'maximum aggregate size', default=1.0e-6_rk)
 
    ! Register state variables
@@ -201,7 +200,7 @@
    call self%register_diagnostic_variable(self%id_diffsetlpm,'diffsetlpm','1/s','differential settling caused size change lpm',time_treatment=time_treatment_last)
    call self%register_diagnostic_variable(self%id_sinkinglpm,'sinkinglpm','1/s','sinking caused size change lpm',time_treatment=time_treatment_last)
    call self%register_diagnostic_variable(self%id_resuspensionlpm,'resuspensionlpm','1/s','resuspension caused size change lpm',time_treatment=time_treatment_last)
-
+   call self%register_diagnostic_variable(self%id_fractal_dimension,'fractal_dimension','/','fractal_dimension',time_treatment=time_treatment_last)
 
 
    ! Register conserved quantities
@@ -267,7 +266,7 @@
 #endif
    real(rk)                   :: Vol_agg, aggmass
    real(rk)                   :: num_water=1.1d-3/1025_rk
-   real(rk)                   :: dD, Dsize, W, diffset_lpm, sinking_lpm, resuspension_lpm
+   real(rk)                   :: dD, Dsize, W, diffset_lpm, sinking_lpm, resuspension_lpm, fractal_dimension
    real(rk)	 	      :: Pi=4.D0*DATAN(1.D0), rho_water = 1025.d0, visc = 1.1d-3 ! dynamic viscosity for about 17 degC water [kg/(m*s)] 
 
 
@@ -292,11 +291,19 @@
    ! Retrieve dependencies
    _GET_DEPENDENCY_(self%id_eps, eps) ! dissipation [m**2/s**3]
    _GET_DEPENDENCY_(self%id_num, num_turb) ! kinematic (turbulent) viscosity [m**2/s]
-   G = sqrt(eps/(num_turb + num_water)) ! turbulent shear
+   G = sqrt(eps/(num_turb + num_water)) ! turbulent shear 
+   sms= (G+1e-6)/7.16755 !7.167541 !varying nf because of G
 
+   fractal_dimension= 3* (Dsize*1d6)**(-0.076527)  !(-0.053344) (-0.0964128021) ![Khelifa 2006]
+	!2.5-1/(1+exp(G-1.5))
+	!1.3+1.5/(1+exp(2d4*(Dsize-80e-6))) 
+	!1.8+0.6/(1+exp(Dsize-500d-6))!-log(Dsize)*0.05+1.8 !1.8 +1*sms !new stuff testing??????
 
    if (self%onoff==0) then
-   	breakup= self%breakup_factor*G**1.5d0*(Dsize-self%min_size)*Dsize**2  !added breakup diagnostic for dynamical size 
+   	breakup= self%breakup_factor*G**1.5d0*(Dsize-self%min_size)**(3-fractal_dimension)*Dsize**2 !*(lpm*1d-3)**(0)  !added breakup diagnostic for dynamical size 
+!	if (lpm>=1500) then 
+!	   breakup= self%breakup_factor*G**1.5d0*(Dsize-self%min_size)**(3-self%fractal_dimension)*Dsize**2 *0.5 !half the breakup when concentration larger
+!	end if
    	!breakup = self%breakup_factor*G**1.5d0*(self%meansize(aggmass,G,doc, lpm, agglpm,aggorg, Dsize)-self%min_size)*self%meansize(aggmass,G,doc, lpm, agglpm,aggorg, Dsize)**2  !same but changed Dsize to function of size
    else if (self%onoff==1) then   !negative sign added in loss_lpm
    	breakup = self%breakup_factor * G**1.5d0 * (self%meansize(aggmass,G,doc, lpm, agglpm,aggorg))**2! self%meansize(agglpm+aggorg,G)**2      
@@ -309,7 +316,7 @@
    !_GET_STATE_(self%id_doc,doc)
    doc=self%doc_min
    tep=0.64d0*doc ! 64% of DOC formed TEP
-   coagulation = self%coagulation_rate * G * max(self%doc_min,doc)/(doc+self%doc_mean)
+   coagulation = self%coagulation_rate * max(self%doc_min,doc)/(doc+self%doc_mean)
 
    ! bacterial decomposition of TEP binding
    ! so far, organic content is not hydrolysed
@@ -324,7 +331,7 @@
 !      A2_phyn=coagulation * Vol_agg * phyn 
 !      sms=A1_phyn + A2_phyn ![mmol/m**3/s]
 
-      coagulation_phyn	=	coagulation * (phyn *1.d-3/(self%org2N *self%dens_org)+Vol_agg) * phyn  !mmol m**-3 s-1
+      coagulation_phyn	=	coagulation * (phyn *1.d-3/(self%org2N *self%dens_org)+Vol_agg) * phyn *G  !mmol m**-3 s-1
 
       _SET_ODE_(self%id_phyn,-coagulation_phyn*1.d-3) !-sms
       _SET_ODE_(self%id_aggorg,coagulation_phyn/self%org2N*1.d-3) !sms/self%org2N  !smaller aggregation rate for phyn !here
@@ -353,7 +360,7 @@
 !      A2_detn=coagulation * Vol_agg * detn
 !     sms= A1_detn + A2_detn - (decomposition + breakup)*aggorg*self%org2N ![mmolN/m3/s]
 
-      coagulation_detn	=	coagulation * (detn *1.d-3/(self%org2N *self%dens_org)+Vol_agg) * detn	!mmolN m**-3 s-1
+      coagulation_detn	=	coagulation*G * (detn *1.d-3/(self%org2N *self%dens_org)+Vol_agg) * detn	!mmolN m**-3 s-1
           _SET_DIAGNOSTIC_(self%id_coagulationphy,coagulation_detn)
       loss_detn	=	(decomposition + breakup) * aggorg * self%org2N					!mmolN m**-3 s-1
 
@@ -372,10 +379,10 @@
 !      A2_lpm=coagulation * Vol_agg * lpm
      loss_lpm =  (decomposition + breakup)*agglpm ![g/m**3/s]
          if (self%onoff==0) then  
-            coagulation_lpm = coagulation*1.d-3 *lpm*Dsize**(4-self%fractal_dimension) !unit? !updated to dynamical size change
+            coagulation_lpm = coagulation*(G**1.0)*1.d-3*(lpm**1.0)*Dsize**(4-fractal_dimension) !**1.1 gives 2 peaks spmc!!! !unit? !updated to dynamical size change
          else if (self%onoff==1) then  
 	!      coagulation_lpm = coagul ation * (lpm**2*1.d-3/self%dens_lpm + Vol_agg* lpm) 			!g m**-3 s-1 
-            coagulation_lpm = coagulation * (Vol_agg* lpm) 			!g m**-3 s-1    !only coagulates with existing aggregates
+            coagulation_lpm = coagulation*G*(Vol_agg* lpm) 			!g m**-3 s-1    !only coagulates with existing aggregates 
 
          end if
       _SET_ODE_(self%id_lpm, (loss_lpm - coagulation_lpm)*self%onoff) !- A1_lpm - A2_lpm
@@ -385,23 +392,28 @@
 
    if (self%onoff==0) then
       _GET_STATE_(self%id_lpm,lpm) !added
-!      W=self%sinking_velocity(aggorg,agglpm,G,Dsize)/(Dsize**2) !note that W is negative if calculated from ws
-      W= 2.d0*(self%dens_lpm - rho_water)*9.81d0/(9.d0*visc)*(1/2.d0)**2       !sinking velocity equation divided by Dsize**2
-      diffset_lpm=0*coagulation*2*Pi*(exp(1.)-1)/(exp(3.)*self%fractal_dimension*Pi/6*self%dens_lpm)*Dsize**(5-self%fractal_dimension)*(lpm*1.d-3)*W !lpm unit
-      
+      W=- self%sinking_velocity(aggorg,agglpm,G,Dsize)/(Dsize**2) !note that W is negative if calculated from ws
+!      W= 2.d0*(self%dens_lpm - rho_water)*9.81d0/(9.d0*visc)*(1/2.d0)**2       !sinking velocity equation divided by Dsize**2
+      !W = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* (self%min_size/Dsize) ! new W with rho_a calculated
+      !diffset_lpm= coagulation*2*Pi*(exp(1.)-1)/(exp(3.)*self%fractal_dimension*Pi/6*self%dens_lpm)*Dsize**(5-self%fractal_dimension)*(lpm*1.d-3)*W !lpm unit
+      diffset_lpm= coagulation*2*Pi*(exp(1.)-1)/(exp(3.)*fractal_dimension*Pi/6*self%dens_lpm)*Dsize**(5.5-fractal_dimension)*(lpm*1.d-3)*W
       _SET_DIAGNOSTIC_(self%id_diffsetlpm,diffset_lpm)
 !      write (*,*) 'differential settling term = ', W !diffset_lpm
-      sinking_lpm = self%sinking_velocity(aggorg,agglpm,G, Dsize)/0.014*Dsize**2*(self%fractal_dimension-1)/(self%fractal_dimension+1) !sinking #z as layer depth 0.28/20
+
+      sinking_lpm =20* self%sinking_velocity(aggorg,agglpm,G, Dsize)/0.014*Dsize**2*(fractal_dimension-1)/(fractal_dimension+1) !sinking #z as layer depth 0.28/20
       _SET_DIAGNOSTIC_(self%id_sinkinglpm,sinking_lpm)
+
+
+      resuspension_lpm=coagulation_lpm - breakup + diffset_lpm + sinking_lpm !dD sum  !diffset_lpm/(coagulation_lpm+diffset_lpm) !check relationship of diffset and coagulation term! not resuspension 
       _SET_DIAGNOSTIC_(self%id_resuspensionlpm,resuspension_lpm)
 
 	!self.ws     =self.W*self.D**(self.nf1-1)
 	!self.W      =alpha/(beta*18*self.mu)*(self.rho_p-self.rho_w)*g*self.Dp**(3-self.nf1)/(1+0.15*Re**0.687)*1
 	!self.dD_d     =2*np.pi*(np.e-1)/(np.e**3)*self.e_c*self.W/(self.nf*self.fs*self.rho_p)*self.D**(5-self.nf)*self.C !fs=Pi/6
 
-      _SET_ODE_(self%id_Dsize,coagulation_lpm-breakup) !coagulation*1.d-3*lpm*Dsize**(4-self%fractal_dimension) !Dsize size change due to coagulation   !coagulation=k_A*G !aggmass changed to lpm
-      _SET_ODE_(self%id_Dsize,diffset_lpm)! differential settling !
-      _SET_ODE_(self%id_Dsize,sinking_lpm)! sinking term added to ODE
+      _SET_ODE_(self%id_Dsize,coagulation_lpm-breakup+diffset_lpm+sinking_lpm) !coagulation*1.d-3*lpm*Dsize**(4-self%fractal_dimension) !Dsize size change due to coagulation   !coagulation=k_A*G !aggmass changed to lpm
+      !_SET_ODE_(self%id_Dsize,diffset_lpm)! differential settling !
+      !_SET_ODE_(self%id_Dsize,sinking_lpm)! sinking term added to ODE
 
 
       !_SET_ODE_(self%id_Dsize,) !-self%breakup_factor*G**1.5d0*(Dsize-self%min_size)*Dsize**2 !Dsize size change due to breakup
@@ -420,6 +432,8 @@
    _SET_DIAGNOSTIC_(self%id_ws,self%sinking_velocity(aggorg,agglpm,G, Dsize))
    _SET_DIAGNOSTIC_(self%id_esd,self%meansize(aggmass,G,doc,lpm, agglpm,aggorg)) 
    _SET_DIAGNOSTIC_(self%id_aggmass,aggmass)
+   _SET_DIAGNOSTIC_(self%id_fractal_dimension,fractal_dimension)
+
    
    !_SET_ODE_(self%id_Dsize,(Dsize-0.0001)*(self%max_size-Dsize)*(-2*self%breakup_factor * G**1.5d0 * Dsize)) !dD ODE
 
@@ -502,8 +516,18 @@
 
    !Stokes law:
    if (self%onoff==0) then !dynamical
-   sinking_velocity = -2.d0*(self%dens_lpm - rho_water)*9.81d0/(9.d0*visc)*\
-         (Dsize/2.d0)**2                        !dynamical  !self%min_size**(3-self%fractal_dimension)*
+   !sinking_velocity = -2.d0*(self%dens_lpm - rho_water)*9.81d0/(9.d0*visc)*\
+         (Dsize/2.d0)**2 !less sinking!**2                     !nf=3 when sinkin   !dynamical  !self%min_size**(3-self%fractal_dimension)*
+!   sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* self%min_size**(3-3)*\
+         Dsize**2 !**(3-1)  !same as the one before, simplified, same as the one below with nf=3
+   sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* (self%min_size/Dsize)**0*\
+         Dsize**2 !!!!**2.1*10  !with rho_a calculated based on fractal dimention!!
+
+   !sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* self%min_size**(3-self%fractal_dimension)*\
+         Dsize**(self%fractal_dimension -1)  !nf
+!	if (Dsize>=1d-4 .AND. Dsize<=2d-4) then  !lpm>=800
+!	      sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* (self%min_size/Dsize)**0*Dsize**2*0.5  !half the sinking when concentration is high
+!	end if
    else if (self%onoff==1) then !diagnostic
    sinking_velocity = -2.d0*(rho_part - rho_water)*9.81d0/(9.d0*visc) * \
          (self%meansize(aggmass,G,doc,lpm,agglpm,aggorg)/2.d0)**2  !self%onoff*dSize+
