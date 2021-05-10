@@ -516,21 +516,16 @@
 
    !Stokes law:
    if (self%onoff==0) then !dynamical
-   !sinking_velocity = -2.d0*(self%dens_lpm - rho_water)*9.81d0/(9.d0*visc)*\
-         (Dsize/2.d0)**2 !less sinking!**2                     !nf=3 when sinkin   !dynamical  !self%min_size**(3-self%fractal_dimension)*
-!   sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* self%min_size**(3-3)*\
-         Dsize**2 !**(3-1)  !same as the one before, simplified, same as the one below with nf=3
-   sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* (self%min_size/Dsize)**0*\
-         Dsize**2 !!!!**2.1*10  !with rho_a calculated based on fractal dimention!!
+   !sinking_velocity = -2.d0*(self%dens_lpm - rho_water)*9.81d0/(9.d0*visc)*(Dsize/2.d0)**2 !less sinking!**2                     !nf=3 when sinkin   !dynamical  !self%min_size**(3-self%fractal_dimension)*
+!   sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* self%min_size**(3-3)*Dsize**2 !**(3-1)  !same as the one before, simplified, same as the one below with nf=3
+   sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* (self%min_size/Dsize)**0*Dsize**2 !!!!**2.1*10  !with rho_a calculated based on fractal dimention!!
 
-   !sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* self%min_size**(3-self%fractal_dimension)*\
-         Dsize**(self%fractal_dimension -1)  !nf
+   !sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* self%min_size**(3-self%fractal_dimension)* Dsize**(self%fractal_dimension -1)  !nf
 !	if (Dsize>=1d-4 .AND. Dsize<=2d-4) then  !lpm>=800
 !	      sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* (self%min_size/Dsize)**0*Dsize**2*0.5  !half the sinking when concentration is high
 !	end if
    else if (self%onoff==1) then !diagnostic
-   sinking_velocity = -2.d0*(rho_part - rho_water)*9.81d0/(9.d0*visc) * \
-         (self%meansize(aggmass,G,doc,lpm,agglpm,aggorg)/2.d0)**2  !self%onoff*dSize+
+   sinking_velocity = -2.d0*(rho_part - rho_water)*9.81d0/(9.d0*visc)*(self%meansize(aggmass,G,doc,lpm,agglpm,aggorg)/2.d0)**2  !self%onoff*dSize+
    else 
       print*, "unknown size method for calculating sinking velocity"
    end if 
