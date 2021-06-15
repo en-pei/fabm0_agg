@@ -58,8 +58,8 @@ module hzg_ctenophore_jt
      type (type_diagnostic_variable_id) :: id_sig1,id_sig2,id_sig3,id_ObsMass1,id_ObsMass2,id_ObsMass3
      type(type_diagnostic_variable_id):: id_grazingpressure1,id_grazingpressure2,id_grazingpressure3,id_grazingpressure4,id_grazingpressure5,id_grazingpressure6,id_grazingpressure7,id_grazingpressure8,id_grazingpressure9
      real(rk) ::  Biomass_PleurobrachiaPileus_initial, Size_PleurobrachiaPileus_initial, Biomass_Beroe_initial, Size_Beroe_initial, Biomass_Detritus_initial, Parasites_PleurobrachiaPileus_initial, Parasites_Beroe_initial, BenTime_initial, Size_Copepods_initial
-     real(rk) ::  Size_Adult,Size_Adult_PleurobrachiaPileus,Size_Adult_Beroe, size_offspring, lstarv, sigma, Imax_pot_star, yield, mR, mS, mP, mT, Q10, Tc, Bcrit, relCVDens, m_predBe, optimal_prey_size_adult_PleurobrachiaPileus, optimal_prey_size_adult_Beroe, optimal_prey_size_adult_Copepod, immigr, rDet, rParasite, fTDmort, m_pcap, mDisturb, Temperature_Change_Rate, Copepod_Temperature_Change_Rate
-     logical  ::  TransectOn, SizeDynOn, LowPassOn, OptionOn, TECopepodshysOn
+     real(rk) ::  Size_Adult,Size_Adult_PleurobrachiaPileus,Size_Adult_Beroe, size_offspring, lstarv, sigma, Imax_pot_star, yield, mR, mS, mP, mT, mC, Q10, Tc, Bcrit, relCVDens, m_predBe, optimal_prey_size_adult_PleurobrachiaPileus, optimal_prey_size_adult_Beroe, optimal_prey_size_adult_Copepod, immigr, rDet, rParasite, fTDmort, m_pcap, mDisturb, Temperature_Change_Rate, Copepod_Temperature_Change_Rate
+     logical  ::  TransectOn, SizeDynOn, LowPassOn, OptionOn, TECopepodshysOn, TemperatureExp,ConstMortExp,CopExp,LowTempMort
      real(rk):: Size_observable
    contains
      !   Model procedures
@@ -175,6 +175,7 @@ contains
     real(rk)  :: mS           ! Biomass_Phytoplanktonsiological mortality under senescence 
     real(rk)  :: mP           ! density dependent mortality rate (parasites)
     real(rk)  :: mT           ! mortality due to Biomass_Phytoplanktonsical damage (turbulence) 0.028
+    real(rk)  :: mC           ! constant background mortalilty (size agnostic)
     real(rk)  :: Q10          ! rate increase at 10C Temperature rise
     real(rk)  :: Tc           ! critical threshold Temperature
     real(rk)  :: Bcrit        ! minimal prey biomass (Holling-III) 
@@ -197,6 +198,10 @@ contains
     logical   :: LowPassOn    ! filter high frequency in forcing
     logical   :: OptionOn     ! generic
     logical   :: TECopepodshysOn   ! size dependency in mortality
+    logical   :: TemperatureExp !Temperature Experiment
+    logical   :: ConstMortExp !Constant mortalilty experient
+    logical   :: CopExp !Constant mortalilty experient
+    logical   :: LowTempMort !Constant mortalilty experient
 
     !namelist /jelly_init/ &
     !     Biomass_PleurobrachiaPileus_initial, Size_PleurobrachiaPileus_initial, Biomass_Beroe_initial, Size_Beroe_initial, Biomass_Detritus_initial, &
@@ -230,6 +235,7 @@ contains
     mS           = 3.E-2_rk           ! 1/d
     mP           = 1.6E-5_rk          ! 1/d.µg-C/L
     mT           = 0._rk              ! 1/d
+    mC           = 0.01_rk              ! 1/d
     Q10          = 2._rk              ! 
     Tc           = 4.5_rk             ! $^o$C
     Bcrit        = 25._rk             ! µg-C/L
@@ -266,7 +272,10 @@ contains
     call self%get_parameter(self%LowPassOn,     'LowPassOn',     default=LowPassOn)
     call self%get_parameter(self%OptionOn,      'OptionOn',      default=OptionOn)
     call self%get_parameter(self%TECopepodshysOn,    'TECopepodshysOn',    default=TECopepodshysOn)
-
+    call self%get_parameter(self%TemperatureExp,    'TemperatureExp',    default=TemperatureExp)
+    call self%get_parameter(self%ConstMortExp,    'ConstMortExp',    default=ConstMortExp)
+    call self%get_parameter(self%CopExp,    'CopExp',    default=CopExp)
+    call self%get_parameter(self%LowTempMort,    'LowTempMort',    default=LowTempMort)
     !!------- model parameters from nml-list jelly_init ------- 
     call self%get_parameter(self%Biomass_PleurobrachiaPileus_initial ,'Biomass_PleurobrachiaPileus_initial',  default=Biomass_PleurobrachiaPileus_initial)
     call self%get_parameter(self%Size_PleurobrachiaPileus_initial ,'Size_PleurobrachiaPileus_initial',  default=Size_PleurobrachiaPileus_initial)
@@ -290,6 +299,7 @@ contains
     call self%get_parameter(self%mS           ,'mS',            default=mS)
     call self%get_parameter(self%mP           ,'mP',            default=mP)
     call self%get_parameter(self%mT           ,'mT',            default=mT)
+    call self%get_parameter(self%mC           ,'mC',            default=mC)
     call self%get_parameter(self%Q10          ,'Q10',           default=Q10)
     call self%get_parameter(self%Tc           ,'Tc',            default=Tc)
     call self%get_parameter(self%Bcrit        ,'Bcrit',         default=Bcrit)
@@ -578,7 +588,7 @@ contains
     !real(rk)              :: d2mudl2_d, dmu2=0.0_rk, mfac
     !  type (type_environment),   intent(inout)  :: environment 
     real(rk),dimension(3) :: mort_S, mort_S0, mort_T0, mort_top
-    real(rk),dimension(3) :: mort_T, mort_sum
+    real(rk),dimension(3) :: mort_T, mort_sum, mort_const, mort_Temp
     real(rk) :: errf, eargA1,eargA2,argA1,argA2,argA3, eS0, argA5,errf1,mass_sum
     real(rk) :: lesdr, optimal_prey_sizem, detect, dummy_reused_variable2, dummy_reused_variable3, dummy_reused_variable4, dummy_reused_variable5, ft,ft2
     real(rk),dimension(3) :: somgrwth, recruit,lco, starv, dal_dl, min_dl, bound_dl
@@ -666,6 +676,24 @@ contains
        _GET_(self%id_Temperature, var(ib)%Temperature)  ! Temperature HR
        _GET_(self%id_Biomass_Phytoplankton, var(ib)%Biomass_Phytoplankton)  ! Biomass_Phytoplanktontoplankton biomass HR
        !#E_GED
+       
+
+      !-------------------------for Temperature experient only No temperatures below 2.0 Celsius
+      if (self%TemperatureExp) then
+        if (var(ib)%Temperature<4.0d0)  then
+           var(ib)%Temperature=4.0d0
+          ! write (*,*)   'Temperature Experiment: Temperature capped at 1.0C' 
+        end if
+      end if
+
+
+     if (self%CopExp) then
+        if (var(ib)%Copepods<1.0d0)  then
+           var(ib)%Copepods=1.0d0
+           write (*,*)   'Copepod Experiment: capped at 1.0 µg-C/L' 
+        end if
+      end if
+
 
     end do
     !
@@ -1064,10 +1092,30 @@ end do
              ! TODO: why was the mass cut out from this??
              mort_top(i) = Temperature_dep(3)*self%m_predBe  * cnidaria *mass(i)    !* mass(i)
           else
-             mort_top(i)=0.0
+             mort_top(i)=0.0d0
           endif
+
+	  !constant mortalilty experient
+          if (self%ConstMortExp) then
+             mort_const(i)=self%mC
+          !   write(*,*) 'constant mortalilty experient',self%mC
+          else 
+             mort_const(i)=0.0d0
+          endif
+          
+          if (self%LowTempMort) then
+             if (var(ib)%Temperature<6.0d0) then
+               mort_Temp(i)=self%mC
+             else 
+               mort_Temp(i)=0.0d0
+             endif
+          else 
+            mort_Temp(i)=0.0d0
+          endif
+
+
           !  sum of all mortality rates
-          mort_sum(i) = mort_R(i) + mort_S(i)  + mort_graz(i)+ mort_P(i) + mort_top(i)+ mort_T(i)
+          mort_sum(i) = mort_R(i) + mort_S(i)  + mort_graz(i)+ mort_P(i) + mort_top(i)+ mort_T(i) + mort_const(i) + mort_Temp(i)
 
 
           ! ----------  stage and size dynamics  -------------------
@@ -1274,8 +1322,8 @@ end do
          _SET_DIAGNOSTIC_(self%id_dummy13, mben)  
          _SET_DIAGNOSTIC_(self%id_dummy14, mass_sum)
          _SET_DIAGNOSTIC_(self%id_dummy15,log_mean_size(3))
- !_SET_DIAGNOSTIC_(self%id_dummy16,)
- !_SET_DIAGNOSTIC_(self%id_dummy17, )
+         _SET_DIAGNOSTIC_(self%id_dummy16,prod(1) - mort_sum(1))
+         _SET_DIAGNOSTIC_(self%id_dummy17,prod(2) - mort_sum(2))
  !_SET_DIAGNOSTIC_(self%id_dummy18,)
  !_SET_DIAGNOSTIC_(self%id_dummy19, )
 

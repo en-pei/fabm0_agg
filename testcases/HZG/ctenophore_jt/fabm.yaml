@@ -10,6 +10,8 @@ instances:
        Biomass_Detritus: 1000.0
        Parasites_PleurobrachiaPileus: 200.0
        Parasites_Beroe: 200.0
+#       Parasites_PleurobrachiaPileus: 0.0
+#       Parasites_Beroe: 0.0
        BenTime: 0.0
      parameters:
       Biomass_PleurobrachiaPileus_initial: 3E-2 
@@ -40,8 +42,11 @@ instances:
 #      mP: 2.E-3
 #      mP: 1.E-3
       mP: 0.0028  
+#      mP: 0.0
       mT: 0.001
 #      mT: 0.01
+#      mC: 4.2
+      mC: 0.042
       Q10: 2.2 
       Tc: 4.5
       Bcrit: 25. 
@@ -65,6 +70,10 @@ instances:
       LowPassOn: true
       OptionOn:  false 
       TECopepodshysOn: false
+      TemperatureExp: false
+      ConstMortExp: false
+      CopExp: false
+      LowTempMort: true
 #     coupling: 
 #      phy: forcing/phy
 #      copepod_biom: forcing/copepod_biom
