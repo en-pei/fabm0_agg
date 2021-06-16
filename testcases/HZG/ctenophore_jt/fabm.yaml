@@ -47,6 +47,8 @@ instances:
 #      mT: 0.01
 #      mC: 4.2
       mC: 0.042
+      mTemp: 0.042
+      mTempT: 6.00
       Q10: 2.2 
       Tc: 4.5
       Bcrit: 25. 

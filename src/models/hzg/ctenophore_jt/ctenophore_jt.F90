@@ -58,7 +58,7 @@ module hzg_ctenophore_jt
      type (type_diagnostic_variable_id) :: id_sig1,id_sig2,id_sig3,id_ObsMass1,id_ObsMass2,id_ObsMass3
      type(type_diagnostic_variable_id):: id_grazingpressure1,id_grazingpressure2,id_grazingpressure3,id_grazingpressure4,id_grazingpressure5,id_grazingpressure6,id_grazingpressure7,id_grazingpressure8,id_grazingpressure9
      real(rk) ::  Biomass_PleurobrachiaPileus_initial, Size_PleurobrachiaPileus_initial, Biomass_Beroe_initial, Size_Beroe_initial, Biomass_Detritus_initial, Parasites_PleurobrachiaPileus_initial, Parasites_Beroe_initial, BenTime_initial, Size_Copepods_initial
-     real(rk) ::  Size_Adult,Size_Adult_PleurobrachiaPileus,Size_Adult_Beroe, size_offspring, lstarv, sigma, Imax_pot_star, yield, mR, mS, mP, mT, mC, Q10, Tc, Bcrit, relCVDens, m_predBe, optimal_prey_size_adult_PleurobrachiaPileus, optimal_prey_size_adult_Beroe, optimal_prey_size_adult_Copepod, immigr, rDet, rParasite, fTDmort, m_pcap, mDisturb, Temperature_Change_Rate, Copepod_Temperature_Change_Rate
+     real(rk) ::  Size_Adult,Size_Adult_PleurobrachiaPileus,Size_Adult_Beroe, size_offspring, lstarv, sigma, Imax_pot_star, yield, mR, mS, mP, mT, mC, mTemp, mTempT, Q10, Tc, Bcrit, relCVDens, m_predBe, optimal_prey_size_adult_PleurobrachiaPileus, optimal_prey_size_adult_Beroe, optimal_prey_size_adult_Copepod, immigr, rDet, rParasite, fTDmort, m_pcap, mDisturb, Temperature_Change_Rate, Copepod_Temperature_Change_Rate
      logical  ::  TransectOn, SizeDynOn, LowPassOn, OptionOn, TECopepodshysOn, TemperatureExp,ConstMortExp,CopExp,LowTempMort
      real(rk):: Size_observable
    contains
@@ -176,6 +176,8 @@ contains
     real(rk)  :: mP           ! density dependent mortality rate (parasites)
     real(rk)  :: mT           ! mortality due to Biomass_Phytoplanktonsical damage (turbulence) 0.028
     real(rk)  :: mC           ! constant background mortalilty (size agnostic)
+    real(rk)  :: mTemp        ! constant Temperature mortalilty (size agnostic)
+    real(rk)  :: mTempT       ! constant Temperature mortalilty threshold(size agnostic)
     real(rk)  :: Q10          ! rate increase at 10C Temperature rise
     real(rk)  :: Tc           ! critical threshold Temperature
     real(rk)  :: Bcrit        ! minimal prey biomass (Holling-III) 
@@ -236,6 +238,8 @@ contains
     mP           = 1.6E-5_rk          ! 1/d.µg-C/L
     mT           = 0._rk              ! 1/d
     mC           = 0.01_rk              ! 1/d
+    mTemp        = 0.01_rk            ! 1/d
+    mTempT        = 6.0_rk            ! Celsius
     Q10          = 2._rk              ! 
     Tc           = 4.5_rk             ! $^o$C
     Bcrit        = 25._rk             ! µg-C/L
@@ -300,6 +304,8 @@ contains
     call self%get_parameter(self%mP           ,'mP',            default=mP)
     call self%get_parameter(self%mT           ,'mT',            default=mT)
     call self%get_parameter(self%mC           ,'mC',            default=mC)
+    call self%get_parameter(self%mTemp        ,'mTemp',         default=mTemp)
+    call self%get_parameter(self%mTempT       ,'mTempT',        default=mTempT)
     call self%get_parameter(self%Q10          ,'Q10',           default=Q10)
     call self%get_parameter(self%Tc           ,'Tc',            default=Tc)
     call self%get_parameter(self%Bcrit        ,'Bcrit',         default=Bcrit)
@@ -1104,8 +1110,8 @@ end do
           endif
           
           if (self%LowTempMort) then
-             if (var(ib)%Temperature<6.0d0) then
-               mort_Temp(i)=self%mC
+             if (var(ib)%Temperature<self%mTempT) then
+               mort_Temp(i)=self%mTemp
              else 
                mort_Temp(i)=0.0d0
              endif
