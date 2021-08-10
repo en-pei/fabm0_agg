@@ -67,6 +67,7 @@
       real(rk) :: const_ws
       real(rk) :: ks
       real(rk) :: kd
+      real(rk) :: pc, pb, ps, pd, pws, kws, pgc, pgb
 
       contains
 
@@ -159,6 +160,15 @@
    call self%get_parameter(self%const_ws, 'const_ws', 'm/s', 'constant sinking velocity', default=0.0_rk)
    call self%get_parameter(self%ks, 'ks', '/', 'constant for dD_s sinking', default=1.0_rk)
    call self%get_parameter(self%kd, 'kd', '/', 'constant for dD_d differential settling', default=1.0_rk)
+
+   call self%get_parameter(self%pc, 'pc', '/', 'power for dD_c coagulation', default=4.0_rk)
+   call self%get_parameter(self%pb, 'pb', '/', 'power for dD_b breakup', default=2.0_rk)
+   call self%get_parameter(self%ps, 'ps', '/', 'power for dD_s sinking', default=1.54_rk)
+   call self%get_parameter(self%pd, 'pd', '/', 'power for dD_d differential settling', default=5.5_rk)
+   call self%get_parameter(self%pws, 'pws', '/', 'power for sinking velocity', default=1.54_rk)
+   call self%get_parameter(self%kws, 'kws', '/', 'constant for sinking velocity', default=347.5602_rk)
+   call self%get_parameter(self%pgc, 'pgc', '/', 'power for G in coagulation', default=1.0_rk)
+   call self%get_parameter(self%pgb, 'pgb', '/', 'power for G in breakup', default=1.5_rk)
 
    ! Register state variables
    call self%register_state_variable(self%id_aggorg,'aggorg','g/m**3', & !changed from mg/m**3 to g/m**3
@@ -272,7 +282,7 @@
 #ifndef AGG_WO_CHL
    real(rk)                   :: aggchl,phychl
 #endif
-   real(rk)                   :: Vol_agg, aggmass, xx=10
+   real(rk)                   :: Vol_agg, aggmass, xx=1 !10
    real(rk)                   :: num_water=1.1d-3/1025_rk
    real(rk)                   :: dD, Xsize, W, diffset_lpm, sinking_lpm, resuspension_lpm, fractal_dimension
    real(rk)	 	      :: Pi=4.D0*DATAN(1.D0), rho_water = 1025.d0, visc = 1.1d-3 ! dynamic viscosity for about 17 degC water [kg/(m*s)] 
@@ -311,7 +321,8 @@
 	!1.8+0.6/(1+exp(Dsize-500d-6))!-log(Dsize)*0.05+1.8 !1.8 +1*sms !new stuff testing??????
 
    if (self%onoff==0) then
-   	breakup= self%breakup_factor*G**1.5d0*(Dsize*xx-self%min_size)**(3-fractal_dimension)*(Dsize*xx)**2 !*(lpm*1d-3)**(0)  !added breakup diagnostic for dynamical size 
+!   	breakup= self%breakup_factor*G**1.5d0*(Dsize*xx-self%min_size)**(3-fractal_dimension)*(Dsize*xx)**2 !*(lpm*1d-3)**(0)  !added breakup diagnostic for dynamical size 
+   	breakup= self%breakup_factor*G**self%pgb*(Dsize*xx-self%min_size)**(3-fractal_dimension)*(Dsize*xx)**self%pb !varying power of Dsize
 !        breakup= self%breakup_factor*G**1.5d0*(Dsize)**3 !1e-7! 
 !	if (lpm>=1500) then 
 !	   breakup= self%breakup_factor*G**1.5d0*(Dsize-self%min_size)**(3-self%fractal_dimension)*Dsize**2 *0.5 !half the breakup when concentration larger
@@ -391,7 +402,8 @@
 !      A2_lpm=coagulation * Vol_agg * lpm
      loss_lpm =  (decomposition + breakup)*agglpm ![g/m**3/s]
          if (self%onoff==0) then  
-            coagulation_lpm = coagulation*(G**1.0)*1.d-3*(lpm**1.0)*(Dsize*xx)**(4-fractal_dimension) !**1.1 gives 2 peaks spmc!!!
+!            coagulation_lpm = coagulation*(G**1.0)*1.d-3*(lpm**1.0)*(Dsize*xx)**(4-fractal_dimension) !**1.1 gives 2 peaks spmc!!!
+            coagulation_lpm = coagulation*(G**self%pgc)*1.d-3*(lpm**1.0)*(Dsize*xx)**(self%pc-fractal_dimension) !varying power of Dsize
          else if (self%onoff==1) then  
 	!      coagulation_lpm = coagul ation * (lpm**2*1.d-3/self%dens_lpm + Vol_agg* lpm) 			!g m**-3 s-1 
             coagulation_lpm = coagulation*G*(Vol_agg* lpm) 			!g m**-3 s-1    !only coagulates with existing aggregates 
@@ -404,16 +416,17 @@
 
    if (self%onoff==0) then
       _GET_STATE_(self%id_lpm,lpm) !added
-      W=- self%sinking_velocity(aggorg,agglpm,G,Dsize*xx,fractal_dimension)/((Dsize*xx)**1.54) !1.54 for Xu! 2 for normal case !note that W is negative if calculated from ws
+      W=- self%sinking_velocity(aggorg,agglpm,G,Dsize*xx,fractal_dimension)/((Dsize*xx)**self%ps) !1.54 for Xu! 2 for normal case !note that W is negative if calculated from ws
 !      W= 2.d0*(self%dens_lpm - rho_water)*9.81d0/(9.d0*visc)*(1/2.d0)**2       !sinking velocity equation divided by Dsize**2
       !W = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* (self%min_size/Dsize) ! new W with rho_a calculated
       !diffset_lpm= coagulation*2*Pi*(exp(1.)-1)/(exp(3.)*self%fractal_dimension*Pi/6*self%dens_lpm)*Dsize**(5-self%fractal_dimension)*(lpm*1.d-3)*W !lpm unit
-      diffset_lpm= self%kd* coagulation*2*Pi*(exp(1.)-1)/(exp(3.)*fractal_dimension*Pi/6*self%dens_lpm)*(Dsize*xx)**(5.5-fractal_dimension)*(lpm*1.d-3)*W
+!      diffset_lpm=self%kd* coagulation*2*Pi*(exp(1.)-1)/(exp(3.)*fractal_dimension*Pi/6*self%dens_lpm)*(Dsize*xx)**(5.5-fractal_dimension)*(lpm*1.d-3)*W
+      diffset_lpm=self%kd* coagulation*2*Pi*(exp(1.)-1)/(exp(3.)*fractal_dimension*Pi/6*self%dens_lpm)*(Dsize*xx)**(self%pd-fractal_dimension)*(lpm*1.d-3)*W !varying power for Dsize
       _SET_DIAGNOSTIC_(self%id_diffsetlpm,diffset_lpm)  
 !      write (*,*) 'differential settling term = ', W !diffset_lpm
 
-      sinking_lpm = self%ks*self%sinking_velocity(aggorg,agglpm,G, Dsize*xx ,fractal_dimension)/0.014*(Dsize*xx)**(1.54)*(fractal_dimension-1)/(fractal_dimension+1) !sinking #z as layer depth 0.28/20  @1.54 from XU  !20*  **(1.54) ? why this 1.54?   
-
+!      sinking_lpm = self%ks*self%sinking_velocity(aggorg,agglpm,G, Dsize*xx ,fractal_dimension)/0.014*(Dsize*xx)**(1.54)*(fractal_dimension-1)/(fractal_dimension+1) !sinking #z as layer depth 0.28/20  @1.54 from XU  !20*  **(1.54) ? why this 1.54?   
+      sinking_lpm = self%ks*self%sinking_velocity(aggorg,agglpm,G, Dsize*xx ,fractal_dimension)/0.014*(Dsize*xx)**self%ps*(fractal_dimension-1)/(fractal_dimension+1)  !varying power for Dsize
       _SET_DIAGNOSTIC_(self%id_sinkinglpm,sinking_lpm)
 
 
@@ -469,7 +482,7 @@
 !   real(rk), intent(in)    :: !
    real(rk)                :: ws,aggorg,agglpm,rho_part,rho_water,aggmass,fractal_dimension,Dsize,G!,visc
    real(rk)                :: Xsize,lpm,eps,num_turb
-   real(rk)                :: num_water=1.1d-3/1025_rk, xx=10
+   real(rk)                :: num_water=1.1d-3/1025_rk, xx=1 !10
    
    _LOOP_BEGIN_
 
@@ -488,8 +501,7 @@
    Dsize= Xsize/(lpm+1e-9) !!calculated locally second time
    fractal_dimension =self%fractal_dimension1 !3* (Dsize*1d6)**(-0.076527) !2.2  !!second time
    ws = self%sinking_velocity(aggorg,agglpm,G,Dsize*xx,fractal_dimension)
-
-   if (self%onoff==1) then
+   if (self%onoff==1) then  
       _SET_VERTICAL_MOVEMENT_(self%id_agglpm,ws)
       _SET_VERTICAL_MOVEMENT_(self%id_aggorg,ws)
    else if (self%onoff==0) then
@@ -537,8 +549,8 @@
    !Stokes law:
    if (self%onoff==0) then !dynamical
    !sinking_velocity = -2.d0*(self%dens_lpm - rho_water)*9.81d0/(9.d0*visc)*(Dsize/2.d0)**2 !less sinking!**2                     !nf=3 when sinkin   !dynamical  !self%min_size**(3-self%fractal_dimension)*
-   !sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* self%min_size**(3-3)*Dsize**2 !**(3-1)  !same as the one before, simplified, same as the one below with nf=3
-    sinking_velocity = -347.5602*(2*fDsize)**1.54 !!Xu2008 !! -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* (self%min_size/Dsize)**(0)*Dsize**2 !**(1.54)*0.01/4 !!!!**2.1*10  !with rho_a calculated based on fractal dimention!!   !self%min_size/Dsize   -self%const_ws ! *Dsize**(1.0)*0.0001 !*Dsize**(1.54)*0.01
+   !sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* self%min_size**(3-3)*fDsize**2 !**(3-1)  !same as the one before, simplified, same as the one below with nf=3
+   sinking_velocity = - self%kws*fDsize**self%pws !-347.5602*(2*fDsize)**1.54 !!Xu2008 !! -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* (self%min_size/Dsize)**(0)*Dsize**2 !**(1.54)*0.01/4 !!!!**2.1*10  !with rho_a calculated based on fractal dimention!!   !self%min_size/Dsize   -self%const_ws ! *Dsize**(1.0)*0.0001 !*Dsize**(1.54)*0.01
    !sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* self%min_size**(3-self%fractal_dimension)* Dsize**(self%fractal_dimension -1)  !nf
 !	if (Dsize>=1d-4 .AND. Dsize<=2d-4) then  !lpm>=800
 !	      sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* (self%min_size/Dsize)**0*Dsize**2*0.5  !half the sinking when concentration is high
