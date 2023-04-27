@@ -7,8 +7,7 @@
 #define AGG_WO_CHL
 #define LESS_IFS
 
-!  hzg_agg --- aggregation model for aggregation of lithogenic suspended matter
-!              and detritus
+!  hzg_agg --- aggregation model without bottom layer. With options of dynamical size and diagnostic size calculation.
 
    module hzg_agg
 

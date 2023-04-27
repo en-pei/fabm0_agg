@@ -3,13 +3,14 @@
 !  (http://www.apache.org/licenses/LICENSE-2.0)
 ! Author(s): Enpei Li, Richard Hofmeister
 
+
 #include "fabm_driver.h"
 #define AGG_WO_CHL
 #define LESS_IFS
 
-!  hzg_agg --- aggregation model for aggregation of lithogenic suspended matter
-!              and detritus
+!  hzg_agg --- aggregation model with erosion influence on size for field cases. (do_bottom routine is used), suitable for cases with strong erosion signal.
 
+!this version is based on lab version adding bottom layer
    module hzg_agg
 
    use fabm_types
@@ -35,6 +36,9 @@
       type (type_diagnostic_variable_id) :: id_aggvol,id_G,id_Breakup,id_ws,id_aggmass,id_coagulationphy,id_coagulationlpm,id_coagulationdet,id_diffsetlpm,id_sinkinglpm,id_resuspensionlpm,id_Dsize !added
       type (type_dependency_id) :: id_eps,id_num
       type (type_state_variable_id)      :: id_dD,id_Xsize 
+      type (type_bottom_state_variable_id) :: id_Dr !add bottom resuspended size
+      type (type_horizontal_dependency_id)   :: id_taub  !type_bottom_dependency_id for FABM1
+      type (type_horizontal_diagnostic_variable_id)   :: id_dflux !exchange layer
       
 !     Model parameters
       real(rk) :: dens_lpm
@@ -68,6 +72,9 @@
       real(rk) :: ks
       real(rk) :: kd
       real(rk) :: pc, pb, ps, pd, pws, kws, pgc, pgb
+      real(rk) :: tauc_const !added the same as spm.F90
+      real(rk) :: kbottom !added for bottom size
+
 
       contains
 
@@ -77,6 +84,7 @@
       procedure :: get_vertical_movement
       procedure :: sinking_velocity
       procedure :: meansize
+      procedure :: do_bottom !add bottom procedure
 
    end type
 
@@ -169,6 +177,9 @@
    call self%get_parameter(self%kws, 'kws', '/', 'constant for sinking velocity', default=347.5602_rk)
    call self%get_parameter(self%pgc, 'pgc', '/', 'power for G in coagulation', default=1.0_rk)
    call self%get_parameter(self%pgb, 'pgb', '/', 'power for G in breakup', default=1.5_rk)
+   call self%get_parameter(self%kbottom, 'kbottom', '/', 'size change term by bottom routine', default=0.0_rk) 
+   call self%get_parameter(self%tauc_const, 'tauc_const', 'Pa', 'critical shear stress', default=0.01_rk) 
+
 
    ! Register state variables
    call self%register_state_variable(self%id_aggorg,'aggorg','g/m**3', & !changed from mg/m**3 to g/m**3
@@ -219,12 +230,15 @@
    call self%register_diagnostic_variable(self%id_resuspensionlpm,'resuspensionlpm','1/s','resuspension caused size change lpm',time_treatment=time_treatment_last)
    call self%register_diagnostic_variable(self%id_fractal_dimension,'fractal_dimension','/','fractal_dimension',time_treatment=time_treatment_last)
    call self%register_diagnostic_variable(self%id_Dsize,'Dsize','m','Dsize',time_treatment=time_treatment_last)
+   call self%register_horizontal_diagnostic_variable(self%id_dflux,'dflux','m/s', &
+         'sizeflux in the exchange layer from bottom') !added bottom dflux for ncview
 
 
    ! Register conserved quantities
    
    ! Register dependencies
 !   if (self%use_aggmass) call self%register_state_dependency(self%id_aggmass,aggmass_variable)
+   call self%register_dependency(self%id_taub, standard_variables%bottom_stress) !get taub for bottom
    if (self%use_lpm) call self%register_state_dependency(self%id_lpm,lpm_variable)
    if (self%use_phyn) call self%register_state_dependency(self%id_phyn,phyn_variable)
    if (self%use_phyc) call self%register_state_dependency(self%id_phyn,phyc_variable)
@@ -296,7 +310,7 @@
    _GET_STATE_(self%id_dD,dD)
    _GET_STATE_(self%id_Xsize,Xsize)
    _GET_STATE_(self%id_lpm,lpm)
-   Dsize=Xsize/(lpm+1e-6) !1e-7 !min(1.d-6*Xsize/(lpm),1.)!max(Xsize/(1.d-3*lpm),1e-6)
+   Dsize=Xsize/(lpm+1e-9) !1e-7 !min(1.d-6*Xsize/(lpm),1.)!max(Xsize/(1.d-3*lpm),1e-6)
    _SET_DIAGNOSTIC_(self%id_Dsize,Dsize)
 !   _GET_STATE_(self%id_aggmass,aggmass) !added
 #ifndef AGG_WO_CHL
@@ -312,7 +326,7 @@
    ! Retrieve dependencies
    _GET_DEPENDENCY_(self%id_eps, eps) ! dissipation [m**2/s**3]
    _GET_DEPENDENCY_(self%id_num, num_turb) ! kinematic (turbulent) viscosity [m**2/s]
-   G = sqrt(eps/(num_turb + num_water)) ! turbulent shear 
+   G = sqrt(eps/(num_turb + num_water)) !+0.005 ! turbulent shear 
    sms= (G+1e-6)/7.16755 !7.167541 !varying nf because of G
 
    fractal_dimension=self%fractal_dimension1 !3* (Dsize*1d6)**(-0.076527)  !(-0.053344) (-0.0964128021) ![Khelifa 2006] !turned to 2
@@ -322,7 +336,11 @@
 
    if (self%onoff==0) then
 !   	breakup= self%breakup_factor*G**1.5d0*(Dsize*xx-self%min_size)**(3-fractal_dimension)*(Dsize*xx)**2 !*(lpm*1d-3)**(0)  !added breakup diagnostic for dynamical size 
-   	breakup= self%breakup_factor*G**self%pgb*(Dsize*xx-self%min_size)**(3-fractal_dimension)*(Dsize*xx)**self%pb !varying power of Dsize
+	if (Dsize*xx-self%min_size <= 0) then
+		breakup=0
+	else
+   		breakup= self%breakup_factor*G**self%pgb*(Dsize*xx-self%min_size)**(3-fractal_dimension)*(Dsize*xx)**self%pb !varying power of Dsize
+	end if
 !        breakup= self%breakup_factor*G**1.5d0*(Dsize)**3 !1e-7! 
 !	if (lpm>=1500) then 
 !	   breakup= self%breakup_factor*G**1.5d0*(Dsize-self%min_size)**(3-self%fractal_dimension)*Dsize**2 *0.5 !half the breakup when concentration larger
@@ -419,8 +437,7 @@
 
    if (self%onoff==0) then
       _GET_STATE_(self%id_lpm,lpm) !added
-      W=- self%sinking_velocity(Dsize*xx,aggorg,agglpm)/((Dsize*xx)**self%ps) !1.54 for Xu! 2 for normal case !note that W is negative if
-!      W=- self%sinking_velocity(aggorg,agglpm,G,Dsize*xx,fractal_dimension)/((Dsize*xx)**self%ps) !1.54 for Xu! 2 for normal case !note that W is negative if calculated from ws
+      W=- self%sinking_velocity(aggorg,agglpm,G,Dsize*xx,fractal_dimension)/((Dsize*xx)**self%ps) !1.54 for Xu! 2 for normal case !note that W is negative if calculated from ws
 !      W= 2.d0*(self%dens_lpm - rho_water)*9.81d0/(9.d0*visc)*(1/2.d0)**2       !sinking velocity equation divided by Dsize**2
       !W = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* (self%min_size/Dsize) ! new W with rho_a calculated
       !diffset_lpm= coagulation*2*Pi*(exp(1.)-1)/(exp(3.)*self%fractal_dimension*Pi/6*self%dens_lpm)*Dsize**(5-self%fractal_dimension)*(lpm*1.d-3)*W !lpm unit
@@ -429,10 +446,8 @@
       _SET_DIAGNOSTIC_(self%id_diffsetlpm,diffset_lpm)  
 !      write (*,*) 'differential settling term = ', W !diffset_lpm
 
-!      sinking_lpm = self%ks*self%sinking_velocity(aggorg,agglpm,G, Dsize*xx ,fractal_dimension)/0.014*(Dsize*xx)**(1.54)*(fractal_dimension-1)/(fractal_dimension+1) !sinking #z as layer depth 0.28/20  @1.54 from XU  !20*  **(1.54) ? why this 1.54?   
-
-      sinking_lpm = self%ks*self%sinking_velocity(Dsize*xx,aggorg,agglpm)/0.014*(Dsize*xx)**self%ps*(fractal_dimension-1)/(fractal_dimension+1)  !varying power for Dsize
-!      sinking_lpm = self%ks*self%sinking_velocity(aggorg,agglpm,G, Dsize*xx ,fractal_dimension)/0.014*(Dsize*xx)**self%ps*(fractal_dimension-1)/(fractal_dimension+1)  !varying power for Dsize  !previously working function
+!      sinking_lpm = self%ks*self%sinking_velocity(aggorg,agglpm,G, Dsize*xx ,fractal_dimension)/0.014*(Dsize*xx)**(1.54)*(fractal_dimension-1)/(fractal_dimension+1) !sinking #z as layer depth 0.28/20  @1.54 from XU  !20*  **(1.54) 
+      sinking_lpm = self%ks*self%sinking_velocity(aggorg,agglpm,G, Dsize*xx ,fractal_dimension)/0.014*(Dsize*xx)**self%ps*(fractal_dimension-1)/(fractal_dimension+1)  !varying power for Dsize
       _SET_DIAGNOSTIC_(self%id_sinkinglpm,sinking_lpm)
 
 
@@ -443,7 +458,7 @@
 	!self.W      =alpha/(beta*18*self.mu)*(self.rho_p-self.rho_w)*g*self.Dp**(3-self.nf1)/(1+0.15*Re**0.687)*1
 	!self.dD_d     =2*np.pi*(np.e-1)/(np.e**3)*self.e_c*self.W/(self.nf*self.fs*self.rho_p)*self.D**(5-self.nf)*self.C !fs=Pi/6
 
-      _SET_ODE_(self%id_Xsize,(coagulation_lpm-breakup+diffset_lpm+sinking_lpm)*(lpm+1e-6)/xx) !weighted by spmc lpm
+      _SET_ODE_(self%id_Xsize,(coagulation_lpm-breakup+diffset_lpm+sinking_lpm)*(lpm+1e-9)/xx) !weighted by spmc lpm
 	!!coagulation*1.d-3*lpm*Dsize**(4-self%fractal_dimension) !Dsize size change due to coagulation   !coagulation=k_A*G !aggmass changed to lpm
       !_SET_ODE_(self%id_Dsize,diffset_lpm)! differential settling !
       !_SET_ODE_(self%id_Dsize,sinking_lpm)! sinking term added to ODE
@@ -478,6 +493,40 @@
 
    end subroutine do
 
+   subroutine do_bottom(self, _ARGUMENTS_DO_BOTTOM_) !added bottom routine for accounting resuspension's effect on size. 
+   ! need to add this for others agg, and phy and det (?)    #dflux turned to zero turn off
+   class (type_hzg_agg), intent(in) :: self
+   _DECLARE_ARGUMENTS_DO_BOTTOM_
+   real(rk)                :: taub, Dr, Xsize, dflux, kbottom !, agglpm,xx=1
+   !_BOTTOM_LOOP_BEGIN_  !in FABM1
+   _FABM_HORIZONTAL_LOOP_BEGIN_
+      _GET_(self%id_agglpm,agglpm)
+      _GET_(self%id_aggorg,aggorg)
+      _GET_(self%id_lpm,lpm)
+      _GET_(self%id_Xsize,Xsize)
+      _GET_HORIZONTAL_(self%id_taub,taub)
+      Dr=100e-6 !80e-6+taub*20e-6 !200e-6 !110e-6  !100e-6
+      if (self%coagulation_rate==0) then
+         Dsize=100e-6 !40e-6
+      else
+         Dsize=Xsize/(lpm+1e-9)  !(lpm+1e-9) !Xsize/((aggorg+agglpm)+1e-9) 
+      end if 
+      !tauc_const=0.01
+      if (taub > self%tauc_const) then  !self%tauc_const=0.01, does not work    self%tau_crit=0.07? should be 0.01 in spm.F90 default
+         dflux=(taub/self%tauc_const -1)*(Dr-Dsize)*1e-6*self%kbottom !too strong without any parameter, now *1e-6
+      else
+         dflux=0
+      end if
+      !_GET_BOTTOM_(self%id_taub,taub)  !FABM1
+      !_ADD_BOTTOM_FLUX_(self%id_Xsize, -0.0001)  !FABM1
+     _SET_HORIZONTAL_DIAGNOSTIC_(self%id_dflux,dflux)
+     _SET_BOTTOM_EXCHANGE_(self%id_Xsize,dflux*(lpm+1e-9))  ! ,dflux*(aggorg+agglpm)/xx !turn off the bottom exchange
+
+     !_SET_BOTTOM_EXCHANGE_(self%id_lpm,0)
+
+   _FABM_HORIZONTAL_LOOP_END_
+   !_BOTTOM_LOOP_END    ! in FABM1
+   end subroutine do_bottom
 
 
 
@@ -506,11 +555,10 @@
    ! Retrieve dependencies
    _GET_DEPENDENCY_(self%id_eps, eps) ! dissipation [m**2/s**3]
    _GET_DEPENDENCY_(self%id_num, num_turb) ! kinematic (turbulent) viscosity [m**2/s]
-   G = sqrt(eps/(num_turb + num_water)) ! turbulent shear  !num_water~mu
-   Dsize=Xsize/(lpm+1e-6) !!calculated locally second time
+   G = sqrt(eps/(num_turb + num_water)) !+ 0.005 ! turbulent shear  !num_water~mu
+   Dsize=Xsize/(lpm+1e-9) !!calculated locally second time
    fractal_dimension =self%fractal_dimension1 !3* (Dsize*1d6)**(-0.076527) !2.2  !!second time
-!   ws = self%sinking_velocity(aggorg,agglpm,G,Dsize*xx,fractal_dimension)
-   ws = self%sinking_velocity(Dsize*xx,aggorg,agglpm)
+   ws = self%sinking_velocity(aggorg,agglpm,G,Dsize*xx,fractal_dimension)
    if (self%onoff==1) then  
       _SET_VERTICAL_MOVEMENT_(self%id_agglpm,ws)
       _SET_VERTICAL_MOVEMENT_(self%id_aggorg,ws)
@@ -534,26 +582,16 @@
    end subroutine get_vertical_movement
 
 
-!   real(rk) function sinking_velocity(self,aggorg,agglpm,G,fDsize,fractal_dimension)
-   real(rk) function sinking_velocity(self,fDsize,aggorg,agglpm)
+   real(rk) function sinking_velocity(self,aggorg,agglpm,G,fDsize,fractal_dimension)
    implicit none
    class(type_hzg_agg)        :: self
-   real(rk), intent(in)       :: aggorg, agglpm
-   real(rk), intent(in)       :: fDsize !,G, fractal_dimension
+   real(rk), intent(in)       :: aggorg
+   real(rk), intent(in)       :: agglpm
+   real(rk), intent(in)       :: G,fDsize, fractal_dimension
    real(rk)                   :: rho_part,rho_water,visc
    real(rk)                   :: Vol_agg, aggmass,doc,lpm
    real(rk)                   :: dD
 
-   !Stokes law:
-   if (self%onoff==0) then !dynamical
-   !sinking_velocity = -2.d0*(self%dens_lpm - rho_water)*9.81d0/(9.d0*visc)*(Dsize/2.d0)**2 !less sinking!**2                     !nf=3 when sinkin   !dynamical  !self%min_size**(3-self%fractal_dimension)*
-   !sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* self%min_size**(3-3)*fDsize**2 !**(3-1)  !same as the one before, simplified, same as the one below with nf=3
-   sinking_velocity = - self%kws*(2*fDsize)**self%pws !-347.5602*(2*fDsize)**1.54 !!Xu2008 !! -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* (self%min_size/Dsize)**(0)*Dsize**2 !**(1.54)*0.01/4 !!!!**2.1*10  !with rho_a calculated based on fractal dimention!!   !self%min_size/Dsize   -self%const_ws ! *Dsize**(1.0)*0.0001 !*Dsize**(1.54)*0.01
-   !sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* self%min_size**(3-self%fractal_dimension)* Dsize**(self%fractal_dimension -1)  !nf
-!	if (Dsize>=1d-4 .AND. Dsize<=2d-4) then  !lpm>=800
-!	      sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* (self%min_size/Dsize)**0*Dsize**2*0.5  !half the sinking when concentration is high
-!	end if
-   else if (self%onoff==1) then !diagnostic
    rho_water = 1025.d0 ! [kg/m**3]
    visc = 1.1d-3 ! dynamic viscosity for about 17 degC water [kg/(m*s)]
    Vol_agg=1.d-3*(agglpm/self%dens_lpm + aggorg/self%dens_org)/(_ONE_-self%agg_porosity)
@@ -565,8 +603,19 @@
 		!(1.d-3*aggmass + (Vol_agg - 1.d-6*aggorg/self%dens_org - 1.d-3*agglpm/self%dens_lpm) * rho_water)/Vol_agg  !aggmass in g m-3
 		!(aggmass + (Vol_agg - aggorg/self%dens_org - agglpm/self%dens_lpm) * rho_water)/ Vol_agg
 		!(_ONE_-self%agg_porosity)*1.d-3*aggmass/Vol_agg + self%agg_porosity*rho_water
+
+   !Stokes law:
+   if (self%onoff==0) then !dynamical
+   !sinking_velocity = -2.d0*(self%dens_lpm - rho_water)*9.81d0/(9.d0*visc)*(Dsize/2.d0)**2 !less sinking!**2                     !nf=3 when sinkin   !dynamical  !self%min_size**(3-self%fractal_dimension)*
+   !sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* self%min_size**(3-3)*fDsize**2 !**(3-1)  !same as the one before, simplified, same as the one below with nf=3
+   sinking_velocity = - self%kws*(2*fDsize)**self%pws !-347.5602*(2*fDsize)**1.54 !!Xu2008 !! -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* (self%min_size/Dsize)**(0)*Dsize**2 !**(1.54)*0.01/4 !!!!**2.1*10  !with rho_a calculated based on fractal dimention!!   !self%min_size/Dsize   -self%const_ws ! *Dsize**(1.0)*0.0001 !*Dsize**(1.54)*0.01
+   !sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* self%min_size**(3-self%fractal_dimension)* Dsize**(self%fractal_dimension -1)  !nf
+!	if (Dsize>=1d-4 .AND. Dsize<=2d-4) then  !lpm>=800
+!	      sinking_velocity = -1/(18*visc)*(self%dens_lpm - rho_water)*9.81d0* (self%min_size/Dsize)**0*Dsize**2*0.5  !half the sinking when concentration is high
+!	end if
+   else if (self%onoff==1) then !diagnostic
    !sinking_velocity = -2.d0*(rho_part - rho_water)*9.81d0/(9.d0*visc)*(self%meansize(aggmass,G,doc,lpm,agglpm,aggorg)/2.d0)**2  !self%onoff*dSize+
-   sinking_velocity = -0.012 !!!turned off for simple sinking velocity funciton for Dsize !-1.d0/18*(rho_part - rho_water)*9.81d0/visc*(self%meansize(aggmass,G,doc,lpm,agglpm,aggorg))**1.54*0.01 !*0.007 ! !!working function
+   sinking_velocity = -1.d0/18*(rho_part - rho_water)*9.81d0/visc*(self%meansize(aggmass,G,doc,lpm,agglpm,aggorg))**1.54*0.01 !*0.007 !
    else 
       print*, "unknown size method for calculating sinking velocity"
    end if 
