@@ -1,9 +1,0 @@
-instances:
-
-  tracer:
-    model: hzg/test
-    parameters:
-      param    : 0.05 # (1/d)
-#    initialization:
-#      tracer : 1.23 # (mg/m3)
-
