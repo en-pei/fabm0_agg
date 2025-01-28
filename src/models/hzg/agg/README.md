@@ -95,17 +95,13 @@ Don't forget to give the project a star! Thanks again!
 
 ### Top contributors:
 Enpei Li, Kai Wirtz
-<a href="https://github.com/github_username/repo_name/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=github_username/repo_name" alt="contrib.rocks image" />
-</a>
-
 
 
 <!-- CONTACT -->
 ## Contact
 
 Enpei Li - Li@bafg.de
-
+Kai Wirtz - kai.wirtz@hereon.de
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -114,9 +110,9 @@ Enpei Li - Li@bafg.de
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
-* []()
-* []()
-* []()
+* [](Arne...)
+* [](Richard ...)
+
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
