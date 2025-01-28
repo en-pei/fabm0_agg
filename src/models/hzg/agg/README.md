@@ -52,7 +52,6 @@ Note that two version of `agg.F90` are given in the folder ( `agg_lab.F90 ` and 
 Successful compiling will result in a gotm executable. Run by ./gotm
 Setup files yamls are needed for running gotm. See next step.
 
-_Below is an example of how you can instruct your audience on installing and setting up your app. This template doesn't rely on any external dependencies or services._
 
 ## Run GOTM
 ### Set up (yaml files)
