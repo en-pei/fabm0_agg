@@ -17,40 +17,53 @@ Licensed under the Apache License, Version 2.0
 
 <!-- GETTING STARTED -->
 ## Getting Started
-
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
-
 ### Prerequisites
+#### Compilers needed and versions
+Refer to https://github.com/fabm-model/fabm/wiki/GOTM
 
-This is an example of how to list things you need to use the software and how to install them.
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
 
 ### Installation
+Used the GOTM version:
+
+https://github.com/en-pei/gotmj_fabm0_strand.git
+
+
+Then go to `extern/fabm` to clone the fabm0_agg fabm
+
+https://github.com/en-pei/fabm0_agg.git
+
+   ```sh
+git submodule update --init –recursive
+git submodule update --force --recursive --init --remote
+   ```
+
+If this does not work then use the official fabm within gotm then delete the fabm folder then get the fabm0_agg fabm (the fabm that contains  `agg.F90 `).
+
+
+Note that two version of `agg.F90` are given in the folder ( `agg_lab.F90 ` and  `agg_field.F90 ` F90), by copying the lab version or the field version to  `agg.F90 ` then compile will give the right model version. Field version is for the TMZ (turbidity maximum zone) cases with do_bottom routine where erosion’s influence on size is calculated.
+
+
+
+
+### cmake command: build `gotm` executable with FABM base
+   ```sh
+    cmake $GOTMDIR/src -DFABM_BASE=$FABMDIR/src
+   ```
+Successful compiling will result in a gotm executable. Run by ./gotm
+Setup files yamls are needed for running gotm. See next step.
 
 _Below is an example of how you can instruct your audience on installing and setting up your app. This template doesn't rely on any external dependencies or services._
 
-1. Get a free API Key at [https://example.com](https://example.com)
-2. Clone the repo
-   ```sh
-   git clone https://github.com/github_username/repo_name.git
-   ```
-3. Install NPM packages
-   ```sh
-   npm install
-   ```
-4. Enter your API in `config.js`
-   ```js
-   const API_KEY = 'ENTER YOUR API';
-   ```
-5. Change git remote url to avoid accidental pushes to base project
-   ```sh
-   git remote set-url origin github_username/repo_name
-   git remote -v # confirm the changes
-   ```
+## Run GOTM
+### Set up (yaml files)
+
+Get setup yaml and meteo file from: https://github.com/en-pei/setupyamls.git
+2.1.1 gotm.yaml: parameters of physics model, depth, layers, time… etc
+2.1.2 fabm.yaml: parameters of each biogeochemical model.
+2.1.3 output.yaml: specify which output to write to nc and which output frequency.
+
+
+
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -62,6 +75,48 @@ _Below is an example of how you can instruct your audience on installing and set
 Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
 
 _For more examples, please refer to the [Documentation](https://example.com)_
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Contributing
+
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+Don't forget to give the project a star! Thanks again!
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Top contributors:
+Enpei Li, Kai Wirtz
+<a href="https://github.com/github_username/repo_name/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=github_username/repo_name" alt="contrib.rocks image" />
+</a>
+
+
+
+<!-- CONTACT -->
+## Contact
+
+Enpei Li - Li@bafg.de
+
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- ACKNOWLEDGMENTS -->
+## Acknowledgments
+
+* []()
+* []()
+* []()
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
