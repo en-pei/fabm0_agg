@@ -71,7 +71,13 @@ Setup files yamls are needed for running gotm. See next step.
 
 
 ### Set up (yaml files)
+Get setup yaml and meteo file from:
 
+ `src/models/hzg/agg/labsetup ` for a lab case.
+
+ `src/models/hzg/agg/fieldsetup ` for a field case.
+
+ 
 Get setup yaml and meteo file from: https://github.com/en-pei/setupyamls.git
 
 2.1.1 gotm.yaml: parameters of physics model, depth, layers, time… etc
