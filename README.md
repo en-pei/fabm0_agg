@@ -9,4 +9,5 @@ Further information is provided on [the FABM wiki](http://fabm.net/wiki)
 ### this is FABM version 0 that supports AGG model (version 1.0.0).
 please go to `src/models/hzg/agg` for source code.
 
-More info see https://github.com/en-pei/fabm0_agg/blob/master/src/models/hzg/agg/README.md
+More info see README file:  
+https://github.com/en-pei/fabm0_agg/blob/master/src/models/hzg/agg/README.md
