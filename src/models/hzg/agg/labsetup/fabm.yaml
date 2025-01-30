@@ -1,0 +1,87 @@
+instances:
+  spm:
+    model: iow_spm
+    parameters:
+      diameter: 10 #20 #10 #50.
+      sinking_method: 0 #2 #0 #2 is stokes
+      pm_pool: .false. #.true. 	#	  
+      bottom_stress_method: 1 #2 #default 1 	
+      tauc_const: 0.01 #0.005 #0.01 #1.0   # critical stress for erosion
+      tauc_factor: 10000 #0.1  # critical stress factor for sedimentation
+      shading: 0.012
+      ws_const: 0 #0.005  #0.00012 #0.012  #0.00012 #0
+      rho: 2600 #2600 #2650  #2600 #2300 #2000 #2650.0
+      bedload_method: 0 #1  #0 is off 
+      add_to_density: .false.
+      use_par: .true #.false.
+#      resuspension_model: 2
+#      M2: 10 #0.7 #1 #10
+    initialization:
+      spm: 4100 #3900 #3500 #40 #40 #100 #150 #350 #500 #90 #100 #4000 #3900 #3500 #3900 #3500 #3900 #4000 #2000 #1630 #2630 #3050.#3000 #mg/L g/m3
+#      pmpool: 5 #1.001 #0.05 #5 #300 #0.0  #kg n2
+
+  npzd: #    use: false
+    model: gotm/npzd
+    parameters:
+      p0: 0.0225           # background phytoplankton concentration (mmol m-3), default = 0.0225
+      z0: 0.0225           # background zooplankton concentration (mmol m-3), default = 0.0225
+      kc: 0.03             # specific light extinction of phytoplankton and detritus (n2 mmol-1), default = 0.03
+      i_min: 25.0          # minimum light intensity in euphotic zone (W m-2), default = 25.0
+      rmax: 1.0            # maximum specific growth rate of phytoplankton (d-1), default = 1.0
+      gmax: 0.1 #0.2            # maximum specific grazing rate of zooplankton (d-1), default = 0.5
+      iv: 1.1              # Ivlev grazing constant (m3 mmol-1), default = 1.1
+      alpha: 1.35          # half-saturation nutrient concentration for phytoplankton (mmol m-3), default = 0.3
+      rpn: 0.01            # loss rate of phytoplankton to nutrients (d-1), default = 0.01
+      rzn: 0.01            # loss rate of zooplankton to nutrients (d-1), default = 0.01
+      rdn: 0.003           # detritus remineralization rate (d-1), default = 0.003
+      rpdu: 0.02 #0	# 0.02     # phytoplankton mortality in euphotic zone (d-1), default = 0.02
+      rpdl: 0.1 #0	#0.1	   # phytoplankton mortality below euphotic zone (d-1), default = 0.1
+      rzd: 0.02            # zooplankton mortality (d-1), default = 0.02
+      w_p: -1.0            # vertical velocity of phytoplankton (<0 for sinking) (m d-1), default = -1.0
+      w_d: -1.0 #-5.0            # vertical velocity of detritus  (<0 for sinking) (m d-1), default = -5.0
+      kpm: 0.066
+#      use_lpm: .true
+#      use_agglpm: .true
+    initialization:
+      nut: 0 #2  #25 for winter  #80     	       # nutrients (mmol m-3)
+      phy: 0 #30 #1 #3 #30 #7.0	#7 	       # phytoplankton (mmol m-3)
+      zoo: 0 #0.05	#0.05 	       # zooplankton (mmol m-3)
+      det: 0 #1.07		       # detritus (mmol m-3)
+
+  agg:
+    model: hzg/agg
+    parameters:
+      dens_lpm: 2000 #2600 #2600 #2000 #1600 #2300 #2000 #1600 #2650 #1500.	#kg m-3
+      dens_org: 1200.	#kg m-3
+      max_size:  0.001 #0.0009 #0.001	#50.e-6 #0.000600	#400.e-6  50.e-6 #m
+      size_method: 4 #8 #6# 2 5	#3 is default
+      # 1:sigmoid, 2:Xu ea. 2008 steady-state, 3:Xu ea. 2008 tank, 4:Winterwerp ea. 1998 6. equi in this model 8.k=2 9.k with model solution
+      coagulation_rate: 79.94 #1.583 #0.08 #1.583 #1.587 #1.583 
+      agg_porosity: 0.97  #0.96 #0.98
+      phyn_variable: npzd_phy
+      detn_variable: npzd_det
+      lpm_variable: spm_spm
+      tep_remin: 0.165 #0.15 #0 #5000 #3600 #1800 #0.00 #0.15 for linear
+      breakup_factor: 1310 #3000 #1310 #1218 #1310 #4e4 #
+      onoff: 0 #1#0 when dynamical size, 1 when diagnostic size
+      fractal_dimension1: 2.0 #1.95 #2.0
+      min_size: 1e-6 #1e-20 #1e-7 #1e-5
+#      Dphy: 40e-6 #30e-6
+#      Ddet: 40e-6 #50e-6
+      const_ws: 0 #0.0012 #0 #0.012
+      ks: 2.5 #2.499 #2.5 #3 #2.5
+      kd: 2.5e-17 #0 #1 #3e3
+      pc: 4.0
+      pb: 2.0
+      ps: 1.54
+      pd: 0 #5.5
+      pws: 1.54
+      kws: 347 #343 #347
+      pgc: 1.0
+      pgb: 1.5
+#      tauc_const: 0.005 #0.01 #1.0   # critical stress for erosion
+    initialization:
+      aggorg: 0.		#g m-3
+      agglpm: 0.001 #2500 #2000 #1000 #870  #900 #1000	#g m-3 1e-10 #
+      dD: 0.0001
+      Xsize: 0.5 #0.1 #0.5 #0.64  #1e-7 #0.001 #0.1 #0.00425 #0.1 #1 #0.05 #1 #1e-4 #0.00005 #0.00003 #0.0005
