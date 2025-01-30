@@ -1,6 +1,6 @@
 # AGG
 
-This is AGG, developed as part of the FABM framework.
+This is AGG, a distribution-based aggregation-SPM model.
 
 ## Citation
 
