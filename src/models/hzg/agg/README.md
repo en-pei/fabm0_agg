@@ -1,6 +1,10 @@
 # AGG 1.0.0
 
-This is AGG, a distribution-based aggregation-SPM model.
+This is AGG, a distribution-based aggregation-SPM model. 
+
+It is coupled to other models and physical driver with FABM framework.
+
+The iow_spm model is linked. See subfolder: `/src/models/iow/spm`
 
 
 ## Citation
