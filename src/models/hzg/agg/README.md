@@ -2,10 +2,9 @@
 
 This is `AGG`, a distribution-based aggregation-SPM model. 
 
-It is coupled to other models and physical driver with FABM framework.
+It is coupled to other models and physical driver with the [FABM framework](https://github.com/fabm-model/fabm/wiki) .
 
-The `iow_spm` model is used to calculate resuspension. See subfolder: `/src/models/iow/spm` for source code.
-
+The [iow_spm](https://github.com/en-pei/fabm0_agg/tree/d770ff65ddb2882371e50d3a071b0a2067c3b0d3/src/models/iow/spm) model is used to calculate resuspension. See subfolder: `/src/models/iow/spm` for source code.
 
 ## Citation
 
