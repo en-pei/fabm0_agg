@@ -1,0 +1,20 @@
+bale2002:
+   time_unit: second
+   time_step: 60 #120 #is that already averaging???
+   variables:
+#      - source: *
+      - source: spm_spm
+      - source: agg_agglpm
+      - source: agg_Dsize
+      - source: agg_esd
+      - source: agg_G
+      - source: agg_ws
+      - source: agg_Breakup
+      - source: agg_coagulationlpm
+      - source: agg_diffsetlpm
+      - source: agg_fractal_dimension
+      - source: agg_resuspensionlpm
+      - source: agg_rho_part
+      - source: agg_sinkinglpm
+      - source: agg_Xsize
+      - source: u
