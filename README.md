@@ -7,7 +7,7 @@ FABM is published in "Bruggeman, J., Bolding, K., 2014. A general framework for 
 Further information is provided on [the FABM wiki](http://fabm.net/wiki)
 
 ### this is FABM version 0 that supports AGG model (version 1.0.0).
-please go to `src/models/hzg/agg` for  [source code of AGG](https://github.com/en-pei/fabm0_agg/blob/8461eac78cb93c67235f7fedb02a2ac0a1b175eb/src/models/hzg/agg/agg.F90).
+please go to `src/models/hzg/agg` for  [source code of AGG](https://github.com/en-pei/fabm0_agg/blob/8461eac78cb93c67235f7fedb02a2ac0a1b175eb/src/models/hzg/agg/agg.F90) .
 
 More info see README file:  
 https://github.com/en-pei/fabm0_agg/blob/master/src/models/hzg/agg/README.md
