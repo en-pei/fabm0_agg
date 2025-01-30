@@ -119,9 +119,9 @@ Kai Wirtz - kai.wirtz@hereon.de
 
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
-
-* [](Arne...)
-* [](Richard ...)
+<!--* [](Arne...)?-->
+[comment]: # (tesetttest)
+* Dr. Richard Hofmeister
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
