@@ -6,8 +6,7 @@ This is AGG, a distribution-based aggregation-SPM model.
 ## Citation
 
 If you use this model, please cite:
--
-
+-"Li, E., & Wirtz, K. (2025). _AGG model (Version 1.0.0)_. GitHub. Retrieved from https://github.com/en-pei/fabm0_agg/tree/2f265837b08193e02bdabb5f0a7f1deb51ff8614/src/models/hzg/agg"
 
 
 Additionally, please cite the FABM framework:
