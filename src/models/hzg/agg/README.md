@@ -1,4 +1,4 @@
-# AGG
+# AGG 1.0.0
 
 This is AGG, a distribution-based aggregation-SPM model.
 
