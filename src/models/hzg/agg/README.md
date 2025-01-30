@@ -51,7 +51,12 @@ Note that two version of `agg.F90` are given in the folder ( `agg_lab.F90 ` and 
    ```sh
     cmake $GOTMDIR/src -DFABM_BASE=$FABMDIR/src
    ```
-Successful compiling will result in a gotm executable. Run by ./gotm
+Successful compiling will result in a gotm executable. 
+
+Run by 
+   ```sh
+   ./gotm
+   ```
 Setup files yamls are needed for running gotm. See next step.
 
 
