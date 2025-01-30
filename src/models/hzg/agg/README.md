@@ -64,7 +64,6 @@ Successful compiling will result in a gotm executable.
 ## Usage
 
 ### Run GOTM
-Run by 
    ```sh
    ./gotm
    ```
@@ -74,8 +73,11 @@ Setup files yamls are needed for running gotm. See next step.
 ### Set up (yaml files)
 
 Get setup yaml and meteo file from: https://github.com/en-pei/setupyamls.git
+
 2.1.1 gotm.yaml: parameters of physics model, depth, layers, time… etc
+
 2.1.2 fabm.yaml: parameters of each biogeochemical model.
+
 2.1.3 output.yaml: specify which output to write to nc and which output frequency.
 
 
