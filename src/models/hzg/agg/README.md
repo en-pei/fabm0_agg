@@ -2,10 +2,13 @@
 
 This is AGG, a distribution-based aggregation-SPM model.
 
+
 ## Citation
 
 If you use this model, please cite:
-- Enpei Li. "AGG" [DOI or link to your publication or Zenodo archive].
+-
+
+
 
 Additionally, please cite the FABM framework:
 - "Bruggeman, J., Bolding, K., 2014. A general framework for aquatic biogeochemical models. Environmental Modelling & Software 61: 249–265. DOI: 10.1016/j.envsoft.2014.04.002"
