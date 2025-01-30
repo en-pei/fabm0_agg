@@ -56,6 +56,14 @@ Note that two version of `agg.F90` are given in the folder ( `agg_lab.F90 ` and 
    ```
 Successful compiling will result in a gotm executable. 
 
+
+
+
+
+<!-- USAGE EXAMPLES -->
+## Usage
+
+### Run GOTM
 Run by 
    ```sh
    ./gotm
@@ -63,7 +71,6 @@ Run by
 Setup files yamls are needed for running gotm. See next step.
 
 
-## Run GOTM
 ### Set up (yaml files)
 
 Get setup yaml and meteo file from: https://github.com/en-pei/setupyamls.git
@@ -77,9 +84,6 @@ Get setup yaml and meteo file from: https://github.com/en-pei/setupyamls.git
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-
-<!-- USAGE EXAMPLES -->
-## Usage
 
 Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
 
