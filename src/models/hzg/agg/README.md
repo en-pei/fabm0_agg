@@ -77,8 +77,6 @@ Get setup yaml and meteo file from:
  `src/models/hzg/agg/fieldsetup ` for a field case.
 
  
-Get setup yaml and meteo file from: https://github.com/en-pei/setupyamls.git
-
 2.1.1 gotm.yaml: parameters of physics model, depth, layers, time… etc
 
 2.1.2 fabm.yaml: parameters of each biogeochemical model.
@@ -91,12 +89,6 @@ Get setup yaml and meteo file from: https://github.com/en-pei/setupyamls.git
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
-
-_For more examples, please refer to the [Documentation](https://example.com)_
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 ### Top contributors:
