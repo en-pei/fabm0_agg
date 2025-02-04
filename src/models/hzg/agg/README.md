@@ -16,8 +16,7 @@ Additionally, please cite the FABM framework:
 - "Bruggeman, J., Bolding, K., 2014. A general framework for aquatic biogeochemical models. Environmental Modelling & Software 61: 249–265. DOI: 10.1016/j.envsoft.2014.04.002"
 
 ## License
-Licensed under the Apache License, Version 2.0
-(http://www.apache.org/licenses/LICENSE-2.0)
+Licensed under the GPL-2.0 
 
 
 <!-- GETTING STARTED -->
