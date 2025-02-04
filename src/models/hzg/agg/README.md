@@ -132,7 +132,7 @@ Kai Wirtz - kai.wirtz@hereon.de
 ## Acknowledgments
 <!--* [](Arne...)?-->
 [comment]: # (tesetttest)
-* Dr. Richard Hofmeister
+* Dr. Richard Hofmeister 
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
