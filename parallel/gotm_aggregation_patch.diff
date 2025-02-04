@@ -1,0 +1,70 @@
+diff --git a/src/fabm/gotm_fabm.F90 b/src/fabm/gotm_fabm.F90
+index 30e9c670..59845856 100644
+--- a/src/fabm/gotm_fabm.F90
++++ b/src/fabm/gotm_fabm.F90
+@@ -81,7 +81,7 @@
+       module procedure register_scalar_observation
+    end interface
+ 
+-   type (type_bulk_variable_id),      save :: temp_id,salt_id,rho_id,h_id,swr_id,par_id,pres_id
++   type (type_bulk_variable_id),      save :: temp_id,salt_id,rho_id,h_id,swr_id,par_id,pres_id,eps_id,num_id
+    type (type_horizontal_variable_id),save :: lon_id,lat_id,windspeed_id,par_sf_id,cloud_id,taub_id,swr_sf_id
+ 
+ !  Variables to hold time spent on advection, diffusion, sink/source terms.
+@@ -306,6 +306,8 @@
+       par_id  = model%get_bulk_variable_id(standard_variables%downwelling_photosynthetic_radiative_flux)
+       swr_id  = model%get_bulk_variable_id(standard_variables%downwelling_shortwave_flux)
+       pres_id = model%get_bulk_variable_id(standard_variables%pressure)
++      eps_id = model%get_bulk_variable_id(standard_variables%turbulent_kinetic_energy_dissipation)
++      num_id  = model%get_bulk_variable_id(standard_variables%momentum_diffusivity)
+       lon_id       = model%get_horizontal_variable_id(standard_variables%longitude)
+       lat_id       = model%get_horizontal_variable_id(standard_variables%latitude)
+       windspeed_id = model%get_horizontal_variable_id(standard_variables%wind_speed)
+@@ -824,7 +826,7 @@
+ ! !IROUTINE: Set environment for FABM
+ !
+ ! !INTERFACE:
+-   subroutine set_env_gotm_fabm(latitude,longitude,dt_,w_adv_method_,w_adv_ctr_,temp,salt_,rho_,nuh_,h_,w_, &
++   subroutine set_env_gotm_fabm(latitude,longitude,dt_,w_adv_method_,w_adv_ctr_,temp,salt_,rho_,nuh_,eps_,num_,h_,w_, &
+                                 bioshade_,I_0_,cloud,taub,wnd,precip_,evap_,z_,A_,g1_,g2_, &
+                                 yearday_,secondsofday_,SRelaxTau_,sProf_,bio_albedo_,bio_drag_scale_)
+ !
+@@ -836,7 +838,7 @@
+    REALTYPE, intent(in),target :: latitude,longitude
+    REALTYPE, intent(in) :: dt_
+    integer,  intent(in) :: w_adv_method_,w_adv_ctr_
+-   REALTYPE, intent(in),target,dimension(:) :: temp,salt_,rho_,nuh_,h_,w_,bioshade_,z_
++   REALTYPE, intent(in),target,dimension(:) :: temp,salt_,rho_,nuh_,h_,w_,bioshade_,z_,eps_,num_
+    REALTYPE, intent(in),target :: I_0_,cloud,wnd,precip_,evap_,taub
+    REALTYPE, intent(in),target :: A_,g1_,g2_
+    integer,  intent(in),target :: yearday_,secondsofday_
+@@ -856,6 +858,8 @@
+    call fabm_link_bulk_data      (model,salt_id,     salt_)
+    call fabm_link_bulk_data      (model,rho_id,      rho_)
+    call fabm_link_bulk_data      (model,h_id,        h_(2:))
++   call fabm_link_bulk_data      (model,eps_id,      eps_(2:))
++   call fabm_link_bulk_data      (model,num_id,      num_(2:))
+    call fabm_link_horizontal_data(model,lon_id,      longitude)
+    call fabm_link_horizontal_data(model,lat_id,      latitude)
+    call fabm_link_horizontal_data(model,windspeed_id,wnd)
+diff --git a/src/gotm/gotm.F90 b/src/gotm/gotm.F90
+index ddd975c5..f799557c 100644
+--- a/src/gotm/gotm.F90
++++ b/src/gotm/gotm.F90
+@@ -55,6 +55,7 @@
+    use turbulence,  only: turb_method
+    use turbulence,  only: init_turbulence,do_turbulence
+    use turbulence,  only: num,nuh,nus
++   use turbulence,  only: eps ! for aggregation model
+    use turbulence,  only: const_num,const_nuh
+    use turbulence,  only: gamu,gamv,gamh,gams
+    use turbulence,  only: kappa
+@@ -297,7 +298,7 @@
+       end if
+    end if
+    call set_env_gotm_fabm(latitude,longitude,dt,w_adv_method,w_adv_discr,t(1:nlev),s(1:nlev),rho(1:nlev), &
+-                          nuh,h,w,bioshade(1:nlev),I_0,cloud,taub,wind,precip,evap,z(1:nlev), &
++                          nuh,eps,num,h,w,bioshade(1:nlev),I_0,cloud,taub,wind,precip,evap,z(1:nlev), &
+                           A,g1,g2,yearday,secondsofday,SRelaxTau(1:nlev),sProf(1:nlev), &
+                           bio_albedo,bio_drag_scale)
+ 
