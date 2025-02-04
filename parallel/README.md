@@ -1,5 +1,5 @@
-# strandsetup
-Setup for running aggregation on strand, with sbatch code and parallel running code. `test.sh`, `slurm_agg.sh`, and with postprocessing `postprocessing2.py`.
+# Code for systematic parameter variation and post-processing
+Setup for running aggregation on Strand (cluster @ Hereon), with sbatch code and parallel running code. `test.sh`, `slurm_agg.sh`, and with postprocessing `postprocessing2.py`.
 
 Parallel runing code are named `test5p*.sh` or `test*.sh`.
 
