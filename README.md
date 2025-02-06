@@ -23,6 +23,9 @@ Setups for the `AGG` model see:
 More info on the `AGG` model see README file:  
 https://github.com/en-pei/fabm0_agg/blob/master/src/models/hzg/agg/README.md
 
+[![DOI](https://zenodo.org/badge/923541153.svg)](https://doi.org/10.5281/zenodo.14802720)
+
+
 ## Parameter variation and post-processing 
 Please see `/parallel` for scripts of parallel computing and systematic variation of parameters.
 
