@@ -23,8 +23,12 @@ Setups for the `AGG` model see:
 More info on the `AGG` model see README file:  
 https://github.com/en-pei/fabm0_agg/blob/master/src/models/hzg/agg/README.md
 
-### Parameter variation and plotting 
+## Parameter variation and post-processing 
 Please see `/parallel` for scripts of parallel computing and systematic variation of parameters.
 
 Please see `/parallel/Plot` for scripts of postprocessing and plotting scripts.
+
+
+## Plotting for the settling manuscript
+Please see `settling_plotting.py` and run with Python3 for reproduce the figures.
 
