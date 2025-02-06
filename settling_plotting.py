@@ -1,3 +1,5 @@
+#Copyright 2025 Helmholtz-Zentrum Hereon
+# Author(s): Enpei Li
 import matplotlib
 from matplotlib import rc
 from matplotlib import ticker, cm
